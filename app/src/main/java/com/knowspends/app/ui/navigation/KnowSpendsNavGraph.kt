@@ -154,18 +154,16 @@ fun KnowSpendsAppRoot(
                 startDestination = Screen.Home.route,
                 modifier = Modifier.fillMaxSize(),
                 enterTransition = {
-                    fadeIn(animationSpec = KnowSpendsMotion.fade(220)) +
-                        slideInHorizontally(animationSpec = KnowSpendsMotion.OffsetSpring) { 50 }
+                    fadeIn(animationSpec = androidx.compose.animation.core.tween(140, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 },
                 exitTransition = {
-                    fadeOut(animationSpec = KnowSpendsMotion.fade(160))
+                    fadeOut(animationSpec = androidx.compose.animation.core.tween(90, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 },
                 popEnterTransition = {
-                    fadeIn(animationSpec = KnowSpendsMotion.fade(220)) +
-                        slideInHorizontally(animationSpec = KnowSpendsMotion.OffsetSpring) { -50 }
+                    fadeIn(animationSpec = androidx.compose.animation.core.tween(140, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 },
                 popExitTransition = {
-                    fadeOut(animationSpec = KnowSpendsMotion.fade(160))
+                    fadeOut(animationSpec = androidx.compose.animation.core.tween(90, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 }
             ) {
                 composable(Screen.Home.route) {
@@ -197,7 +195,17 @@ fun KnowSpendsAppRoot(
                 composable(Screen.Settings.route) {
                     SettingsScreen()
                 }
-                composable(Screen.ReviewInbox.route) {
+                composable(
+                    route = Screen.ReviewInbox.route,
+                    enterTransition = {
+                        slideInHorizontally(animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
+                            fadeIn(animationSpec = androidx.compose.animation.core.tween(160))
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
+                            fadeOut(animationSpec = androidx.compose.animation.core.tween(120))
+                    }
+                ) {
                     ReviewInboxScreen(
                         onNavigateUp = { navController.navigateUp() }
                     )
@@ -214,7 +222,15 @@ fun KnowSpendsAppRoot(
                             nullable = true
                             defaultValue = null
                         }
-                    )
+                    ),
+                    enterTransition = {
+                        slideInHorizontally(animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
+                            fadeIn(animationSpec = androidx.compose.animation.core.tween(160))
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
+                            fadeOut(animationSpec = androidx.compose.animation.core.tween(120))
+                    }
                 ) {
                     AddTransactionScreen(
                         onNavigateUp = { navController.navigateUp() }

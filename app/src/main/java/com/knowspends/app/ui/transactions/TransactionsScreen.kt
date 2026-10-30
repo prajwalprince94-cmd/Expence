@@ -2,6 +2,7 @@ package com.knowspends.app.ui.transactions
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +35,8 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -184,6 +187,14 @@ fun TransactionsScreen(
                     onTypeSelected = viewModel::onTypeFilterChanged
                 )
 
+                // Cashflow Quick Overview Ribbon
+                TransactionsCashflowRibbon(
+                    incomeFormatted = uiState.formattedIncomeTotal,
+                    expenseFormatted = uiState.formattedExpenseTotal,
+                    netFormatted = uiState.formattedNetCashflow,
+                    netMinor = uiState.netCashflowMinor
+                )
+
                 // Optional Account Filter Chips (if multiple accounts exist)
                 if (uiState.accounts.size > 1) {
                     val scrollState = rememberScrollState()
@@ -267,6 +278,29 @@ fun TransactionsScreen(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
+                    if (uiState.searchQuery.isNotBlank() || uiState.selectedType != null || uiState.selectedAccountId != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Button(
+                            onClick = viewModel::clearAllFilters,
+                            shape = VyxelShapeTokens.Pill,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = scheme.primaryContainer,
+                                contentColor = scheme.onPrimaryContainer
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Clear All Filters",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         } else {
@@ -294,26 +328,65 @@ fun TransactionsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = dayGroup.dateLabel,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.primary
-                                )
-
-                                if (dayGroup.dayTotalMinor > 0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = dayGroup.dateLabel,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.primary
+                                    )
                                     Box(
                                         modifier = Modifier
                                             .clip(VyxelShapeTokens.Pill)
                                             .background(scheme.surfaceContainerHighest)
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            .padding(horizontal = 6.dp, vertical = 1.dp)
                                     ) {
                                         Text(
-                                            text = "Spent ${dayGroup.formattedDayTotal}",
+                                            text = "${dayGroup.count}",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = scheme.onSurfaceVariant
                                         )
+                                    }
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    if (dayGroup.dayIncomeMinor > 0) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(VyxelShapeTokens.Pill)
+                                                .background(IncomeColor.copy(alpha = 0.12f))
+                                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "+ ${dayGroup.formattedDayIncome}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = IncomeColor
+                                            )
+                                        }
+                                    }
+
+                                    if (dayGroup.dayTotalMinor > 0) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(VyxelShapeTokens.Pill)
+                                                .background(ExpenseColor.copy(alpha = 0.12f))
+                                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "- ${dayGroup.formattedDayTotal}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = ExpenseColor
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -344,6 +417,152 @@ fun TransactionsScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Cashflow overview ribbon displaying real-time Inflow, Outflow, and Net Margin.
+ */
+@Composable
+fun TransactionsCashflowRibbon(
+    incomeFormatted: String,
+    expenseFormatted: String,
+    netFormatted: String,
+    netMinor: Long,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val netColor = when {
+        netMinor > 0 -> IncomeColor
+        netMinor < 0 -> ExpenseColor
+        else -> scheme.onSurfaceVariant
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = VyxelShapeTokens.CardSmall,
+        color = scheme.surfaceContainerHigh.copy(alpha = 0.75f),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.25f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Inflow item
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowUpward,
+                        contentDescription = null,
+                        tint = IncomeColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Inflow",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = incomeFormatted,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = IncomeColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(26.dp)
+                    .background(scheme.outlineVariant.copy(alpha = 0.35f))
+            )
+
+            // Outflow item
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = null,
+                        tint = ExpenseColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Outflow",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = expenseFormatted,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ExpenseColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(26.dp)
+                    .background(scheme.outlineVariant.copy(alpha = 0.35f))
+            )
+
+            // Net Margin item
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.End
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = netColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Net Margin",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = netFormatted,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = netColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

@@ -26,7 +26,10 @@ data class DayGroup(
     val dateLabel: String,
     val dayTotalMinor: Long,
     val formattedDayTotal: String,
-    val transactions: List<TransactionWithDetails>
+    val transactions: List<TransactionWithDetails>,
+    val dayIncomeMinor: Long = 0L,
+    val formattedDayIncome: String = "",
+    val count: Int = transactions.size
 )
 
 data class TransactionsUiState(
@@ -38,8 +41,10 @@ data class TransactionsUiState(
     val accounts: List<Account> = emptyList(),
     val totalExpenseMinor: Long = 0L,
     val totalIncomeMinor: Long = 0L,
+    val netCashflowMinor: Long = 0L,
     val formattedExpenseTotal: String = "₹0.00",
     val formattedIncomeTotal: String = "₹0.00",
+    val formattedNetCashflow: String = "₹0.00",
     val isLoading: Boolean = false
 )
 
@@ -78,6 +83,7 @@ class TransactionsViewModel @Inject constructor(
         val groups = groupTransactionsByDay(filtered)
         val expenseSum = filtered.filter { it.transaction.type == TransactionType.EXPENSE }.sumOf { it.transaction.amountMinor }
         val incomeSum = filtered.filter { it.transaction.type == TransactionType.INCOME }.sumOf { it.transaction.amountMinor }
+        val netCashflow = incomeSum - expenseSum
 
         TransactionsUiState(
             searchQuery = query,
@@ -88,8 +94,10 @@ class TransactionsViewModel @Inject constructor(
             accounts = accounts,
             totalExpenseMinor = expenseSum,
             totalIncomeMinor = incomeSum,
+            netCashflowMinor = netCashflow,
             formattedExpenseTotal = MoneyFormatter.formatPaise(expenseSum, includeSymbol = true),
             formattedIncomeTotal = MoneyFormatter.formatPaise(incomeSum, includeSymbol = true),
+            formattedNetCashflow = MoneyFormatter.formatPaise(netCashflow, includeSymbol = true),
             isLoading = false
         )
     }.stateIn(
@@ -108,6 +116,12 @@ class TransactionsViewModel @Inject constructor(
 
     fun onAccountFilterChanged(accountId: Long?) {
         _selectedAccountId.value = accountId
+    }
+
+    fun clearAllFilters() {
+        _searchQuery.value = ""
+        _selectedType.value = null
+        _selectedAccountId.value = null
     }
 
     fun deleteTransaction(id: Long) {
@@ -144,15 +158,20 @@ class TransactionsViewModel @Inject constructor(
                 else -> displayFormat.format(firstDate)
             }
 
-            // Sum only expenses for daily total display
+            // Sum expenses and income for daily totals
             val dayExpenses = dayItems.filter { it.transaction.type == TransactionType.EXPENSE }
+                .sumOf { it.transaction.amountMinor }
+            val dayIncome = dayItems.filter { it.transaction.type == TransactionType.INCOME }
                 .sumOf { it.transaction.amountMinor }
 
             DayGroup(
                 dateLabel = label,
                 dayTotalMinor = dayExpenses,
                 formattedDayTotal = MoneyFormatter.formatPaise(dayExpenses, includeSymbol = true),
-                transactions = dayItems
+                transactions = dayItems,
+                dayIncomeMinor = dayIncome,
+                formattedDayIncome = MoneyFormatter.formatPaise(dayIncome, includeSymbol = true),
+                count = dayItems.size
             )
         }
     }
