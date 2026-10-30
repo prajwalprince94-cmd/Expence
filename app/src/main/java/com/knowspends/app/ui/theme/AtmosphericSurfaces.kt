@@ -130,21 +130,3 @@ fun Modifier.glassSurface(
         .background(containerColor)
         .border(borderWidth, borderColor, shape)
 }
-
-/**
- * Expressive glassSurface overload matching Vyxel Apps syntax:
- * `Modifier.glassSurface(color, shape)`
- */
-fun Modifier.glassSurface(
-    containerColor: Color,
-    shape: Shape,
-    borderColor: Color = containerColor.copy(alpha = 0.25f),
-    borderWidth: Dp = 1.dp,
-    blurRadius: Float = 24f
-): Modifier = glassSurface(
-    shape = shape,
-    containerColor = containerColor,
-    borderColor = borderColor,
-    borderWidth = borderWidth,
-    blurRadius = blurRadius
-)
