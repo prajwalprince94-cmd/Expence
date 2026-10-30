@@ -330,7 +330,7 @@ fun AddTransactionScreen(
             // Built-in Instant Numeric Keypad (Under 5 seconds & 3 taps)
             NumericKeypad(
                 onKeyPress = { viewModel.onEvent(AddTransactionEvent.OnKeypadPress(it)) },
-                onBackspace = { viewModel.onEvent(AddTransactionEvent.OnBackspace()) },
+                onBackspace = { viewModel.onEvent(AddTransactionEvent.OnBackspace) },
                 onSave = { viewModel.onEvent(AddTransactionEvent.OnSave) },
                 isSaving = uiState.isSaving
             )

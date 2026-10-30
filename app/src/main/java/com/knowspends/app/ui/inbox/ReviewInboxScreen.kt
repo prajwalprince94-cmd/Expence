@@ -21,8 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Paste
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -143,7 +143,7 @@ fun ReviewInboxScreen(
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Paste,
+                            imageVector = Icons.Default.ContentPaste,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )

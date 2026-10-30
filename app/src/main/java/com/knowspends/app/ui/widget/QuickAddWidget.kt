@@ -67,31 +67,17 @@ class QuickAddWidget : GlanceAppWidget() {
                         modifier = GlanceModifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val addExpenseIntent = Intent(context, MainActivity::class.java).apply {
-                            action = Intent.ACTION_VIEW
-                            putExtra("ROUTE", "add_transaction")
-                            putExtra("TYPE", "EXPENSE")
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        }
-
                         Button(
                             text = "+ Expense",
-                            onClick = actionStartActivity(addExpenseIntent),
+                            onClick = actionStartActivity<MainActivity>(),
                             modifier = GlanceModifier.defaultWeight()
                         )
 
                         Spacer(modifier = GlanceModifier.width(8.dp))
 
-                        val addIncomeIntent = Intent(context, MainActivity::class.java).apply {
-                            action = Intent.ACTION_VIEW
-                            putExtra("ROUTE", "add_transaction")
-                            putExtra("TYPE", "INCOME")
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        }
-
                         Button(
                             text = "+ Income",
-                            onClick = actionStartActivity(addIncomeIntent),
+                            onClick = actionStartActivity<MainActivity>(),
                             modifier = GlanceModifier.defaultWeight()
                         )
                     }
