@@ -75,24 +75,46 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerHighest = Color(0xFFD9DFD9)
 )
 
+private val AmoledColorScheme = DarkColorScheme.copy(
+    background = Color(0xFF000000),
+    surface = Color(0xFF000000),
+    surfaceContainerLowest = Color(0xFF000000),
+    surfaceContainerLow = Color(0xFF0A0C0A),
+    surfaceContainer = Color(0xFF121513),
+    surfaceContainerHigh = Color(0xFF1A1E1B),
+    surfaceContainerHighest = Color(0xFF242925)
+)
+
 @Composable
 fun KnowSpendsTheme(
+    themeMode: String = "system",
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    fontId: String = "plus_jakarta_sans",
+    displayScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
+    val isDark = when (themeMode) {
+        "light" -> false
+        "dark", "amoled" -> true
+        else -> darkTheme
+    }
+
     val colorScheme = when {
+        themeMode == "amoled" -> AmoledColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
+        isDark -> DarkColorScheme
         else -> LightColorScheme
     }
 
+    val dynamicTypography = createAppTypography(getFontFamily(fontId), displayScale)
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = dynamicTypography,
         shapes = Shapes,
         content = content
     )

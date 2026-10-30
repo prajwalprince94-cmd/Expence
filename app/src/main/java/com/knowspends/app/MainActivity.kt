@@ -28,7 +28,11 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var securityRepository: SecurityRepository
 
+    @Inject
+    lateinit var userPreferencesRepository: com.knowspends.app.domain.repository.UserPreferencesRepository
+
     private var securityConfig by mutableStateOf(SecurityConfig())
+    private var userPreferences by mutableStateOf(com.knowspends.app.domain.model.UserPreferences())
     private var isAppLocked by mutableStateOf(false)
     private var backgroundTimestamp: Long = 0L
 
@@ -38,21 +42,33 @@ class MainActivity : FragmentActivity() {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                securityRepository.securityConfigFlow.collectLatest { config ->
-                    securityConfig = config
-                    applySecureFlag(config.isSecureScreenEnabled)
+                launch {
+                    securityRepository.securityConfigFlow.collectLatest { config ->
+                        securityConfig = config
+                        applySecureFlag(config.isSecureScreenEnabled)
 
-                    // Lock initially on launch if biometric is enabled
-                    if (config.isBiometricEnabled && backgroundTimestamp == 0L) {
-                        isAppLocked = true
-                        promptUnlock()
+                        // Lock initially on launch if biometric is enabled
+                        if (config.isBiometricEnabled && backgroundTimestamp == 0L) {
+                            isAppLocked = true
+                            promptUnlock()
+                        }
+                    }
+                }
+                launch {
+                    userPreferencesRepository.userPreferencesFlow.collectLatest { prefs ->
+                        userPreferences = prefs
                     }
                 }
             }
         }
 
         setContent {
-            KnowSpendsTheme {
+            KnowSpendsTheme(
+                themeMode = userPreferences.themeMode,
+                dynamicColor = userPreferences.dynamicColor,
+                fontId = userPreferences.fontId,
+                displayScale = userPreferences.displayScale
+            ) {
                 if (isAppLocked && securityConfig.isBiometricEnabled) {
                     AppLockScreen(
                         onUnlockClicked = { promptUnlock() }

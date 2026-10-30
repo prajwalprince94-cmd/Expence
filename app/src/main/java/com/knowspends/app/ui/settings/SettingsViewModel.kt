@@ -1,13 +1,22 @@
 package com.knowspends.app.ui.settings
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.knowspends.app.data.remote.UpdateCheckerService
 import com.knowspends.app.domain.model.RestoreResult
+import com.knowspends.app.domain.model.SecurityConfig
+import com.knowspends.app.domain.model.UserPreferences
 import com.knowspends.app.domain.repository.BackupRepository
 import com.knowspends.app.domain.repository.CsvRepository
+import com.knowspends.app.domain.repository.PremiumRepository
+import com.knowspends.app.domain.repository.SecurityRepository
+import com.knowspends.app.domain.repository.UserPreferencesRepository
+import com.knowspends.app.util.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,29 +25,40 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val securityConfig: com.knowspends.app.domain.model.SecurityConfig = com.knowspends.app.domain.model.SecurityConfig(),
+    val userPreferences: UserPreferences = UserPreferences(),
+    val securityConfig: SecurityConfig = SecurityConfig(),
     val isPremium: Boolean = false,
     val showPaywallSheet: Boolean = false,
     val isLoading: Boolean = false,
+    val isCheckingUpdate: Boolean = false,
     val statusMessage: String? = null,
     val lastImportBatchId: String? = null,
     val lastImportCount: Int? = null,
     val showRestoreConfirmDialog: Boolean = false,
-    val pendingRestoreUri: Uri? = null
+    val pendingRestoreUri: Uri? = null,
+    val showProfileEditDialog: Boolean = false
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val backupRepository: BackupRepository,
     private val csvRepository: CsvRepository,
-    private val securityRepository: com.knowspends.app.domain.repository.SecurityRepository,
-    private val premiumRepository: com.knowspends.app.domain.repository.PremiumRepository
+    private val securityRepository: SecurityRepository,
+    private val premiumRepository: PremiumRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val updateCheckerService: UpdateCheckerService,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            userPreferencesRepository.userPreferencesFlow.collect { prefs ->
+                _uiState.update { it.copy(userPreferences = prefs) }
+            }
+        }
         viewModelScope.launch {
             securityRepository.securityConfigFlow.collect { config ->
                 _uiState.update { it.copy(securityConfig = config) }
@@ -51,6 +71,88 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Profile Settings
+    fun showProfileDialog(show: Boolean) {
+        _uiState.update { it.copy(showProfileEditDialog = show) }
+    }
+
+    fun updateProfile(name: String, tagline: String, avatarUri: String, coverUri: String, currency: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateProfile(name, tagline, avatarUri, coverUri, currency)
+            _uiState.update { it.copy(showProfileEditDialog = false, statusMessage = "Profile updated!") }
+        }
+    }
+
+    // Appearance & Display
+    fun setThemeMode(themeMode: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setThemeMode(themeMode)
+        }
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDynamicColor(enabled)
+        }
+    }
+
+    fun setFontId(fontId: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setFontId(fontId)
+        }
+    }
+
+    fun setDisplayScale(scale: Float) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDisplayScale(scale)
+        }
+    }
+
+    // Notifications
+    fun setDailyReminder(enabled: Boolean, time: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDailyReminder(enabled, time)
+            if (enabled) {
+                ReminderScheduler.scheduleDailyReminder(context, time)
+            } else {
+                ReminderScheduler.cancelDailyReminder(context)
+            }
+        }
+    }
+
+    fun setBudgetAlert(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setBudgetAlert(enabled)
+        }
+    }
+
+    // Updates
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingUpdate = true, statusMessage = null) }
+            val result = updateCheckerService.checkForUpdates()
+            _uiState.update { it.copy(isCheckingUpdate = false) }
+
+            if (result.isSuccess) {
+                userPreferencesRepository.setUpdateInfo(
+                    hasUpdate = result.hasUpdate,
+                    version = result.latestVersion,
+                    releaseUrl = result.downloadUrl,
+                    notes = result.releaseNotes
+                )
+                val msg = if (result.hasUpdate) {
+                    "Update available: ${result.latestVersion}!"
+                } else {
+                    "You are on the latest version (${com.knowspends.app.BuildConfig.VERSION_NAME})"
+                }
+                _uiState.update { it.copy(statusMessage = msg) }
+            } else {
+                _uiState.update { it.copy(statusMessage = result.errorMessage ?: "Failed to check updates") }
+            }
+        }
+    }
+
+    // Pro / Premium
     fun showPaywall() {
         _uiState.update { it.copy(showPaywallSheet = true) }
     }
@@ -72,6 +174,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Security
     fun toggleBiometric(enabled: Boolean) {
         viewModelScope.launch {
             securityRepository.setBiometricEnabled(enabled)
@@ -90,6 +193,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Backup & Restore
     fun exportBackup(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, statusMessage = null) }

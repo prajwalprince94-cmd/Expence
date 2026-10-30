@@ -55,4 +55,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPendingTransactionRepository(impl: com.knowspends.app.data.repository.PendingTransactionRepositoryImpl): com.knowspends.app.domain.repository.PendingTransactionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserPreferencesRepository(impl: com.knowspends.app.data.repository.UserPreferencesRepositoryImpl): com.knowspends.app.domain.repository.UserPreferencesRepository
 }
