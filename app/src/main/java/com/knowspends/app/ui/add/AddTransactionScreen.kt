@@ -21,6 +21,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.theme.ExpressiveShapes
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -271,11 +273,11 @@ fun AddTransactionScreen(
                                 selected = isSelected,
                                 onClick = { viewModel.onEvent(AddTransactionEvent.OnCategorySelected(category.id)) },
                                 leadingIcon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(category.colour))
+                                    CategoryBadge(
+                                        categoryName = category.name,
+                                        iconKey = category.icon,
+                                        color = Color(category.colour),
+                                        size = 18.dp
                                     )
                                 },
                                 label = { Text(category.name) }

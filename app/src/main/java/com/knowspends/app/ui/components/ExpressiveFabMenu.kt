@@ -31,17 +31,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.knowspends.app.ui.theme.ExpenseColor
+import com.knowspends.app.ui.theme.ExpressivePolygons
+import com.knowspends.app.ui.theme.ExpressiveShapes
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.KnowSpendsMotion
+import com.knowspends.app.ui.theme.MorphShape
 import com.knowspends.app.ui.theme.TransferColor
 import com.knowspends.app.ui.theme.pressScale
 
@@ -70,6 +75,17 @@ fun ExpressiveFabMenu(
         label = "fabRotation"
     )
 
+    // Algorithmic morph from Scallop (cookie) to Circle as FAB expands
+    val morphProgress by animateFloatAsState(
+        targetValue = if (expanded) 1f else 0f,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "fabMorphProgress"
+    )
+
+    val fabShape = remember(morphProgress) {
+        MorphShape(ExpressivePolygons.ScallopToCircleMorph, morphProgress)
+    }
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
@@ -93,33 +109,36 @@ fun ExpressiveFabMenu(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Transfer action
+                // Transfer action with 8-Point Star shape
                 FabMenuItem(
                     label = "Transfer",
                     icon = Icons.Default.SwapHoriz,
                     containerColor = TransferColor,
+                    shape = ExpressiveShapes.Star8,
                     onClick = {
                         onExpandChanged(false)
                         onAddTransfer()
                     }
                 )
 
-                // Income action
+                // Income action with 4-Leaf Clover shape
                 FabMenuItem(
                     label = "Add Income",
                     icon = Icons.Default.ArrowDownward,
                     containerColor = IncomeColor,
+                    shape = ExpressiveShapes.Clover,
                     onClick = {
                         onExpandChanged(false)
                         onAddIncome()
                     }
                 )
 
-                // Expense action
+                // Expense action with 4-Point Starburst shape
                 FabMenuItem(
                     label = "Add Expense",
                     icon = Icons.Default.ArrowUpward,
                     containerColor = ExpenseColor,
+                    shape = ExpressiveShapes.Star4,
                     onClick = {
                         onExpandChanged(false)
                         onAddExpense()
@@ -128,20 +147,22 @@ fun ExpressiveFabMenu(
             }
         }
 
-        // Primary FAB
+        // Primary FAB with algorithmic morphing Scallop-to-Circle shape
         FloatingActionButton(
             onClick = { onExpandChanged(!expanded) },
-            shape = MaterialTheme.shapes.large,
+            shape = fabShape,
             containerColor = if (expanded) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
             contentColor = if (expanded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimaryContainer,
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-            modifier = Modifier.pressScale(0.94f)
+            modifier = Modifier
+                .size(60.dp)
+                .pressScale(0.92f)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = if (expanded) "Close Menu" else "Add Transaction",
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(26.dp)
                     .rotate(rotation)
             )
         }
@@ -153,6 +174,7 @@ private fun FabMenuItem(
     label: String,
     icon: ImageVector,
     containerColor: Color,
+    shape: Shape = ExpressiveShapes.Circle,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -185,14 +207,14 @@ private fun FabMenuItem(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // Mini FAB Icon
+        // Algorithmic Shape Mini FAB Icon
         SmallFloatingActionButton(
             onClick = onClick,
-            shape = MaterialTheme.shapes.medium,
+            shape = shape,
             containerColor = containerColor,
             contentColor = Color.White,
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
-            modifier = Modifier.size(42.dp)
+            modifier = Modifier.size(44.dp)
         ) {
             Icon(
                 imageVector = icon,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.theme.ExpressiveShapes
 import com.knowspends.app.ui.theme.auroraGlow
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
@@ -172,9 +173,9 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(IncomeColor.copy(alpha = 0.15f)),
+                                .size(38.dp)
+                                .clip(ExpressiveShapes.Clover)
+                                .background(IncomeColor.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -200,13 +201,13 @@ fun HomeScreen(
                         }
                     }
 
-                    // Expense Stat
+                    // Expense Stat (Algorithmic 4-Point Star shape)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(ExpenseColor.copy(alpha = 0.15f)),
+                                .size(38.dp)
+                                .clip(ExpressiveShapes.Star4)
+                                .background(ExpenseColor.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(

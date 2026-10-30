@@ -25,8 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import com.knowspends.app.ui.theme.ExpressiveShapes
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,24 +46,25 @@ fun CategoryBadge(
     size: Dp = 40.dp
 ) {
     val icon = remember(iconKey) { resolveCategoryIcon(iconKey) }
+    val shape = remember(iconKey, categoryName) { resolveCategoryShape(iconKey, categoryName) }
 
     if (icon != null) {
         Box(
             modifier = modifier
                 .size(size)
-                .clip(MaterialTheme.shapes.medium)
-                .background(color.copy(alpha = 0.18f)),
+                .clip(shape)
+                .background(color.copy(alpha = 0.22f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = categoryName,
                 tint = color,
-                modifier = Modifier.size(size * 0.55f)
+                modifier = Modifier.size(size * 0.52f)
             )
         }
     } else {
-        // Deterministic two-tone monogram fallback
+        // Deterministic two-tone monogram fallback with algorithmic shape
         val brush = remember(categoryName) { monogramBrush(categoryName) }
         val initial = remember(categoryName) {
             categoryName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
@@ -70,7 +73,7 @@ fun CategoryBadge(
         Box(
             modifier = modifier
                 .size(size)
-                .clip(MaterialTheme.shapes.medium)
+                .clip(shape)
                 .background(brush),
             contentAlignment = Alignment.Center
         ) {
@@ -81,6 +84,21 @@ fun CategoryBadge(
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+}
+
+/**
+ * Resolves an algorithmic shape from Material 3 Expressive based on the category semantic type.
+ */
+fun resolveCategoryShape(iconKey: String?, categoryName: String): Shape {
+    val key = (iconKey?.lowercase()?.trim() ?: "") + " " + categoryName.lowercase().trim()
+    return when {
+        key.contains("restaurant") || key.contains("food") || key.contains("dining") || key.contains("grocer") -> ExpressiveShapes.Scallop
+        key.contains("payment") || key.contains("salary") || key.contains("income") || key.contains("work") -> ExpressiveShapes.Clover
+        key.contains("car") || key.contains("transport") || key.contains("travel") -> ExpressiveShapes.Bun
+        key.contains("shopping") || key.contains("entertainment") || key.contains("movie") || key.contains("fun") -> ExpressiveShapes.Star8
+        key.contains("invest") || key.contains("trend") || key.contains("bill") || key.contains("receipt") -> ExpressiveShapes.Star4
+        else -> ExpressiveShapes.Clover
     }
 }
 
