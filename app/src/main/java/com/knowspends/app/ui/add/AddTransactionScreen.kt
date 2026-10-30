@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -334,6 +336,7 @@ fun AddTransactionScreen(
                 onKeyPress = { viewModel.onEvent(AddTransactionEvent.OnKeypadPress(it)) },
                 onBackspace = { viewModel.onEvent(AddTransactionEvent.OnBackspace) },
                 onSave = { viewModel.onEvent(AddTransactionEvent.OnSave) },
+                onSaveAndAddAnother = { viewModel.onEvent(AddTransactionEvent.OnSaveAndAddAnother) },
                 isSaving = uiState.isSaving
             )
         }
@@ -345,6 +348,7 @@ private fun NumericKeypad(
     onKeyPress: (Char) -> Unit,
     onBackspace: () -> Unit,
     onSave: () -> Unit,
+    onSaveAndAddAnother: () -> Unit,
     isSaving: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -405,26 +409,51 @@ private fun NumericKeypad(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Prominent Save Button
-            Button(
-                onClick = onSave,
-                enabled = !isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 52.dp)
-                    .pressScale(0.97f),
-                shape = MaterialTheme.shapes.medium
+            // Expressive Action Buttons: Save & Quick Add Another
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Save Transaction",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Button(
+                    onClick = onSave,
+                    enabled = !isSaving,
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 52.dp)
+                        .pressScale(0.97f),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Save",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onSaveAndAddAnother,
+                    enabled = !isSaving,
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 52.dp)
+                        .pressScale(0.97f),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "+ Another",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
             }
         }
     }

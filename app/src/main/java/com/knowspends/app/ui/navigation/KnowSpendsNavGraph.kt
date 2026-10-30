@@ -3,6 +3,10 @@ package com.knowspends.app.ui.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,15 +19,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.ui.add.AddTransactionScreen
 import com.knowspends.app.ui.budgets.BudgetsScreen
+import com.knowspends.app.ui.components.ExpressiveFabMenu
 import com.knowspends.app.ui.home.HomeScreen
 import com.knowspends.app.ui.inbox.ReviewInboxScreen
 import com.knowspends.app.ui.reports.ReportsScreen
@@ -43,6 +55,12 @@ fun KnowSpendsAppRoot(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    var isFabExpanded by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(currentRoute) {
+        isFabExpanded = false
+    }
 
     val isTopLevelRoute = Screen.bottomNavItems.any { it.route == currentRoute }
 
@@ -86,69 +104,98 @@ fun KnowSpendsAppRoot(
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it })
             ) {
-                FloatingActionButton(
-                    onClick = {
-                        navController.navigate(Screen.AddTransaction.createRoute())
+                ExpressiveFabMenu(
+                    expanded = isFabExpanded,
+                    onExpandChanged = { isFabExpanded = it },
+                    onAddExpense = {
+                        isFabExpanded = false
+                        navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.EXPENSE))
+                    },
+                    onAddIncome = {
+                        isFabExpanded = false
+                        navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.INCOME))
+                    },
+                    onAddTransfer = {
+                        isFabExpanded = false
+                        navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.TRANSFER))
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Transaction"
-                    )
-                }
+                )
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            composable(Screen.Home.route) {
-                HomeScreen(
-                    onNavigateToTransactions = {
-                        navController.navigate(Screen.Transactions.route)
-                    },
-                    onTransactionClick = { transactionId ->
-                        navController.navigate(Screen.AddTransaction.createRoute(transactionId))
-                    },
-                    onNavigateToInbox = {
-                        navController.navigate(Screen.ReviewInbox.route)
-                    }
-                )
-            }
-            composable(Screen.Transactions.route) {
-                TransactionsScreen(
-                    onEditTransaction = { transactionId ->
-                        navController.navigate(Screen.AddTransaction.createRoute(transactionId))
-                    }
-                )
-            }
-            composable(Screen.Budgets.route) {
-                BudgetsScreen()
-            }
-            composable(Screen.Reports.route) {
-                ReportsScreen()
-            }
-            composable(Screen.Settings.route) {
-                SettingsScreen()
-            }
-            composable(Screen.ReviewInbox.route) {
-                ReviewInboxScreen(
-                    onNavigateUp = { navController.navigateUp() }
-                )
-            }
-            composable(
-                route = Screen.AddTransaction.routeWithArgs,
-                arguments = listOf(
-                    androidx.navigation.navArgument("transactionId") {
-                        type = androidx.navigation.NavType.LongType
-                        defaultValue = -1L
-                    }
-                )
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home.route,
+                modifier = Modifier.fillMaxSize()
             ) {
-                AddTransactionScreen(
-                    onNavigateUp = { navController.navigateUp() }
+                composable(Screen.Home.route) {
+                    HomeScreen(
+                        onNavigateToTransactions = {
+                            navController.navigate(Screen.Transactions.route)
+                        },
+                        onTransactionClick = { transactionId ->
+                            navController.navigate(Screen.AddTransaction.createRoute(transactionId))
+                        },
+                        onNavigateToInbox = {
+                            navController.navigate(Screen.ReviewInbox.route)
+                        }
+                    )
+                }
+                composable(Screen.Transactions.route) {
+                    TransactionsScreen(
+                        onEditTransaction = { transactionId ->
+                            navController.navigate(Screen.AddTransaction.createRoute(transactionId))
+                        }
+                    )
+                }
+                composable(Screen.Budgets.route) {
+                    BudgetsScreen()
+                }
+                composable(Screen.Reports.route) {
+                    ReportsScreen()
+                }
+                composable(Screen.Settings.route) {
+                    SettingsScreen()
+                }
+                composable(Screen.ReviewInbox.route) {
+                    ReviewInboxScreen(
+                        onNavigateUp = { navController.navigateUp() }
+                    )
+                }
+                composable(
+                    route = Screen.AddTransaction.routeWithArgs,
+                    arguments = listOf(
+                        navArgument("transactionId") {
+                            type = NavType.LongType
+                            defaultValue = -1L
+                        },
+                        navArgument("type") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) {
+                    AddTransactionScreen(
+                        onNavigateUp = { navController.navigateUp() }
+                    )
+                }
+            }
+
+            if (isFabExpanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { isFabExpanded = false }
                 )
             }
         }

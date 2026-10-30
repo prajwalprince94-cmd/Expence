@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
@@ -267,11 +268,11 @@ fun CategoryReportContent(
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(Color(item.categoryColour))
+                        CategoryBadge(
+                            categoryName = item.categoryName,
+                            iconKey = null,
+                            color = Color(item.categoryColour),
+                            size = 32.dp
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {

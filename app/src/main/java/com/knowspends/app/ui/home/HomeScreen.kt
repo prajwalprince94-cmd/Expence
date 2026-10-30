@@ -18,6 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.theme.auroraGlow
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
@@ -135,7 +137,9 @@ fun HomeScreen(
 
         // Monthly Summary Card
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .auroraGlow(alpha = 0.16f),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
@@ -387,20 +391,12 @@ fun RecentTransactionItem(
                     TransactionType.TRANSFER -> TransferColor
                 }
 
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(badgeColor.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(badgeColor)
-                )
-            }
+            CategoryBadge(
+                categoryName = item.categoryName ?: item.transaction.type.name,
+                iconKey = item.categoryIcon,
+                color = badgeColor,
+                size = 38.dp
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 

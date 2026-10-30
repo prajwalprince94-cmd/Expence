@@ -58,6 +58,7 @@ sealed interface AddTransactionEvent {
     data class OnNoteChanged(val note: String) : AddTransactionEvent
     data class OnPayeeChanged(val payee: String) : AddTransactionEvent
     object OnSave : AddTransactionEvent
+    object OnSaveAndAddAnother : AddTransactionEvent
 }
 
 @HiltViewModel
@@ -69,8 +70,16 @@ class AddTransactionViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val editTransactionId: Long? = savedStateHandle.get<Long>("transactionId")?.takeIf { it > 0 }
+    private val initialType: TransactionType = savedStateHandle.get<String>("type")?.let {
+        runCatching { TransactionType.valueOf(it) }.getOrNull()
+    } ?: TransactionType.EXPENSE
 
-    private val _uiState = MutableStateFlow(AddTransactionUiState(transactionId = editTransactionId))
+    private val _uiState = MutableStateFlow(
+        AddTransactionUiState(
+            transactionId = editTransactionId,
+            type = initialType
+        )
+    )
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
 
     private val _navigationEvents = MutableSharedFlow<Unit>()
@@ -142,7 +151,8 @@ class AddTransactionViewModel @Inject constructor(
             is AddTransactionEvent.OnDateSelected -> _uiState.update { it.copy(dateMillis = event.dateMillis) }
             is AddTransactionEvent.OnNoteChanged -> _uiState.update { it.copy(note = event.note) }
             is AddTransactionEvent.OnPayeeChanged -> _uiState.update { it.copy(payee = event.payee) }
-            AddTransactionEvent.OnSave -> saveTransaction()
+            AddTransactionEvent.OnSave -> saveTransaction(andAddAnother = false)
+            AddTransactionEvent.OnSaveAndAddAnother -> saveTransaction(andAddAnother = true)
         }
     }
 
@@ -189,7 +199,7 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
-    private fun saveTransaction() {
+    private fun saveTransaction(andAddAnother: Boolean = false) {
         val state = _uiState.value
         val amount = state.amountMinor
         if (amount <= 0) {
@@ -223,7 +233,19 @@ class AddTransactionViewModel @Inject constructor(
                     payee = state.payee.trim()
                 )
                 transactionRepository.saveTransaction(transaction)
-                _navigationEvents.emit(Unit)
+                if (andAddAnother) {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            amountInput = "0",
+                            note = "",
+                            payee = "",
+                            errorMessage = null
+                        )
+                    }
+                } else {
+                    _navigationEvents.emit(Unit)
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false, errorMessage = e.localizedMessage ?: "Failed to save") }
             }

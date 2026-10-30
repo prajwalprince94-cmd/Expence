@@ -15,9 +15,16 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Reports : Screen("reports", "Reports", Icons.Default.PieChart)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object AddTransaction : Screen("add_transaction", "Add Transaction") {
-        const val routeWithArgs = "add_transaction?transactionId={transactionId}"
-        fun createRoute(transactionId: Long? = null): String =
-            if (transactionId != null && transactionId > 0) "add_transaction?transactionId=$transactionId" else "add_transaction"
+        const val routeWithArgs = "add_transaction?transactionId={transactionId}&type={type}"
+        fun createRoute(
+            transactionId: Long? = null,
+            type: com.knowspends.app.domain.model.TransactionType? = null
+        ): String {
+            val params = mutableListOf<String>()
+            if (transactionId != null && transactionId > 0) params.add("transactionId=$transactionId")
+            if (type != null) params.add("type=${type.name}")
+            return if (params.isEmpty()) "add_transaction" else "add_transaction?${params.joinToString("&")}"
+        }
     }
     object ReviewInbox : Screen("review_inbox", "Review Inbox")
 

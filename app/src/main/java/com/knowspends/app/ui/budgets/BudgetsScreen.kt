@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.components.ExpressiveWavyProgressIndicator
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
@@ -129,12 +131,9 @@ fun BudgetsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    LinearProgressIndicator(
-                        progress = { uiState.totalProgressRatio.coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(MaterialTheme.shapes.extraSmall),
+                    ExpressiveWavyProgressIndicator(
+                        progress = uiState.totalProgressRatio,
+                        modifier = Modifier.fillMaxWidth(),
                         color = when {
                             uiState.totalSpentMinor > uiState.totalBudgetedMinor -> ExpenseColor
                             uiState.totalProgressRatio >= 0.8f -> Color(0xFFF57C00)
@@ -258,20 +257,12 @@ fun CategoryBudgetCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color(budget.categoryColour).copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(Color(budget.categoryColour))
-                    )
-                }
+                CategoryBadge(
+                    categoryName = budget.categoryName,
+                    iconKey = null,
+                    color = Color(budget.categoryColour),
+                    size = 36.dp
+                )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
@@ -291,13 +282,10 @@ fun CategoryBudgetCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Progress Bar
-            LinearProgressIndicator(
-                progress = { budget.progressRatio.coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(MaterialTheme.shapes.extraSmall),
+            // Expressive Wavy Progress Bar
+            ExpressiveWavyProgressIndicator(
+                progress = budget.progressRatio,
+                modifier = Modifier.fillMaxWidth(),
                 color = when (budget.status) {
                     BudgetStatus.SAFE -> IncomeColor
                     BudgetStatus.WARNING -> Color(0xFFF57C00)

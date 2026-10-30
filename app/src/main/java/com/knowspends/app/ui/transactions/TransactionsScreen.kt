@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
@@ -274,20 +275,12 @@ fun TransactionListItem(
                     TransactionType.TRANSFER -> TransferColor
                 }
 
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(badgeColor.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(badgeColor)
-                )
-            }
+            CategoryBadge(
+                categoryName = item.categoryName ?: item.transaction.type.name,
+                iconKey = item.categoryIcon,
+                color = badgeColor,
+                size = 40.dp
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
