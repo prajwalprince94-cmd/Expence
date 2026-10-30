@@ -947,7 +947,7 @@ fun SettingsScreen(
     if (uiState.showPaywallSheet) {
         PremiumPaywallSheet(
             onDismiss = { viewModel.hidePaywall() },
-            onUpgrade = { viewModel.upgradeToPremium() }
+            onUpgradeClicked = { viewModel.upgradeToPremium() }
         )
     }
 }
