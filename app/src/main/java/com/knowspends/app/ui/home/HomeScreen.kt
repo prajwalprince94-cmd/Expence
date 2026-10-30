@@ -1,5 +1,6 @@
 package com.knowspends.app.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -116,8 +117,9 @@ fun HomeScreen(
                 .auroraGlow(alpha = 0.16f),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-            )
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
         ) {
             Column(
                 modifier = Modifier
@@ -178,7 +180,7 @@ fun HomeScreen(
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
 
                 // Balanced 3-Column Stats (Auto-Layout: Income, Spent, Daily Average)
                 Row(
@@ -230,7 +232,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .width(1.dp)
                             .height(30.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     )
 
                     // Total Spent Stat
@@ -277,7 +279,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .width(1.dp)
                             .height(30.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     )
 
                     // Daily Average Stat
@@ -384,8 +386,9 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             ) {
                 Box(
                     modifier = Modifier
@@ -441,8 +444,9 @@ fun AccountCard(
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
     ) {
         Column(
             modifier = Modifier
@@ -504,6 +508,7 @@ fun EditAccountDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         title = {
             Text(
                 text = "Edit Account",
@@ -602,8 +607,9 @@ fun RecentTransactionItem(
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Row(
             modifier = Modifier

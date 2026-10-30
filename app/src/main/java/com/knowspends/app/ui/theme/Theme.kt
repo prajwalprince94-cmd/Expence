@@ -67,10 +67,10 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = OnSurfaceVariantLight,
     outline = OutlineLight,
-    outlineVariant = Color(0xFFC0CAC2),
+    outlineVariant = Color(0xFFBAC5BE),
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF4F7F4),
-    surfaceContainer = Color(0xFFEBEFEB),
+    surfaceContainerLow = Color(0xFFF5F8F5),
+    surfaceContainer = Color(0xFFEBF0EB),
     surfaceContainerHigh = Color(0xFFE2E7E2),
     surfaceContainerHighest = Color(0xFFD9DFD9)
 )

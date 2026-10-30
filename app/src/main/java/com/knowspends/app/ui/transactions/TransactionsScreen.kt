@@ -318,7 +318,8 @@ fun TransactionsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 2.dp),
-                            color = scheme.surface.copy(alpha = 0.95f),
+                            color = scheme.surfaceContainerLow,
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
                             shape = VyxelShapeTokens.CardSmall
                         ) {
                             Row(
@@ -443,8 +444,8 @@ fun TransactionsCashflowRibbon(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = VyxelShapeTokens.CardSmall,
-        color = scheme.surfaceContainerHigh.copy(alpha = 0.75f),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.25f))
+        color = scheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Row(
             modifier = Modifier
@@ -490,7 +491,7 @@ fun TransactionsCashflowRibbon(
                 modifier = Modifier
                     .width(1.dp)
                     .height(26.dp)
-                    .background(scheme.outlineVariant.copy(alpha = 0.35f))
+                    .background(scheme.outlineVariant.copy(alpha = 0.6f))
             )
 
             // Outflow item
@@ -530,7 +531,7 @@ fun TransactionsCashflowRibbon(
                 modifier = Modifier
                     .width(1.dp)
                     .height(26.dp)
-                    .background(scheme.outlineVariant.copy(alpha = 0.35f))
+                    .background(scheme.outlineVariant.copy(alpha = 0.6f))
             )
 
             // Net Margin item
@@ -587,8 +588,8 @@ fun VyxelSmartSearchBar(
             .fillMaxWidth()
             .height(40.dp)
             .clip(pillShape)
-            .background(scheme.surfaceContainerHighest.copy(alpha = 0.65f))
-            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.35f), pillShape)
+            .background(scheme.surfaceContainerLowest)
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.7f), pillShape)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -690,7 +691,8 @@ private fun TransactionTypeSegmentedRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(VyxelShapeTokens.Pill)
-            .background(scheme.surfaceContainerHighest.copy(alpha = 0.55f))
+            .background(scheme.surfaceContainerLow)
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.Pill)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -790,8 +792,9 @@ fun TransactionListItem(
             .shadow(2.dp, VyxelShapeTokens.CardSmall)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = scheme.surfaceContainerHigh
+            containerColor = scheme.surfaceContainerLowest
         ),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f)),
         shape = VyxelShapeTokens.CardSmall
     ) {
         Row(

@@ -1,5 +1,6 @@
 package com.knowspends.app.ui.reports
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -115,8 +116,9 @@ fun ReportsScreen(
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
             ) {
                 Column(
                     modifier = Modifier
@@ -259,8 +261,9 @@ fun CategoryReportContent(
                         .pressScale(0.98f),
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
                 ) {
                     Row(
                         modifier = Modifier
@@ -372,8 +375,9 @@ fun MonthlyTrendsContent(
                         .pressScale(0.98f),
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
                 ) {
                     Column(
                         modifier = Modifier
@@ -482,8 +486,9 @@ fun TopPayeesContent(
                         .pressScale(0.98f),
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
                 ) {
                     Column(
                         modifier = Modifier

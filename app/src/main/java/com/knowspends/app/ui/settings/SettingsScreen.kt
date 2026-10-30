@@ -283,7 +283,8 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .padding(top = 70.dp)
                             .clip(VyxelShapeTokens.Card)
-                            .background(scheme.surfaceContainerHigh)
+                            .background(scheme.surfaceContainerLow)
+                            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.7f), VyxelShapeTokens.Card)
                             .padding(16.dp)
                     ) {
                         Row(
@@ -297,7 +298,7 @@ fun SettingsScreen(
                                     .size(76.dp)
                                     .clip(CircleShape)
                                     .background(scheme.surfaceContainerHighest)
-                                    .border(3.dp, scheme.surfaceContainerHigh, CircleShape)
+                                    .border(3.dp, scheme.surfaceContainerLow, CircleShape)
                                     .clickable {
                                         avatarPicker.launch(
                                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -359,6 +360,7 @@ fun SettingsScreen(
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -392,6 +394,7 @@ fun SettingsScreen(
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -425,6 +428,7 @@ fun SettingsScreen(
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -911,6 +915,7 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { viewModel.showProfileDialog(false) },
+            containerColor = scheme.surfaceContainerLow,
             title = { Text("Edit Profile & Ledger") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -988,6 +993,7 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { viewModel.dismissUpdateDialog() },
+            containerColor = scheme.surfaceContainerLow,
             icon = {
                 Icon(
                     imageVector = if (hasUpdate) Icons.Default.CloudDownload else Icons.Default.CheckCircle,
@@ -1057,6 +1063,7 @@ fun SettingsScreen(
     if (uiState.showRestoreConfirmDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.cancelRestore() },
+            containerColor = scheme.surfaceContainerLow,
             title = { Text("Confirm Data Restore") },
             text = {
                 Text("Restoring from this backup file will replace existing accounts, transactions, and categories with the backup data. Do you wish to proceed?")

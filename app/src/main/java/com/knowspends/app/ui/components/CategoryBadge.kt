@@ -1,6 +1,7 @@
 package com.knowspends.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -53,7 +54,8 @@ fun CategoryBadge(
             modifier = modifier
                 .size(size)
                 .clip(shape)
-                .background(color.copy(alpha = 0.22f)),
+                .background(color.copy(alpha = 0.22f))
+                .border(1.dp, color.copy(alpha = 0.28f), shape),
             contentAlignment = Alignment.Center
         ) {
             Icon(

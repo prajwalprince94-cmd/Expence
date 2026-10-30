@@ -65,15 +65,15 @@ fun VyxelSettingsCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 4.dp,
+                    elevation = 2.dp,
                     shape = shape,
-                    spotColor = Color.Black.copy(alpha = 0.12f),
-                    ambientColor = Color.Black.copy(alpha = 0.08f)
+                    spotColor = Color.Black.copy(alpha = 0.08f),
+                    ambientColor = Color.Black.copy(alpha = 0.04f)
                 )
                 .glassSurface(
                     shape = shape,
-                    containerColor = scheme.surfaceContainerHigh,
-                    borderColor = scheme.outlineVariant.copy(alpha = 0.35f),
+                    containerColor = scheme.surfaceContainerLow,
+                    borderColor = scheme.outlineVariant.copy(alpha = 0.7f),
                     borderWidth = 1.dp
                 )
                 .padding(16.dp),
@@ -234,11 +234,16 @@ fun VyxelActionPill(
         label = "pillTextColor"
     )
 
+    val pillBorder = if (!isPrimary) {
+        Modifier.border(1.dp, scheme.outlineVariant.copy(alpha = 0.55f), pillShape)
+    } else Modifier
+
     Box(
         modifier = modifier
             .pressScale(if (enabled) 0.94f else 1f)
             .clip(pillShape)
             .background(bgColor)
+            .then(pillBorder)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -290,7 +295,8 @@ fun VyxelThemeSegmentedRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(VyxelShapeTokens.Pill)
-            .background(scheme.surfaceContainerHighest.copy(alpha = 0.65f))
+            .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.Pill)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {

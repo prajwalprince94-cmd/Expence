@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -97,15 +98,22 @@ fun VyxelFloatingNavBar(
     badgeMap: Map<String, Int> = emptyMap()
 ) {
     val scheme = MaterialTheme.colorScheme
-    val isDark = isSystemInDarkTheme()
+    val isDark = scheme.surface.luminance() < 0.5f
 
     val glassBorder = BorderStroke(
         width = 1.dp,
         brush = Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = if (isDark) 0.35f else 0.65f),
-                Color.White.copy(alpha = if (isDark) 0.08f else 0.20f)
-            )
+            colors = if (isDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.08f)
+                )
+            } else {
+                listOf(
+                    scheme.outlineVariant.copy(alpha = 0.85f),
+                    scheme.outlineVariant.copy(alpha = 0.45f)
+                )
+            }
         )
     )
 
@@ -114,8 +122,8 @@ fun VyxelFloatingNavBar(
             .shadow(
                 elevation = 16.dp,
                 shape = CircleShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.38f else 0.20f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.24f else 0.12f)
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.38f else 0.16f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.24f else 0.08f)
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -138,16 +146,25 @@ fun VyxelFloatingNavBar(
                     }
                 )
                 .background(
-                    scheme.surfaceContainerHigh.copy(
-                        alpha = if (isDark) 0.68f else 0.74f
-                    )
+                    if (isDark) {
+                        scheme.surfaceContainerHigh.copy(alpha = 0.68f)
+                    } else {
+                        scheme.surfaceContainerLowest.copy(alpha = 0.88f)
+                    }
                 )
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.12f else 0.30f),
-                            Color.Transparent
-                        )
+                        colors = if (isDark) {
+                            listOf(
+                                Color.White.copy(alpha = 0.12f),
+                                Color.Transparent
+                            )
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = 0.60f),
+                                Color.White.copy(alpha = 0.15f)
+                            )
+                        }
                     )
                 )
         )
