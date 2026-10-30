@@ -1,8 +1,5 @@
 package com.knowspends.app.ui.theme
 
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,8 +17,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
@@ -101,32 +96,17 @@ fun Modifier.auroraGlow(
 }
 
 /**
- * Frosted Glass surface modifier.
- * Uses hardware RenderEffect backdrop blur on Android 12+ (API 31+)
- * with high-contrast semi-translucent fallback on earlier versions.
+ * Frosted Glass surface modifier adapted from Vyxel Apps.
+ * Clips to [shape], fills with [containerColor], and applies a subtle high-contrast border.
+ * Guarantees zero blur on child text and icons so all navigation and interactive components
+ * remain crisp, sharp, and perfectly readable.
  */
 fun Modifier.glassSurface(
     shape: Shape,
     containerColor: Color = Color.White.copy(alpha = 0.08f),
     borderColor: Color = Color.White.copy(alpha = 0.18f),
-    borderWidth: Dp = 1.dp,
-    blurRadius: Float = 24f
-): Modifier {
-    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blurRadius > 0f) {
-        Modifier.graphicsLayer {
-            renderEffect = RenderEffect.createBlurEffect(
-                blurRadius,
-                blurRadius,
-                Shader.TileMode.CLAMP
-            ).asComposeRenderEffect()
-        }
-    } else {
-        Modifier
-    }
-
-    return this
-        .then(blurModifier)
-        .clip(shape)
-        .background(containerColor)
-        .border(borderWidth, borderColor, shape)
-}
+    borderWidth: Dp = 1.dp
+): Modifier = this
+    .clip(shape)
+    .background(containerColor)
+    .border(borderWidth, borderColor, shape)

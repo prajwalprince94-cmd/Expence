@@ -34,23 +34,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.knowspends.app.ui.navigation.Screen
 import com.knowspends.app.ui.theme.KnowSpendsMotion
+import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.glassSurface
 import com.knowspends.app.ui.theme.pressScale
 
 /**
- * Floating Pill Navigation Bar faithfully integrated from Vyxel Apps and Material 3 Expressive.
+ * Floating Pill Navigation Bar faithfully built with Vyxel Apps architecture and aesthetics.
  *
- * Characteristics:
- * - Floats gracefully as a unified frosted glass pill over application content.
- * - Active tab expands with spring physics revealing its typography label on a punchy primary pill.
- * - Inactive tabs collapse to icon-only mode to prevent visual clutter and screen edge collision.
- * - Micro-interaction feedback: Bouncy icon scale animation and tactile spring press scale on touch.
+ * Design Specifications:
+ * - Floating pill shape (`RoundedCornerShape(percent = 50)`).
+ * - Crystal clear high-contrast container with zero child blur (`glassSurface`).
+ * - Active item grows an animated primary pill (`colorScheme.primary`), scaling its icon by 1.08x
+ *   and revealing its label via spring-driven `AnimatedContent` with `labelLarge` typography.
+ * - Inactive items collapse to 21.dp icon-only mode with `onSurfaceVariant` tint.
+ * - Micro-interactions: Bouncy icon scale animation and tactile spring press scale (`0.955f`).
  */
 @Composable
 fun VyxelFloatingNavBar(
@@ -60,28 +61,27 @@ fun VyxelFloatingNavBar(
     modifier: Modifier = Modifier,
     badgeMap: Map<String, Int> = emptyMap()
 ) {
-    val pillShape = RoundedCornerShape(percent = 50)
-    val colorScheme = MaterialTheme.colorScheme
+    val pillShape = VyxelShapeTokens.Pill
+    val scheme = MaterialTheme.colorScheme
 
     Row(
         modifier = modifier
             .shadow(
-                elevation = 12.dp,
+                elevation = 10.dp,
                 shape = pillShape,
-                spotColor = colorScheme.primary.copy(alpha = 0.20f),
-                ambientColor = Color.Black.copy(alpha = 0.25f)
+                spotColor = Color.Black.copy(alpha = 0.22f),
+                ambientColor = Color.Black.copy(alpha = 0.16f)
             )
             .glassSurface(
                 shape = pillShape,
-                containerColor = colorScheme.surfaceContainerHigh.copy(alpha = 0.90f),
-                borderColor = colorScheme.outlineVariant.copy(alpha = 0.32f),
-                borderWidth = 1.dp,
-                blurRadius = 24f
+                containerColor = scheme.surfaceContainerHigh,
+                borderColor = scheme.outlineVariant.copy(alpha = 0.35f),
+                borderWidth = 1.dp
             )
-            .padding(horizontal = 6.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
             .wrapContentHeight(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         items.forEach { screen ->
             val isSelected = currentRoute == screen.route
@@ -107,12 +107,12 @@ private fun VyxelNavItem(
     val haptic = LocalHapticFeedback.current
     val interaction = remember { MutableInteractionSource() }
     val scheme = MaterialTheme.colorScheme
-    val pillShape = RoundedCornerShape(percent = 50)
+    val pillShape = VyxelShapeTokens.Pill
 
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.10f else 1.0f,
+        targetValue = if (selected) 1.08f else 1.0f,
         animationSpec = KnowSpendsMotion.bouncy(),
-        label = "vyxelNavIconScale"
+        label = "navIconScale"
     )
 
     Row(
@@ -129,8 +129,8 @@ private fun VyxelNavItem(
                 }
             )
             .padding(
-                horizontal = if (selected) 14.dp else 11.dp,
-                vertical = 10.dp
+                horizontal = if (selected) 15.dp else 13.dp,
+                vertical = 11.dp
             )
             .animateContentSize(animationSpec = KnowSpendsMotion.expressive()),
         verticalAlignment = Alignment.CenterVertically
@@ -140,9 +140,9 @@ private fun VyxelNavItem(
                 Icon(
                     imageVector = iconVector,
                     contentDescription = screen.title,
-                    tint = if (selected) scheme.onPrimary else scheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    tint = if (selected) scheme.onPrimary else scheme.onSurfaceVariant,
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(21.dp)
                         .graphicsLayer {
                             scaleX = iconScale
                             scaleY = iconScale
@@ -154,7 +154,7 @@ private fun VyxelNavItem(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .clip(CircleShape)
+                        .clip(pillShape)
                         .background(scheme.error)
                 )
             }
@@ -166,17 +166,14 @@ private fun VyxelNavItem(
                 (fadeIn(KnowSpendsMotion.fade(180)) + scaleIn(KnowSpendsMotion.expressive(), 0.7f))
                     .togetherWith(fadeOut(KnowSpendsMotion.fade(100)))
             },
-            label = "vyxelNavLabel"
+            label = "navLabel"
         ) { isSelected ->
             if (isSelected) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(7.dp))
                     Text(
                         text = screen.title,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.2.sp
-                        ),
+                        style = MaterialTheme.typography.labelLarge,
                         color = scheme.onPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
