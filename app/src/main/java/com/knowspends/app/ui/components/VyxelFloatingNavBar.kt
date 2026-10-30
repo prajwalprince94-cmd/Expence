@@ -1,6 +1,7 @@
 package com.knowspends.app.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,13 +45,15 @@ import com.knowspends.app.ui.theme.pressScale
 /**
  * Floating Pill Navigation Bar faithfully built with Vyxel Apps architecture and aesthetics.
  *
- * Design Specifications:
+ * Design & Physics Specifications:
  * - Floating pill shape (`RoundedCornerShape(percent = 50)`).
- * - Crystal clear high-contrast container with zero child blur (`glassSurface`).
+ * - Smooth physics: `animateColorAsState` for background pill & icon tint,
+ *   `KnowSpendsMotion.SizeSpring` for whole-bar fluid resizing,
+ *   `KnowSpendsMotion.bouncy` for icon pop, and tactile `pressScale(0.94f)`.
  * - Active item grows an animated primary pill (`colorScheme.primary`), scaling its icon by 1.08x
  *   and revealing its label via spring-driven `AnimatedContent` with `labelLarge` typography.
  * - Inactive items collapse to 21.dp icon-only mode with `onSurfaceVariant` tint.
- * - Micro-interactions: Bouncy icon scale animation and tactile spring press scale (`0.955f`).
+ * - Crystal clear high-contrast container with zero child blur (`glassSurface`).
  */
 @Composable
 fun VyxelFloatingNavBar(
@@ -67,7 +69,7 @@ fun VyxelFloatingNavBar(
     Row(
         modifier = modifier
             .shadow(
-                elevation = 10.dp,
+                elevation = 12.dp,
                 shape = pillShape,
                 spotColor = Color.Black.copy(alpha = 0.22f),
                 ambientColor = Color.Black.copy(alpha = 0.16f)
@@ -79,6 +81,7 @@ fun VyxelFloatingNavBar(
                 borderWidth = 1.dp
             )
             .padding(horizontal = 8.dp, vertical = 8.dp)
+            .animateContentSize(animationSpec = KnowSpendsMotion.SizeSpring)
             .wrapContentHeight(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -115,11 +118,23 @@ private fun VyxelNavItem(
         label = "navIconScale"
     )
 
+    val pillBgColor by animateColorAsState(
+        targetValue = if (selected) scheme.primary else Color.Transparent,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "navPillBgColor"
+    )
+
+    val iconTint by animateColorAsState(
+        targetValue = if (selected) scheme.onPrimary else scheme.onSurfaceVariant,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "navIconTint"
+    )
+
     Row(
         modifier = Modifier
-            .pressScale(0.955f)
+            .pressScale(0.94f)
             .clip(pillShape)
-            .background(if (selected) scheme.primary else Color.Transparent)
+            .background(pillBgColor)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -131,8 +146,7 @@ private fun VyxelNavItem(
             .padding(
                 horizontal = if (selected) 15.dp else 13.dp,
                 vertical = 11.dp
-            )
-            .animateContentSize(animationSpec = KnowSpendsMotion.expressive()),
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(contentAlignment = Alignment.TopEnd) {
@@ -140,7 +154,7 @@ private fun VyxelNavItem(
                 Icon(
                     imageVector = iconVector,
                     contentDescription = screen.title,
-                    tint = if (selected) scheme.onPrimary else scheme.onSurfaceVariant,
+                    tint = iconTint,
                     modifier = Modifier
                         .size(21.dp)
                         .graphicsLayer {

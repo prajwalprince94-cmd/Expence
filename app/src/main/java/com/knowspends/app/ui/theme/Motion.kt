@@ -44,6 +44,20 @@ object KnowSpendsMotion {
     val smooth = spring<Float>(dampingRatio = 0.85f, stiffness = 260f)
     fun <T> smooth() = spring<T>(dampingRatio = 0.85f, stiffness = 260f)
 
+    /** Spatial spring tuned for offsets — avoids visible overshoot on long travel. */
+    val OffsetSpring = spring<androidx.compose.ui.unit.IntOffset>(
+        dampingRatio = 0.82f,
+        stiffness = 420f,
+        visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1),
+    )
+
+    /** Spring for size changes; pairs with animateContentSize. */
+    val SizeSpring = spring<androidx.compose.ui.unit.IntSize>(
+        dampingRatio = 0.8f,
+        stiffness = 420f,
+        visibilityThreshold = androidx.compose.ui.unit.IntSize(1, 1),
+    )
+
     /** Fade tween strictly for alpha cross-fades matching VyxelMotion.fade(). */
     fun <T> fade(durationMs: Int = 200) = tween<T>(durationMillis = durationMs)
 }

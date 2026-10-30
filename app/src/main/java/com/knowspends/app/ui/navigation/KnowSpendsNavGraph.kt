@@ -1,8 +1,8 @@
 package com.knowspends.app.ui.navigation
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import com.knowspends.app.ui.theme.KnowSpendsMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -65,19 +65,30 @@ fun KnowSpendsAppRoot(
 
     val isTopLevelRoute = Screen.bottomNavItems.any { it.route == currentRoute }
 
+    val barOffset by animateDpAsState(
+        targetValue = if (isTopLevelRoute) 0.dp else 140.dp,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "barOffset"
+    )
+    val fabOffset by animateDpAsState(
+        targetValue = if (isTopLevelRoute) 0.dp else 140.dp,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "fabOffset"
+    )
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            AnimatedVisibility(
-                visible = isTopLevelRoute,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
+            if (barOffset < 140.dp) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .graphicsLayer {
+                            translationY = barOffset.toPx()
+                            alpha = ((140.dp - barOffset) / 140.dp).coerceIn(0f, 1f)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     VyxelFloatingNavBar(
@@ -99,27 +110,30 @@ fun KnowSpendsAppRoot(
             }
         },
         floatingActionButton = {
-            AnimatedVisibility(
-                visible = isTopLevelRoute,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                ExpressiveFabMenu(
-                    expanded = isFabExpanded,
-                    onExpandChanged = { isFabExpanded = it },
-                    onAddExpense = {
-                        isFabExpanded = false
-                        navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.EXPENSE))
-                    },
-                    onAddIncome = {
-                        isFabExpanded = false
-                        navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.INCOME))
-                    },
-                    onAddTransfer = {
-                        isFabExpanded = false
-                        navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.TRANSFER))
+            if (fabOffset < 140.dp) {
+                Box(
+                    modifier = Modifier.graphicsLayer {
+                        translationY = fabOffset.toPx()
+                        alpha = ((140.dp - fabOffset) / 140.dp).coerceIn(0f, 1f)
                     }
-                )
+                ) {
+                    ExpressiveFabMenu(
+                        expanded = isFabExpanded,
+                        onExpandChanged = { isFabExpanded = it },
+                        onAddExpense = {
+                            isFabExpanded = false
+                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.EXPENSE))
+                        },
+                        onAddIncome = {
+                            isFabExpanded = false
+                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.INCOME))
+                        },
+                        onAddTransfer = {
+                            isFabExpanded = false
+                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.TRANSFER))
+                        }
+                    )
+                }
             }
         }
     ) { innerPadding ->
