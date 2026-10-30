@@ -1,6 +1,9 @@
 package com.knowspends.app.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -9,14 +12,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.knowspends.app.ui.components.CategoryBadge
@@ -25,9 +31,11 @@ import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payments
@@ -51,13 +59,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.knowspends.app.domain.model.Account
@@ -78,11 +95,13 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var editingAccount by remember { mutableStateOf<Account?>(null) }
+    var selectedAccountForAction by remember { mutableStateOf<Account?>(null) }
+    var activeEditField by remember { mutableStateOf<AccountEditField?>(null) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
@@ -325,9 +344,14 @@ fun HomeScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Expense Visual Analytics (7-Day Bar Chart & Category Donut Chart)
+        ExpenseAnalyticsCard(uiState = uiState)
+
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Accounts Section with Tap-to-Edit Functionality
+        // Accounts Section with Individual Tap-to-Edit Functionality
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -339,7 +363,7 @@ fun HomeScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Tap to edit",
+                text = "Tap account to edit",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -354,7 +378,10 @@ fun HomeScreen(
             uiState.accounts.forEach { account ->
                 AccountCard(
                     account = account,
-                    onClick = { editingAccount = account }
+                    onClick = {
+                        selectedAccountForAction = account
+                        activeEditField = AccountEditField.OPTIONS
+                    }
                 )
             }
         }
@@ -414,20 +441,78 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(100.dp))
+        // Generous bottom clearance for the floating navigation bar and + button
+        Spacer(modifier = Modifier.height(140.dp))
     }
 
-    // Modal Edit Account Dialog
-    editingAccount?.let { acc ->
-        EditAccountDialog(
-            account = acc,
-            onDismiss = { editingAccount = null },
-            onSave = { updated ->
-                viewModel.updateAccount(updated)
-                editingAccount = null
+    // Individual Account Editing Modal Flow
+    selectedAccountForAction?.let { account ->
+        when (activeEditField) {
+            AccountEditField.OPTIONS -> {
+                AccountActionOptionsDialog(
+                    account = account,
+                    onSelectField = { field -> activeEditField = field },
+                    onDismiss = {
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    }
+                )
             }
-        )
+            AccountEditField.BALANCE -> {
+                AccountEditBalanceDialog(
+                    account = account,
+                    onSave = { newBalancePaise ->
+                        viewModel.updateAccountBalance(account.id, newBalancePaise)
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    },
+                    onBack = { activeEditField = AccountEditField.OPTIONS },
+                    onDismiss = {
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    }
+                )
+            }
+            AccountEditField.NAME -> {
+                AccountEditNameDialog(
+                    account = account,
+                    onSave = { newName ->
+                        viewModel.updateAccountName(account.id, newName)
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    },
+                    onBack = { activeEditField = AccountEditField.OPTIONS },
+                    onDismiss = {
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    }
+                )
+            }
+            AccountEditField.TYPE -> {
+                AccountEditTypeDialog(
+                    account = account,
+                    onSave = { newType ->
+                        viewModel.updateAccountType(account.id, newType)
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    },
+                    onBack = { activeEditField = AccountEditField.OPTIONS },
+                    onDismiss = {
+                        selectedAccountForAction = null
+                        activeEditField = null
+                    }
+                )
+            }
+            null -> {}
+        }
     }
+}
+
+enum class AccountEditField {
+    OPTIONS,
+    BALANCE,
+    NAME,
+    TYPE
 }
 
 @Composable
@@ -467,7 +552,7 @@ fun AccountCard(
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit Account",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(15.dp)
                 )
             }
@@ -492,13 +577,195 @@ fun AccountCard(
 }
 
 @Composable
-fun EditAccountDialog(
+fun AccountActionOptionsDialog(
     account: Account,
-    onDismiss: () -> Unit,
-    onSave: (Account) -> Unit
+    onSelectField: (AccountEditField) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf(account.name) }
-    var selectedType by remember { mutableStateOf(account.type) }
+    val scheme = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = scheme.surfaceContainerLow,
+        title = {
+            Column {
+                Text(
+                    text = "Manage ${account.name}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurface
+                )
+                Text(
+                    text = "Select an attribute to edit individually:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Option 1: Balance
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f)
+                        .clickable { onSelectField(AccountEditField.BALANCE) },
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(scheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalanceWallet,
+                                contentDescription = null,
+                                tint = scheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Edit Balance Only",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onSurface
+                            )
+                            Text(
+                                text = "Current: ${MoneyFormatter.formatPaise(account.currentBalanceMinor)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Option 2: Name
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f)
+                        .clickable { onSelectField(AccountEditField.NAME) },
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(scheme.secondaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = scheme.onSecondaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Rename Account Only",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onSurface
+                            )
+                            Text(
+                                text = "Current: ${account.name}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Option 3: Type
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f)
+                        .clickable { onSelectField(AccountEditField.TYPE) },
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(scheme.tertiaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Category,
+                                contentDescription = null,
+                                tint = scheme.onTertiaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Change Type Only",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onSurface
+                            )
+                            Text(
+                                text = "Current: ${account.type.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        shape = MaterialTheme.shapes.extraLarge
+    )
+}
+
+@Composable
+fun AccountEditBalanceDialog(
+    account: Account,
+    onSave: (Long) -> Unit,
+    onBack: () -> Unit,
+    onDismiss: () -> Unit
+) {
     var balanceText by remember {
         mutableStateOf(
             if (account.openingBalanceMinor == 0L) "0"
@@ -511,16 +778,81 @@ fun EditAccountDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         title = {
             Text(
-                text = "Edit Account",
+                text = "Update Balance • ${account.name}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                Text(
+                    text = "Enter new opening balance amount for this account:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = balanceText,
+                    onValueChange = { balanceText = it },
+                    label = { Text("Balance (₹)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val balancePaise = ((balanceText.toDoubleOrNull() ?: 0.0) * 100).toLong()
+                    onSave(balancePaise)
+                },
+                shape = CircleShape
+            ) {
+                Text("Save Balance", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onBack) {
+                Text("Back")
+            }
+        },
+        shape = MaterialTheme.shapes.extraLarge
+    )
+}
+
+@Composable
+fun AccountEditNameDialog(
+    account: Account,
+    onSave: (String) -> Unit,
+    onBack: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(account.name) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        title = {
+            Text(
+                text = "Rename Account",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Enter new title or nickname for this account:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -529,11 +861,54 @@ fun EditAccountDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium
                 )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) onSave(name.trim())
+                },
+                shape = CircleShape
+            ) {
+                Text("Save Name", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onBack) {
+                Text("Back")
+            }
+        },
+        shape = MaterialTheme.shapes.extraLarge
+    )
+}
 
+@Composable
+fun AccountEditTypeDialog(
+    account: Account,
+    onSave: (AccountType) -> Unit,
+    onBack: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedType by remember { mutableStateOf(account.type) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        title = {
+            Text(
+                text = "Select Account Type",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
-                    text = "Account Type",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = "Choose the type of ledger bucket for ${account.name}:",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(
@@ -555,43 +930,314 @@ fun EditAccountDialog(
                         )
                     }
                 }
-
-                OutlinedTextField(
-                    value = balanceText,
-                    onValueChange = { balanceText = it },
-                    label = { Text("Opening Balance (₹)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal
-                    )
-                )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val balancePaise = ((balanceText.toDoubleOrNull() ?: 0.0) * 100).toLong()
-                    val updated = account.copy(
-                        name = name.trim().ifBlank { account.name },
-                        type = selectedType,
-                        openingBalanceMinor = balancePaise
-                    )
-                    onSave(updated)
-                },
+                onClick = { onSave(selectedType) },
                 shape = CircleShape
             ) {
-                Text("Save Changes", fontWeight = FontWeight.Bold)
+                Text("Save Type", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            TextButton(onClick = onBack) {
+                Text("Back")
             }
         },
         shape = MaterialTheme.shapes.extraLarge
     )
+}
+
+@Composable
+fun ExpenseAnalyticsCard(
+    uiState: HomeUiState,
+    modifier: Modifier = Modifier
+) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val scheme = MaterialTheme.colorScheme
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = scheme.surfaceContainerLowest
+        ),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Expense Insights",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurface
+                    )
+                    Text(
+                        text = if (selectedTab == 0) "Last 7 days daily pattern" else "Current month breakdown",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(scheme.surfaceContainerHigh)
+                        .padding(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    listOf("7 Days", "Categories").forEachIndexed { index, label ->
+                        val isSelected = selectedTab == index
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(if (isSelected) scheme.primary else Color.Transparent)
+                                .clickable { selectedTab = index }
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (selectedTab == 0) {
+                SevenDaySpendingChart(dailyItems = uiState.dailyExpenses7Days)
+            } else {
+                CategoryBreakdownDonutChart(
+                    shares = uiState.categoryExpenses,
+                    totalExpenseFormatted = uiState.formattedExpense
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SevenDaySpendingChart(
+    dailyItems: List<DayExpenseItem>,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val maxAmount = remember(dailyItems) {
+        dailyItems.maxOfOrNull { it.amountMinor }?.coerceAtLeast(100L) ?: 100L
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            dailyItems.forEach { item ->
+                val ratio = (item.amountMinor.toFloat() / maxAmount.toFloat()).coerceIn(0.06f, 1f)
+                val animatedRatio by animateFloatAsState(
+                    targetValue = ratio,
+                    animationSpec = tween(durationMillis = 400),
+                    label = "barHeight"
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (item.amountMinor > 0) {
+                        Text(
+                            text = item.formattedAmount.replace("₹", "").split(".")[0],
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (item.isToday) scheme.primary else scheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.55f)
+                            .fillMaxHeight(animatedRatio)
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 4.dp, bottomEnd = 4.dp))
+                            .background(
+                                if (item.isToday) {
+                                    Brush.verticalGradient(
+                                        listOf(scheme.primary, scheme.tertiary)
+                                    )
+                                } else {
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            scheme.primary.copy(alpha = 0.55f),
+                                            scheme.primary.copy(alpha = 0.25f)
+                                        )
+                                    )
+                                }
+                            )
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = item.dayLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (item.isToday) FontWeight.Bold else FontWeight.Normal,
+                        color = if (item.isToday) scheme.primary else scheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryBreakdownDonutChart(
+    shares: List<CategoryExpenseShare>,
+    totalExpenseFormatted: String,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    if (shares.isEmpty()) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(130.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No category expense records this month yet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    val defaultPalette = listOf(
+        Color(0xFF26A69A),
+        Color(0xFF42A5F5),
+        Color(0xFFFFA726),
+        Color(0xFFAB47BC),
+        Color(0xFFEF5350)
+    )
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(110.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 20.dp.toPx()
+                val radius = (size.minDimension - strokeWidth) / 2
+                val topLeft = Offset(
+                    (size.width - 2 * radius) / 2,
+                    (size.height - 2 * radius) / 2
+                )
+                val arcSize = Size(radius * 2, radius * 2)
+
+                var currentStartAngle = -90f
+                shares.forEachIndexed { index, share ->
+                    val sweepAngle = (share.percentage / 100f) * 360f
+                    val arcColor = share.colorHex?.let { Color(it) } ?: defaultPalette[index % defaultPalette.size]
+
+                    drawArc(
+                        color = arcColor,
+                        startAngle = currentStartAngle,
+                        sweepAngle = (sweepAngle - 2f).coerceAtLeast(1f),
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                    currentStartAngle += sweepAngle
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    color = scheme.onSurfaceVariant
+                )
+                Text(
+                    text = totalExpenseFormatted.replace("₹", "₹\n"),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            shares.forEachIndexed { index, share ->
+                val arcColor = share.colorHex?.let { Color(it) } ?: defaultPalette[index % defaultPalette.size]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(arcColor)
+                        )
+                        Text(
+                            text = share.categoryName,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = scheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Text(
+                        text = "${share.percentage.toInt()}% (${share.formattedAmount})",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = scheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -600,69 +1246,124 @@ fun RecentTransactionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val timeFormat = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .pressScale(0.98f)
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            containerColor = scheme.surfaceContainerLowest
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f))
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            val badgeColor = item.categoryColour?.let { Color(it) }
-                ?: when (item.transaction.type) {
-                    TransactionType.EXPENSE -> ExpenseColor
-                    TransactionType.INCOME -> IncomeColor
-                    TransactionType.TRANSFER -> TransferColor
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val badgeColor = item.categoryColour?.let { Color(it) }
+                    ?: when (item.transaction.type) {
+                        TransactionType.EXPENSE -> ExpenseColor
+                        TransactionType.INCOME -> IncomeColor
+                        TransactionType.TRANSFER -> TransferColor
+                    }
+
+                CategoryBadge(
+                    categoryName = item.categoryName ?: item.transaction.type.name,
+                    iconKey = item.categoryIcon,
+                    color = badgeColor,
+                    size = 42.dp
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.transaction.payee.ifBlank {
+                            item.categoryName ?: "Transaction"
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (item.transaction.note.isNotBlank()) {
+                        Text(
+                            text = item.transaction.note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
-            CategoryBadge(
-                categoryName = item.categoryName ?: item.transaction.type.name,
-                iconKey = item.categoryIcon,
-                color = badgeColor,
-                size = 40.dp
-            )
+                val amountFormatted = MoneyFormatter.formatPaise(item.transaction.amountMinor)
+                val (amountText, amountColor) = when (item.transaction.type) {
+                    TransactionType.INCOME -> "+ $amountFormatted" to IncomeColor
+                    TransactionType.EXPENSE -> "- $amountFormatted" to ExpenseColor
+                    TransactionType.TRANSFER -> amountFormatted to TransferColor
+                }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.transaction.payee.ifBlank {
-                        item.categoryName ?: "Transaction"
-                    },
-                    style = MaterialTheme.typography.titleSmall,
+                    text = amountText,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
+                    color = amountColor
                 )
+            }
+
+            // Bottom Badges Row: Date/Time Badge + Account Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(scheme.surfaceContainerHigh)
+                        .padding(horizontal = 10.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = getAccountIcon(
+                            when {
+                                item.accountName.contains("bank", ignoreCase = true) -> AccountType.BANK
+                                item.accountName.contains("card", ignoreCase = true) -> AccountType.CARD
+                                item.accountName.contains("wallet", ignoreCase = true) -> AccountType.WALLET
+                                else -> AccountType.CASH
+                            }
+                        ),
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = item.accountName,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = scheme.onSurface
+                    )
+                }
+
                 Text(
-                    text = item.accountName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = timeFormat.format(Date(item.transaction.date)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
                 )
             }
-
-            val amountFormatted = MoneyFormatter.formatPaise(item.transaction.amountMinor)
-            val (amountText, amountColor) = when (item.transaction.type) {
-                TransactionType.INCOME -> "+ $amountFormatted" to IncomeColor
-                TransactionType.EXPENSE -> "- $amountFormatted" to ExpenseColor
-                TransactionType.TRANSFER -> amountFormatted to TransferColor
-            }
-
-            Text(
-                text = amountText,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor
-            )
         }
     }
 }

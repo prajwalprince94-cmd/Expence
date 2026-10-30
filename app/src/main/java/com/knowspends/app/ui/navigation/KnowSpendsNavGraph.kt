@@ -9,15 +9,24 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,8 +49,8 @@ import androidx.navigation.navArgument
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.ui.add.AddTransactionScreen
 import com.knowspends.app.ui.budgets.BudgetsScreen
-import com.knowspends.app.ui.components.ExpressiveFabMenu
 import com.knowspends.app.ui.components.VyxelFloatingNavBar
+import com.knowspends.app.ui.components.bouncyClickable
 import com.knowspends.app.ui.home.HomeScreen
 import com.knowspends.app.ui.inbox.ReviewInboxScreen
 import com.knowspends.app.ui.reports.ReportsScreen
@@ -63,23 +72,12 @@ fun KnowSpendsAppRoot(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    var isFabExpanded by remember { mutableStateOf(false) }
-
-    LaunchedEffect(currentRoute) {
-        isFabExpanded = false
-    }
-
     val isTopLevelRoute = Screen.bottomNavItems.any { it.route == currentRoute }
 
     val barOffset by animateDpAsState(
         targetValue = if (isTopLevelRoute) 0.dp else 140.dp,
         animationSpec = KnowSpendsMotion.expressive(),
         label = "barOffset"
-    )
-    val fabOffset by animateDpAsState(
-        targetValue = if (isTopLevelRoute) 0.dp else 140.dp,
-        animationSpec = KnowSpendsMotion.expressive(),
-        label = "fabOffset"
     )
 
     Scaffold(
@@ -176,68 +174,59 @@ fun KnowSpendsAppRoot(
                 }
             }
 
-            // Stride-style Floating Navigation Bar Overlay (eliminates scaffold bottomBar re-measurement)
+            // Stride-style Floating Navigation Bar & Direct + Button (Auto-Layout Row beside navigation)
             if (barOffset < 140.dp) {
-                VyxelFloatingNavBar(
-                    items = Screen.bottomNavItems,
-                    currentRoute = currentRoute,
-                    onItemClick = { screen ->
-                        if (currentRoute != screen.route) {
-                            navController.navigateSingleTop(screen.route)
-                        }
-                    },
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
-                        .padding(bottom = 18.dp)
+                        .padding(bottom = 16.dp, start = 8.dp, end = 8.dp)
                         .graphicsLayer {
                             translationY = barOffset.toPx()
                             alpha = ((140.dp - barOffset) / 140.dp).coerceIn(0f, 1f)
-                        }
-                )
-            }
-
-            // Floating Action Button Overlay
-            if (fabOffset < 140.dp) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .navigationBarsPadding()
-                        .padding(bottom = 86.dp, end = 16.dp)
-                        .graphicsLayer {
-                            translationY = fabOffset.toPx()
-                            alpha = ((140.dp - fabOffset) / 140.dp).coerceIn(0f, 1f)
-                        }
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ExpressiveFabMenu(
-                        expanded = isFabExpanded,
-                        onExpandChanged = { isFabExpanded = it },
-                        onAddExpense = {
-                            isFabExpanded = false
-                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.EXPENSE))
-                        },
-                        onAddIncome = {
-                            isFabExpanded = false
-                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.INCOME))
-                        },
-                        onAddTransfer = {
-                            isFabExpanded = false
-                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.TRANSFER))
+                    VyxelFloatingNavBar(
+                        items = Screen.bottomNavItems,
+                        currentRoute = currentRoute,
+                        onItemClick = { screen ->
+                            if (currentRoute != screen.route) {
+                                navController.navigateSingleTop(screen.route)
+                            }
                         }
                     )
-                }
-            }
 
-            if (isFabExpanded) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.32f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { isFabExpanded = false }
-                )
+                    // Dedicated + Button beside navigation bar (bouncy, solid color, no scrim overlay!)
+                    Surface(
+                        onClick = {
+                            navController.navigate(Screen.AddTransaction.createRoute())
+                        },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        shadowElevation = 8.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+                        modifier = Modifier
+                            .size(52.dp)
+                            .bouncyClickable(scaleDown = 0.88f) {
+                                navController.navigate(Screen.AddTransaction.createRoute())
+                            }
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Transaction",
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
             }
         }
     }

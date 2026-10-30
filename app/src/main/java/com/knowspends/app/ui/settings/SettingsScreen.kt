@@ -9,6 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -261,20 +267,26 @@ fun SettingsScreen(
                         .clip(VyxelShapeTokens.Card)
                         .wrapContentHeight()
                 ) {
+                    val coverBrush = when (prefs.profileCoverUri) {
+                        "gradient:ocean" -> Brush.linearGradient(listOf(Color(0xFF007799), Color(0xFF00A896), Color(0xFF028090)))
+                        "gradient:sunset" -> Brush.linearGradient(listOf(Color(0xFFFF5722), Color(0xFFFF9800), Color(0xFFFFC107)))
+                        "gradient:amethyst" -> Brush.linearGradient(listOf(Color(0xFF7B1FA2), Color(0xFF9C27B0), Color(0xFFBA68C8)))
+                        "gradient:midnight" -> Brush.linearGradient(listOf(Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64)))
+                        else -> Brush.linearGradient(
+                            listOf(
+                                scheme.primary.copy(alpha = 0.85f),
+                                scheme.secondary.copy(alpha = 0.70f),
+                                scheme.tertiary.copy(alpha = 0.65f)
+                            )
+                        )
+                    }
+
                     // Cover Banner Background (Expressive gradient)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(130.dp)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        scheme.primary.copy(alpha = 0.85f),
-                                        scheme.secondary.copy(alpha = 0.70f),
-                                        scheme.tertiary.copy(alpha = 0.65f)
-                                    )
-                                )
-                            )
+                            .background(coverBrush)
                     )
 
                     // Profile Content Card
@@ -346,6 +358,74 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = scheme.onSurfaceVariant
                         )
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // Customization Attributes Row (Currency, Target, FY)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(scheme.surfaceContainerHighest)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = prefs.currencySymbol,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.primary
+                                )
+                                Text(
+                                    text = "Currency",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(scheme.surfaceContainerHighest)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Goal:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${prefs.currencySymbol}${prefs.monthlySavingsGoal}/mo",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.secondary
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(scheme.surfaceContainerHighest)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "FY: ${prefs.financialYearStart}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            }
+                        }
 
                         Spacer(Modifier.height(14.dp))
 
@@ -621,54 +701,15 @@ fun SettingsScreen(
             }
 
 
-            // ── 5. Notifications & Daily Reminders ────────────────────────────
+            // ── 5. Notifications & Budget Alerts ────────────────────────────
             item(key = "notifications") {
-                var showTimePicker by remember { mutableStateOf(false) }
-
-                VyxelSettingsCard(title = "Notifications & Reminders") {
-                    VyxelToggleRow(
-                        title = "Daily Review Reminder",
-                        subtitle = "Alert to log daily expenses at ${prefs.dailyReminderTime}",
-                        checked = prefs.dailyReminderEnabled,
-                        onCheckedChange = { enabled ->
-                            viewModel.setDailyReminder(enabled, prefs.dailyReminderTime)
-                        },
-                        icon = Icons.Default.Notifications
-                    )
-
-                    if (prefs.dailyReminderEnabled) {
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Reminder Time:",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant
-                            )
-                            listOf("19:00", "20:00", "21:00", "22:00").forEach { presetTime ->
-                                FilterChip(
-                                    selected = prefs.dailyReminderTime == presetTime,
-                                    onClick = {
-                                        viewModel.setDailyReminder(true, presetTime)
-                                    },
-                                    label = { Text(presetTime) }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(10.dp))
-
+                VyxelSettingsCard(title = "Notifications & Budget Alerts") {
                     VyxelToggleRow(
                         title = "Budget Threshold Alerts",
-                        subtitle = "Warn when category spending approaches 80% or 100% of limits",
+                        subtitle = "Warn when category spending approaches 80% or 100% of defined limits",
                         checked = prefs.budgetAlertEnabled,
-                        onCheckedChange = { viewModel.setBudgetAlert(it) }
+                        onCheckedChange = { viewModel.setBudgetAlert(it) },
+                        icon = Icons.Default.Notifications
                     )
                 }
             }
@@ -796,7 +837,10 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
                             Text(
                                 text = "KnowSpends Version",
                                 style = MaterialTheme.typography.titleSmall,
@@ -818,6 +862,59 @@ fun SettingsScreen(
                                 icon = Icons.Default.Update,
                                 onClick = { viewModel.checkForUpdates() }
                             )
+                        }
+                    }
+
+                    if (uiState.isDownloadingUpdate) {
+                        Spacer(Modifier.height(12.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { uiState.downloadProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(CircleShape)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Downloading in-app update...",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.primary
+                                )
+                                Text(
+                                    text = "${(uiState.downloadProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.primary
+                                )
+                            }
+                        }
+                    } else if (uiState.downloadedApkUri != null) {
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Update downloaded & ready!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Button(
+                                onClick = { viewModel.installDownloadedApk(context) },
+                                shape = CircleShape
+                            ) {
+                                Text("Install Now")
+                            }
                         }
                     }
                 }
@@ -905,54 +1002,154 @@ fun SettingsScreen(
         }
     }
 
-    // ── Edit Profile Dialog ───────────────────────────────────────────────────
+    // ── Edit Profile Dialog (Rich Customization Features) ───────────────────
     if (uiState.showProfileEditDialog) {
         var editName by remember { mutableStateOf(prefs.profileName) }
         var editTagline by remember { mutableStateOf(prefs.profileTagline) }
         var editCurrency by remember { mutableStateOf(prefs.currencySymbol) }
         var editSavingsGoal by remember { mutableStateOf(prefs.monthlySavingsGoal) }
         var editFyStart by remember { mutableStateOf(prefs.financialYearStart) }
+        var editCoverUri by remember { mutableStateOf(prefs.profileCoverUri.ifBlank { "gradient:emerald" }) }
+
+        val gradientThemes = listOf(
+            "gradient:emerald" to "Emerald",
+            "gradient:ocean" to "Ocean",
+            "gradient:sunset" to "Sunset",
+            "gradient:amethyst" to "Amethyst",
+            "gradient:midnight" to "Midnight"
+        )
+        val currencyPresets = listOf("₹", "$", "€", "£", "¥", "₩")
+        val goalPresets = listOf("5000", "10000", "15000", "25000", "50000", "100000")
 
         AlertDialog(
             onDismissRequest = { viewModel.showProfileDialog(false) },
             containerColor = scheme.surfaceContainerLow,
-            title = { Text("Edit Profile & Ledger") },
+            title = {
+                Text(
+                    text = "Edit Profile & Ledger",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 1. Cover Theme Presets
+                    Text(
+                        text = "Cover Gradient Theme",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = scheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        gradientThemes.forEach { (key, label) ->
+                            FilterChip(
+                                selected = editCoverUri == key,
+                                onClick = { editCoverUri = key },
+                                label = { Text(label) },
+                                shape = CircleShape
+                            )
+                        }
+                    }
+
+                    // 2. Name & Tagline
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
                         label = { Text("Ledger / User Name") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
                     )
                     OutlinedTextField(
                         value = editTagline,
                         onValueChange = { editTagline = it },
                         label = { Text("Tagline / Subtitle") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
                     )
+
+                    // 3. Currency Quick-Selector
+                    Text(
+                        text = "Currency Symbol",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = scheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        currencyPresets.forEach { symbol ->
+                            FilterChip(
+                                selected = editCurrency == symbol,
+                                onClick = { editCurrency = symbol },
+                                label = { Text(symbol, fontWeight = FontWeight.Bold) },
+                                shape = CircleShape
+                            )
+                        }
+                    }
                     OutlinedTextField(
                         value = editCurrency,
                         onValueChange = { editCurrency = it },
-                        label = { Text("Currency Symbol (₹, $, €, £)") },
+                        label = { Text("Custom Currency Symbol") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
                     )
+
+                    // 4. Monthly Savings Target Presets
+                    Text(
+                        text = "Monthly Savings Target",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = scheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        goalPresets.forEach { preset ->
+                            FilterChip(
+                                selected = editSavingsGoal == preset,
+                                onClick = { editSavingsGoal = preset },
+                                label = { Text(preset) },
+                                shape = CircleShape
+                            )
+                        }
+                    }
                     OutlinedTextField(
                         value = editSavingsGoal,
                         onValueChange = { editSavingsGoal = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("Monthly Savings Target") },
+                        label = { Text("Target Amount") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
+
+                    // 5. Financial Year Start
                     OutlinedTextField(
                         value = editFyStart,
                         onValueChange = { editFyStart = it },
                         label = { Text("Financial Year Start (e.g. April)") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
                     )
                 }
             },
@@ -963,25 +1160,27 @@ fun SettingsScreen(
                             name = editName.trim(),
                             tagline = editTagline.trim(),
                             avatarUri = prefs.profileAvatarUri,
-                            coverUri = prefs.profileCoverUri,
+                            coverUri = editCoverUri,
                             currency = editCurrency.trim().ifBlank { "₹" },
                             savingsGoal = editSavingsGoal.trim().ifBlank { "15000" },
                             financialYearStart = editFyStart.trim().ifBlank { "April" }
                         )
-                    }
+                    },
+                    shape = CircleShape
                 ) {
-                    Text("Save Profile")
+                    Text("Save Profile", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.showProfileDialog(false) }) {
                     Text("Cancel")
                 }
-            }
+            },
+            shape = MaterialTheme.shapes.extraLarge
         )
     }
 
-    // ── Update Alert Pop Dialog ───────────────────────────────────────────────
+    // ── Update Alert Pop Dialog (100% In-App Download & Installation) ─────────
     if (uiState.showUpdateDialog) {
         val result = uiState.updateCheckResult
         val hasUpdate = result?.hasUpdate == true || prefs.updateAvailable
@@ -992,7 +1191,9 @@ fun SettingsScreen(
         }
 
         AlertDialog(
-            onDismissRequest = { viewModel.dismissUpdateDialog() },
+            onDismissRequest = {
+                if (!uiState.isDownloadingUpdate) viewModel.dismissUpdateDialog()
+            },
             containerColor = scheme.surfaceContainerLow,
             icon = {
                 Icon(
@@ -1010,7 +1211,7 @@ fun SettingsScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (hasUpdate) {
                         Text(
                             text = "A newer version of KnowSpends ($latestVer) is available! Your installed version is ${BuildConfig.VERSION_NAME}.",
@@ -1021,13 +1222,54 @@ fun SettingsScreen(
                                 text = releaseNotes,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = scheme.onSurfaceVariant,
-                                maxLines = 6,
+                                maxLines = 5,
                                 overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        if (uiState.isDownloadingUpdate) {
+                            Spacer(Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { uiState.downloadProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(CircleShape)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Downloading in-app update...",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.primary
+                                )
+                                Text(
+                                    text = "${(uiState.downloadProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.primary
+                                )
+                            }
+                        } else if (uiState.downloadedApkUri != null) {
+                            Text(
+                                text = "Update downloaded! Tap Install Now to update immediately.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        } else if (uiState.downloadError != null) {
+                            Text(
+                                text = "Download failed: ${uiState.downloadError}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.error
                             )
                         }
                     } else {
                         Text(
-                            text = "KnowSpends is running the latest version (${BuildConfig.VERSION_NAME}). Your personal ledger is optimized and secure.",
+                            text = "KnowSpends is running the latest version (${BuildConfig.VERSION_NAME}). Your personal ledger is optimized, private, and up to date.",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -1035,27 +1277,50 @@ fun SettingsScreen(
             },
             confirmButton = {
                 if (hasUpdate) {
-                    Button(
-                        onClick = {
-                            viewModel.dismissUpdateDialog()
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)))
+                    if (uiState.downloadedApkUri != null) {
+                        Button(
+                            onClick = {
+                                viewModel.installDownloadedApk(context)
+                            },
+                            shape = CircleShape
+                        ) {
+                            Text("Install Now", fontWeight = FontWeight.Bold)
                         }
-                    ) {
-                        Text("Download $latestVer")
+                    } else if (uiState.isDownloadingUpdate) {
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            shape = CircleShape
+                        ) {
+                            Text("Downloading ${(uiState.downloadProgress * 100).toInt()}%")
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                viewModel.downloadAndInstallUpdate(context, downloadUrl)
+                            },
+                            shape = CircleShape
+                        ) {
+                            Text("In-App Update ($latestVer)", fontWeight = FontWeight.Bold)
+                        }
                     }
                 } else {
-                    Button(onClick = { viewModel.dismissUpdateDialog() }) {
+                    Button(
+                        onClick = { viewModel.dismissUpdateDialog() },
+                        shape = CircleShape
+                    ) {
                         Text("Got it")
                     }
                 }
             },
             dismissButton = {
-                if (hasUpdate) {
+                if (hasUpdate && !uiState.isDownloadingUpdate) {
                     TextButton(onClick = { viewModel.dismissUpdateDialog() }) {
                         Text("Later")
                     }
                 }
-            }
+            },
+            shape = MaterialTheme.shapes.extraLarge
         )
     }
 

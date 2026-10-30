@@ -2,7 +2,9 @@ package com.knowspends.app.ui.settings
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.knowspends.app.data.remote.UpdateCheckResult
@@ -21,12 +23,16 @@ import com.knowspends.app.domain.repository.UserPreferencesRepository
 import com.knowspends.app.util.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -36,6 +42,10 @@ data class SettingsUiState(
     val showPaywallSheet: Boolean = false,
     val isLoading: Boolean = false,
     val isCheckingUpdate: Boolean = false,
+    val isDownloadingUpdate: Boolean = false,
+    val downloadProgress: Float = 0f,
+    val downloadedApkUri: Uri? = null,
+    val downloadError: String? = null,
     val statusMessage: String? = null,
     val lastImportBatchId: String? = null,
     val lastImportCount: Int? = null,
@@ -190,6 +200,113 @@ class SettingsViewModel @Inject constructor(
 
     fun dismissUpdateDialog() {
         _uiState.update { it.copy(showUpdateDialog = false) }
+    }
+
+    fun downloadAndInstallUpdate(context: Context, downloadUrl: String) {
+        if (_uiState.value.isDownloadingUpdate) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(
+                    isDownloadingUpdate = true,
+                    downloadProgress = 0f,
+                    downloadError = null
+                )
+            }
+            try {
+                var currentUrl = downloadUrl
+                var connection = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15000
+                    readTimeout = 30000
+                    instanceFollowRedirects = true
+                    setRequestProperty("User-Agent", "KnowSpends-App")
+                }
+
+                var redirects = 0
+                while (redirects < 5) {
+                    val code = connection.responseCode
+                    if (code == HttpURLConnection.HTTP_MOVED_TEMP ||
+                        code == HttpURLConnection.HTTP_MOVED_PERM ||
+                        code == HttpURLConnection.HTTP_SEE_OTHER ||
+                        code == 307 || code == 308
+                    ) {
+                        currentUrl = connection.getHeaderField("Location") ?: break
+                        connection.disconnect()
+                        connection = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                            connectTimeout = 15000
+                            readTimeout = 30000
+                            instanceFollowRedirects = true
+                            setRequestProperty("User-Agent", "KnowSpends-App")
+                        }
+                        redirects++
+                    } else {
+                        break
+                    }
+                }
+
+                val totalBytes = connection.contentLengthLong
+                val updateFile = File(context.cacheDir, "knowspends-update.apk")
+                if (updateFile.exists()) {
+                    updateFile.delete()
+                }
+
+                connection.inputStream.use { input ->
+                    updateFile.outputStream().use { output ->
+                        val buffer = ByteArray(8 * 1024)
+                        var bytesRead: Int
+                        var totalRead = 0L
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalRead += bytesRead
+                            if (totalBytes > 0) {
+                                val progress = (totalRead.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
+                                _uiState.update { it.copy(downloadProgress = progress) }
+                            }
+                        }
+                    }
+                }
+
+                val contentUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    updateFile
+                )
+
+                _uiState.update {
+                    it.copy(
+                        isDownloadingUpdate = false,
+                        downloadProgress = 1f,
+                        downloadedApkUri = contentUri
+                    )
+                }
+
+                val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(contentUri, "application/vnd.android.package-archive")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                }
+                context.startActivity(installIntent)
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isDownloadingUpdate = false,
+                        downloadError = e.localizedMessage ?: "Failed to download update"
+                    )
+                }
+            }
+        }
+    }
+
+    fun installDownloadedApk(context: Context) {
+        val uri = _uiState.value.downloadedApkUri ?: return
+        try {
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            }
+            context.startActivity(installIntent)
+        } catch (e: Exception) {
+            _uiState.update { it.copy(statusMessage = "Could not launch package installer: ${e.localizedMessage}") }
+        }
     }
 
     // Pro / Premium

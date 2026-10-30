@@ -100,86 +100,26 @@ fun VyxelFloatingNavBar(
     val scheme = MaterialTheme.colorScheme
     val isDark = scheme.surface.luminance() < 0.5f
 
-    val glassBorder = BorderStroke(
-        width = 1.dp,
-        brush = Brush.verticalGradient(
-            colors = if (isDark) {
-                listOf(
-                    Color.White.copy(alpha = 0.35f),
-                    Color.White.copy(alpha = 0.08f)
-                )
-            } else {
-                listOf(
-                    scheme.outlineVariant.copy(alpha = 0.85f),
-                    scheme.outlineVariant.copy(alpha = 0.45f)
-                )
-            }
-        )
-    )
+    val solidColor = if (isDark) scheme.surfaceContainerHigh else scheme.surfaceContainerLowest
+    val solidBorder = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.7f))
 
-    Box(
+    Surface(
         modifier = modifier
             .shadow(
-                elevation = 16.dp,
+                elevation = 8.dp,
                 shape = CircleShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.38f else 0.16f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.24f else 0.08f)
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.06f)
             ),
-        contentAlignment = Alignment.Center
+        shape = CircleShape,
+        color = solidColor,
+        border = solidBorder
     ) {
-        // Frosted Glass Blur Backdrop (Samsung One UI / Google Pixel style)
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(CircleShape)
-                .then(
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        Modifier.graphicsLayer {
-                            renderEffect = RenderEffect.createBlurEffect(
-                                20f,
-                                20f,
-                                Shader.TileMode.CLAMP
-                            ).asComposeRenderEffect()
-                        }
-                    } else {
-                        Modifier
-                    }
-                )
-                .background(
-                    if (isDark) {
-                        scheme.surfaceContainerHigh.copy(alpha = 0.68f)
-                    } else {
-                        scheme.surfaceContainerLowest.copy(alpha = 0.88f)
-                    }
-                )
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(
-                                Color.White.copy(alpha = 0.12f),
-                                Color.Transparent
-                            )
-                        } else {
-                            listOf(
-                                Color.White.copy(alpha = 0.60f),
-                                Color.White.copy(alpha = 0.15f)
-                            )
-                        }
-                    )
-                )
-        )
-
-        // Frosted Glass Border & Interactive Navigation Items (100% UNBLURRED, crisp 120 FPS)
-        Surface(
-            shape = CircleShape,
-            color = Color.Transparent,
-            border = glassBorder
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
                 items.forEach { dest ->
                     val selected = currentRoute == dest.route
                     val badge = badgeMap[dest.route] ?: 0
@@ -259,7 +199,6 @@ fun VyxelFloatingNavBar(
                         }
                     }
                 }
-            }
         }
     }
 }

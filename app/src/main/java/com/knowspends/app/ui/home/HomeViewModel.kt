@@ -3,7 +3,9 @@ package com.knowspends.app.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.knowspends.app.domain.model.Account
+import com.knowspends.app.domain.model.AccountType
 import com.knowspends.app.domain.model.MonthlySummary
+import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.TransactionRepository
@@ -19,12 +21,29 @@ import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 
+data class DayExpenseItem(
+    val dayLabel: String,
+    val amountMinor: Long,
+    val formattedAmount: String,
+    val isToday: Boolean
+)
+
+data class CategoryExpenseShare(
+    val categoryName: String,
+    val colorHex: Long?,
+    val amountMinor: Long,
+    val percentage: Float,
+    val formattedAmount: String
+)
+
 data class HomeUiState(
     val currentMonthLabel: String = "",
     val monthlySummary: MonthlySummary = MonthlySummary(),
     val accounts: List<Account> = emptyList(),
     val totalNetWorthMinor: Long = 0L,
     val recentTransactions: List<TransactionWithDetails> = emptyList(),
+    val dailyExpenses7Days: List<DayExpenseItem> = emptyList(),
+    val categoryExpenses: List<CategoryExpenseShare> = emptyList(),
     val isLoading: Boolean = false
 ) {
     val formattedTotalNetWorth: String
@@ -100,7 +119,60 @@ class HomeViewModel @Inject constructor(
         transactionRepository.getAllTransactionsWithDetails()
     ) { summary, accounts, transactions ->
         val netWorth = accounts.sumOf { it.currentBalanceMinor }
-        val recents = transactions.take(5)
+        val recents = transactions.take(6)
+
+        // Calculate 7-Day Spending Trend (Today and previous 6 days)
+        val dayNames = arrayOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+        val dailyItems = mutableListOf<DayExpenseItem>()
+        for (i in 6 downTo 0) {
+            val dayCal = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, -i)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startDayMillis = dayCal.timeInMillis
+            val endDayMillis = startDayMillis + 86400000L - 1L
+
+            val dayExpensesMinor = transactions
+                .filter { it.transaction.type == TransactionType.EXPENSE && it.transaction.date in startDayMillis..endDayMillis }
+                .sumOf { it.transaction.amountMinor }
+
+            val dayLabel = if (i == 0) "Today" else dayNames[dayCal.get(Calendar.DAY_OF_WEEK) - 1]
+            dailyItems.add(
+                DayExpenseItem(
+                    dayLabel = dayLabel,
+                    amountMinor = dayExpensesMinor,
+                    formattedAmount = MoneyFormatter.formatPaise(dayExpensesMinor),
+                    isToday = (i == 0)
+                )
+            )
+        }
+
+        // Calculate Category Breakdown for the current month
+        val monthlyExpenses = transactions.filter {
+            it.transaction.type == TransactionType.EXPENSE && it.transaction.date in monthStartMillis..monthEndMillis
+        }
+        val totalMonthlyExpenseMinor = monthlyExpenses.sumOf { it.transaction.amountMinor }
+
+        val categoryShares = if (totalMonthlyExpenseMinor > 0) {
+            monthlyExpenses
+                .groupBy { it.categoryName ?: "General" }
+                .map { (catName, txList) ->
+                    val sumMinor = txList.sumOf { it.transaction.amountMinor }
+                    val color = txList.firstOrNull()?.categoryColour
+                    CategoryExpenseShare(
+                        categoryName = catName,
+                        colorHex = color,
+                        amountMinor = sumMinor,
+                        percentage = (sumMinor.toFloat() / totalMonthlyExpenseMinor.toFloat()) * 100f,
+                        formattedAmount = MoneyFormatter.formatPaise(sumMinor)
+                    )
+                }
+                .sortedByDescending { it.amountMinor }
+                .take(5)
+        } else emptyList()
 
         HomeUiState(
             currentMonthLabel = currentMonthLabel,
@@ -108,6 +180,8 @@ class HomeViewModel @Inject constructor(
             accounts = accounts,
             totalNetWorthMinor = netWorth,
             recentTransactions = recents,
+            dailyExpenses7Days = dailyItems,
+            categoryExpenses = categoryShares,
             isLoading = false
         )
     }.stateIn(
@@ -119,6 +193,27 @@ class HomeViewModel @Inject constructor(
     fun updateAccount(account: Account) {
         viewModelScope.launch {
             accountRepository.saveAccount(account)
+        }
+    }
+
+    fun updateAccountBalance(accountId: Long, newBalanceMinor: Long) {
+        viewModelScope.launch {
+            val acc = uiState.value.accounts.find { it.id == accountId } ?: return@launch
+            accountRepository.saveAccount(acc.copy(openingBalanceMinor = newBalanceMinor))
+        }
+    }
+
+    fun updateAccountName(accountId: Long, newName: String) {
+        viewModelScope.launch {
+            val acc = uiState.value.accounts.find { it.id == accountId } ?: return@launch
+            accountRepository.saveAccount(acc.copy(name = newName.trim()))
+        }
+    }
+
+    fun updateAccountType(accountId: Long, newType: AccountType) {
+        viewModelScope.launch {
+            val acc = uiState.value.accounts.find { it.id == accountId } ?: return@launch
+            accountRepository.saveAccount(acc.copy(type = newType))
         }
     }
 }
