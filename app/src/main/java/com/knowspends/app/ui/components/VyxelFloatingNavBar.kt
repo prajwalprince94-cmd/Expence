@@ -1,5 +1,8 @@
 package com.knowspends.app.ui.components
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -33,8 +36,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,15 +78,15 @@ fun Modifier.bouncyClickable(
 }
 
 /**
- * Floating Pill Navigation Bar with frosted glass / glassmorphism styling.
+ * Floating Pill Navigation Bar with Samsung One UI & Google Pixel frosted glass blur styling.
  *
  * Design & Performance:
- * - Frosted translucent glass container (`surfaceContainerHigh` with ~72-78% alpha).
- * - Refractive specular glass border gradient (`BorderStroke` with vertical highlight).
- * - Internal frosted light sheen gradient (`Brush.verticalGradient`).
- * - Floating 3D lift (`shadowElevation = 14.dp`).
+ * - Dedicated frosted glass blur backdrop layer (RenderEffect.createBlurEffect on Android 12+).
+ * - Specular refraction border (`BorderStroke` with vertical highlight gradient).
+ * - Ambient internal light sheen (`Brush.verticalGradient`).
+ * - Floating 3D lift (`shadowElevation = 16.dp`).
  * - Stride overshoot spring pop on active tab and tactile `bouncyClickable` squash.
- * - Zero GPU shader composition stalls: 100% crisp, readable text & icons with 120 FPS performance.
+ * - Sibling composable hierarchy: child icons and text remain 100% UNBLURRED and crystal sharp!
  */
 @Composable
 fun VyxelFloatingNavBar(
@@ -98,109 +103,142 @@ fun VyxelFloatingNavBar(
         width = 1.dp,
         brush = Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = if (isDark) 0.32f else 0.65f),
+                Color.White.copy(alpha = if (isDark) 0.35f else 0.65f),
                 Color.White.copy(alpha = if (isDark) 0.08f else 0.20f)
             )
         )
     )
 
-    Surface(
-        shape = CircleShape,
-        color = scheme.surfaceContainerHigh.copy(alpha = if (isDark) 0.72f else 0.78f),
-        shadowElevation = 14.dp,
-        border = glassBorder,
+    Box(
         modifier = modifier
+            .shadow(
+                elevation = 16.dp,
+                shape = CircleShape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.38f else 0.20f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.24f else 0.12f)
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
+        // Frosted Glass Blur Backdrop (Samsung One UI / Google Pixel style)
+        Box(
             modifier = Modifier
+                .matchParentSize()
+                .clip(CircleShape)
+                .then(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        Modifier.graphicsLayer {
+                            renderEffect = RenderEffect.createBlurEffect(
+                                20f,
+                                20f,
+                                Shader.TileMode.CLAMP
+                            ).asComposeRenderEffect()
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
+                .background(
+                    scheme.surfaceContainerHigh.copy(
+                        alpha = if (isDark) 0.68f else 0.74f
+                    )
+                )
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.08f else 0.28f),
+                            Color.White.copy(alpha = if (isDark) 0.12f else 0.30f),
                             Color.Transparent
                         )
                     )
                 )
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        )
+
+        // Frosted Glass Border & Interactive Navigation Items (100% UNBLURRED, crisp 120 FPS)
+        Surface(
+            shape = CircleShape,
+            color = Color.Transparent,
+            border = glassBorder
         ) {
-            items.forEach { dest ->
-                val selected = currentRoute == dest.route
-                val badge = badgeMap[dest.route] ?: 0
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items.forEach { dest ->
+                    val selected = currentRoute == dest.route
+                    val badge = badgeMap[dest.route] ?: 0
 
-                // Icon pops with an overshoot spring whenever this tab becomes active
-                val pop = remember { Animatable(1f) }
-                LaunchedEffect(selected) {
-                    if (selected) {
-                        pop.snapTo(0.65f)
-                        pop.animateTo(
-                            1f,
-                            spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
+                    val pop = remember { Animatable(1f) }
+                    LaunchedEffect(selected) {
+                        if (selected) {
+                            pop.snapTo(0.65f)
+                            pop.animateTo(
+                                1f,
+                                spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
                             )
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = if (selected) scheme.primary
-                    else Color.Transparent,
-                    modifier = Modifier
-                        .bouncyClickable(scaleDown = 0.88f) { onItemClick(dest) }
-                        .clip(CircleShape)
-                        .animateContentSize()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(
-                            horizontal = if (selected) 14.dp else 10.dp,
-                            vertical = 10.dp
-                        ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.TopEnd) {
-                            dest.icon?.let { iconVector ->
-                                Icon(
-                                    imageVector = iconVector,
-                                    contentDescription = dest.title,
-                                    tint = if (selected) scheme.onPrimary
-                                    else scheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .graphicsLayer {
-                                            scaleX = pop.value
-                                            scaleY = pop.value
-                                        }
-                                )
-                            }
-
-                            if (badge > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(scheme.error)
-                                )
-                            }
                         }
+                    }
 
-                        AnimatedVisibility(
-                            visible = selected,
-                            enter = expandHorizontally() + fadeIn(),
-                            exit = shrinkHorizontally() + fadeOut()
+                    Surface(
+                        shape = CircleShape,
+                        color = if (selected) scheme.primary
+                        else Color.Transparent,
+                        modifier = Modifier
+                            .bouncyClickable(scaleDown = 0.88f) { onItemClick(dest) }
+                            .clip(CircleShape)
+                            .animateContentSize()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(
+                                horizontal = if (selected) 14.dp else 10.dp,
+                                vertical = 10.dp
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = dest.title,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = scheme.onPrimary,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                softWrap = false
-                            )
+                            Box(contentAlignment = Alignment.TopEnd) {
+                                dest.icon?.let { iconVector ->
+                                    Icon(
+                                        imageVector = iconVector,
+                                        contentDescription = dest.title,
+                                        tint = if (selected) scheme.onPrimary
+                                        else scheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .graphicsLayer {
+                                                scaleX = pop.value
+                                                scaleY = pop.value
+                                            }
+                                    )
+                                }
+
+                                if (badge > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(scheme.error)
+                                    )
+                                }
+                            }
+
+                            AnimatedVisibility(
+                                visible = selected,
+                                enter = expandHorizontally() + fadeIn(),
+                                exit = shrinkHorizontally() + fadeOut()
+                            ) {
+                                Text(
+                                    text = dest.title,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onPrimary,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                 }

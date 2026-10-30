@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -114,4 +115,10 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState(isLoading = true, currentMonthLabel = currentMonthLabel)
     )
+
+    fun updateAccount(account: Account) {
+        viewModelScope.launch {
+            accountRepository.saveAccount(account)
+        }
+    }
 }
