@@ -88,12 +88,12 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            categoryRepository.getAllCategories().collect { categories ->
+            categoryRepository.getActiveCategories().collect { categories ->
                 _uiState.update { it.copy(categoryCount = categories.size) }
             }
         }
         viewModelScope.launch {
-            transactionRepository.getAllTransactions().collect { txs ->
+            transactionRepository.getAllTransactionsWithDetails().collect { txs ->
                 _uiState.update { it.copy(transactionCount = txs.size) }
             }
         }
