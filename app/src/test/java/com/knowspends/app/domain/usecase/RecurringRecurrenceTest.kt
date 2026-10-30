@@ -74,8 +74,12 @@ class RecurringRecurrenceTest {
     fun calculateNextDueDate_dailyAndWeekly() {
         val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
             set(Calendar.YEAR, 2026)
-            set(Calendar.OCTOBER, Calendar.OCTOBER)
+            set(Calendar.MONTH, Calendar.OCTOBER)
             set(Calendar.DAY_OF_MONTH, 15)
+            set(Calendar.HOUR_OF_DAY, 10)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
 
         // Add 1 day
