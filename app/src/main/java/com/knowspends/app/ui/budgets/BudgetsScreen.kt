@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import com.knowspends.app.ui.theme.fadingEdges
+import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -103,7 +105,7 @@ fun BudgetsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(20.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
@@ -132,7 +134,7 @@ fun BudgetsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
+                            .clip(MaterialTheme.shapes.extraSmall),
                         color = when {
                             uiState.totalSpentMinor > uiState.totalBudgetedMinor -> ExpenseColor
                             uiState.totalProgressRatio >= 0.8f -> Color(0xFFF57C00)
@@ -194,7 +196,9 @@ fun BudgetsScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -237,8 +241,9 @@ fun CategoryBudgetCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .pressScale(0.97f)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         )
@@ -292,7 +297,7 @@ fun CategoryBudgetCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
+                    .clip(MaterialTheme.shapes.extraSmall),
                 color = when (budget.status) {
                     BudgetStatus.SAFE -> IncomeColor
                     BudgetStatus.WARNING -> Color(0xFFF57C00)

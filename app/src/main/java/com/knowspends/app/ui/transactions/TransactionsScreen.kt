@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.knowspends.app.ui.theme.fadingEdges
+import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -109,7 +111,7 @@ fun TransactionsScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     singleLine = true
                 )
 
@@ -176,6 +178,7 @@ fun TransactionsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
                     .padding(innerPadding),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
@@ -250,11 +253,12 @@ fun TransactionListItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
+            .pressScale(0.98f)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier

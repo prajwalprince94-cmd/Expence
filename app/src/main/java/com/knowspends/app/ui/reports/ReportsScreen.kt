@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.knowspends.app.ui.theme.fadingEdges
+import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Store
@@ -110,7 +112,7 @@ fun ReportsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(20.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                 )
@@ -132,7 +134,7 @@ fun ReportsScreen(
                         )
                         if (uiState.savingsRatePercent > 0) {
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 color = IncomeColor.copy(alpha = 0.15f)
                             ) {
                                 Text(
@@ -234,7 +236,9 @@ fun CategoryReportContent(
         EmptyReportView(message = "No expense data for this time period")
     } else {
         LazyColumn(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -249,8 +253,10 @@ fun CategoryReportContent(
 
             items(categories, key = { it.categoryId }) { item ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                     )
@@ -352,14 +358,18 @@ fun MonthlyTrendsContent(
         EmptyReportView(message = "No monthly trend data available")
     } else {
         LazyColumn(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(trends, key = { it.yearMonth }) { item ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                     )
@@ -405,7 +415,7 @@ fun MonthlyTrendsContent(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(8.dp)
-                                        .clip(RoundedCornerShape(4.dp)),
+                                        .clip(MaterialTheme.shapes.extraSmall),
                                     color = IncomeColor
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -431,7 +441,7 @@ fun MonthlyTrendsContent(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(8.dp)
-                                        .clip(RoundedCornerShape(4.dp)),
+                                        .clip(MaterialTheme.shapes.extraSmall),
                                     color = ExpenseColor
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -458,14 +468,18 @@ fun TopPayeesContent(
         EmptyReportView(message = "No payee data found for this period")
     } else {
         LazyColumn(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(payees, key = { it.payeeName }) { item ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                     )
@@ -508,7 +522,7 @@ fun TopPayeesContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
+                                .clip(MaterialTheme.shapes.extraSmall),
                             color = MaterialTheme.colorScheme.primary
                         )
 
