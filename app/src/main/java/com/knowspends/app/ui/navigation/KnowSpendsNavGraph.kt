@@ -1,6 +1,10 @@
 package com.knowspends.app.ui.navigation
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.graphics.graphicsLayer
 import com.knowspends.app.ui.theme.KnowSpendsMotion
 import androidx.compose.foundation.background
@@ -148,7 +152,21 @@ fun KnowSpendsAppRoot(
             NavHost(
                 navController = navController,
                 startDestination = Screen.Home.route,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = {
+                    fadeIn(animationSpec = KnowSpendsMotion.fade(220)) +
+                        slideInHorizontally(animationSpec = KnowSpendsMotion.OffsetSpring) { 50 }
+                },
+                exitTransition = {
+                    fadeOut(animationSpec = KnowSpendsMotion.fade(160))
+                },
+                popEnterTransition = {
+                    fadeIn(animationSpec = KnowSpendsMotion.fade(220)) +
+                        slideInHorizontally(animationSpec = KnowSpendsMotion.OffsetSpring) { -50 }
+                },
+                popExitTransition = {
+                    fadeOut(animationSpec = KnowSpendsMotion.fade(160))
+                }
             ) {
                 composable(Screen.Home.route) {
                     HomeScreen(

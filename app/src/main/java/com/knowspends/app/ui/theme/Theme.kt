@@ -91,7 +91,6 @@ fun KnowSpendsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     fontId: String = "plus_jakarta_sans",
-    displayScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
     val isDark = when (themeMode) {
@@ -110,7 +109,7 @@ fun KnowSpendsTheme(
         else -> LightColorScheme
     }
 
-    val dynamicTypography = createAppTypography(getFontFamily(fontId), displayScale)
+    val dynamicTypography = createAppTypography(getFontFamily(fontId))
 
     MaterialTheme(
         colorScheme = colorScheme,

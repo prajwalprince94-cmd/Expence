@@ -114,8 +114,24 @@ class UpdateCheckerService @Inject constructor(
 
     private fun isVersionNewer(remoteTag: String, currentVersion: String): Boolean {
         val cleanRemote = remoteTag.removePrefix("v").trim()
-        val cleanCurrent = currentVersion.removePrefix("v").trim()
+        val cleanCurrent = currentVersion.removePrefix("v").removeSuffix("-debug").trim()
         if (cleanRemote.isBlank() || cleanCurrent.isBlank()) return false
-        return cleanRemote != cleanCurrent
+        if (cleanRemote.equals(cleanCurrent, ignoreCase = true)) return false
+
+        val remoteNums = cleanRemote.split("-")[0].split(".").mapNotNull { it.toIntOrNull() }
+        val currentNums = cleanCurrent.split("-")[0].split(".").mapNotNull { it.toIntOrNull() }
+
+        for (i in 0 until maxOf(remoteNums.size, currentNums.size)) {
+            val r = remoteNums.getOrElse(i) { 0 }
+            val c = currentNums.getOrElse(i) { 0 }
+            if (r > c) return true
+            if (r < c) return false
+        }
+
+        val remoteSuffix = cleanRemote.substringAfter("-", "")
+        val currentSuffix = cleanCurrent.substringAfter("-", "")
+        if (remoteSuffix.isEmpty() && currentSuffix.isNotEmpty()) return true
+
+        return false
     }
 }

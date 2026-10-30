@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -107,9 +110,9 @@ fun VyxelToggleRow(
                     imageVector = icon,
                     contentDescription = null,
                     tint = scheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(12.dp))
             }
 
             Column {
@@ -169,9 +172,9 @@ fun VyxelActionRow(
                     imageVector = icon,
                     contentDescription = null,
                     tint = scheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(12.dp))
             }
 
             Column {
@@ -237,7 +240,7 @@ fun VyxelActionPill(
             .clip(pillShape)
             .background(bgColor)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -249,16 +252,87 @@ fun VyxelActionPill(
                     imageVector = icon,
                     contentDescription = null,
                     tint = contentColor,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(5.dp))
             }
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = contentColor
             )
+        }
+    }
+}
+
+data class ThemeModeOption(
+    val id: String,
+    val title: String,
+    val icon: ImageVector
+)
+
+@Composable
+fun VyxelThemeSegmentedRow(
+    selectedTheme: String,
+    onThemeSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val options = listOf(
+        ThemeModeOption("system", "System", Icons.Default.PhoneAndroid),
+        ThemeModeOption("light", "Light", Icons.Default.LightMode),
+        ThemeModeOption("dark", "Dark", Icons.Default.DarkMode),
+        ThemeModeOption("amoled", "AMOLED", Icons.Default.AutoAwesome)
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(VyxelShapeTokens.Pill)
+            .background(scheme.surfaceContainerHighest.copy(alpha = 0.65f))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        options.forEach { option ->
+            val isSelected = selectedTheme == option.id
+
+            val bgAnim by animateColorAsState(
+                targetValue = if (isSelected) scheme.primary else Color.Transparent,
+                animationSpec = KnowSpendsMotion.expressive(),
+                label = "themeBg"
+            )
+            val fgAnim by animateColorAsState(
+                targetValue = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
+                animationSpec = KnowSpendsMotion.expressive(),
+                label = "themeFg"
+            )
+
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .pressScale(0.95f)
+                    .clip(VyxelShapeTokens.Pill)
+                    .background(bgAnim)
+                    .clickable { onThemeSelected(option.id) }
+                    .padding(vertical = 7.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = option.icon,
+                    contentDescription = null,
+                    tint = fgAnim,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = option.title,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = fgAnim
+                )
+            }
         }
     }
 }

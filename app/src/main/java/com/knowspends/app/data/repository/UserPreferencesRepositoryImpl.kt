@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -35,11 +34,12 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val PROFILE_AVATAR_URI = stringPreferencesKey("profile_avatar_uri")
         val PROFILE_COVER_URI = stringPreferencesKey("profile_cover_uri")
         val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
+        val MONTHLY_SAVINGS_GOAL = stringPreferencesKey("monthly_savings_goal")
+        val FINANCIAL_YEAR_START = stringPreferencesKey("financial_year_start")
 
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val FONT_ID = stringPreferencesKey("font_id")
-        val DISPLAY_SCALE = floatPreferencesKey("display_scale")
 
         val DAILY_REMINDER_ENABLED = booleanPreferencesKey("daily_reminder_enabled")
         val DAILY_REMINDER_TIME = stringPreferencesKey("daily_reminder_time")
@@ -60,11 +60,12 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             profileAvatarUri = prefs[Keys.PROFILE_AVATAR_URI] ?: "",
             profileCoverUri = prefs[Keys.PROFILE_COVER_URI] ?: "",
             currencySymbol = prefs[Keys.CURRENCY_SYMBOL] ?: "₹",
+            monthlySavingsGoal = prefs[Keys.MONTHLY_SAVINGS_GOAL] ?: "20,000",
+            financialYearStart = prefs[Keys.FINANCIAL_YEAR_START] ?: "April",
 
             themeMode = prefs[Keys.THEME_MODE] ?: "system",
             dynamicColor = prefs[Keys.DYNAMIC_COLOR] ?: false,
             fontId = prefs[Keys.FONT_ID] ?: "plus_jakarta_sans",
-            displayScale = prefs[Keys.DISPLAY_SCALE] ?: 1.0f,
 
             dailyReminderEnabled = prefs[Keys.DAILY_REMINDER_ENABLED] ?: false,
             dailyReminderTime = prefs[Keys.DAILY_REMINDER_TIME] ?: "20:00",
@@ -84,7 +85,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         tagline: String,
         avatarUri: String,
         coverUri: String,
-        currency: String
+        currency: String,
+        savingsGoal: String,
+        financialYearStart: String
     ) = withContext(ioDispatcher) {
         context.userPreferencesDataStore.edit { prefs ->
             prefs[Keys.PROFILE_NAME] = name
@@ -92,6 +95,8 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             prefs[Keys.PROFILE_AVATAR_URI] = avatarUri
             prefs[Keys.PROFILE_COVER_URI] = coverUri
             prefs[Keys.CURRENCY_SYMBOL] = currency
+            prefs[Keys.MONTHLY_SAVINGS_GOAL] = savingsGoal
+            prefs[Keys.FINANCIAL_YEAR_START] = financialYearStart
         }
         Unit
     }
@@ -113,13 +118,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun setFontId(fontId: String) = withContext(ioDispatcher) {
         context.userPreferencesDataStore.edit { prefs ->
             prefs[Keys.FONT_ID] = fontId
-        }
-        Unit
-    }
-
-    override suspend fun setDisplayScale(scale: Float) = withContext(ioDispatcher) {
-        context.userPreferencesDataStore.edit { prefs ->
-            prefs[Keys.DISPLAY_SCALE] = scale
         }
         Unit
     }

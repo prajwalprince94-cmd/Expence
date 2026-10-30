@@ -5,14 +5,18 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.knowspends.app.data.remote.UpdateCheckResult
 import com.knowspends.app.data.remote.UpdateCheckerService
 import com.knowspends.app.domain.model.RestoreResult
 import com.knowspends.app.domain.model.SecurityConfig
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.BackupRepository
+import com.knowspends.app.domain.repository.CategoryRepository
 import com.knowspends.app.domain.repository.CsvRepository
 import com.knowspends.app.domain.repository.PremiumRepository
 import com.knowspends.app.domain.repository.SecurityRepository
+import com.knowspends.app.domain.repository.TransactionRepository
 import com.knowspends.app.domain.repository.UserPreferencesRepository
 import com.knowspends.app.util.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +24,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,7 +41,12 @@ data class SettingsUiState(
     val lastImportCount: Int? = null,
     val showRestoreConfirmDialog: Boolean = false,
     val pendingRestoreUri: Uri? = null,
-    val showProfileEditDialog: Boolean = false
+    val showProfileEditDialog: Boolean = false,
+    val showUpdateDialog: Boolean = false,
+    val updateCheckResult: UpdateCheckResult? = null,
+    val accountCount: Int = 0,
+    val categoryCount: Int = 0,
+    val transactionCount: Int = 0
 )
 
 @HiltViewModel
@@ -47,6 +57,9 @@ class SettingsViewModel @Inject constructor(
     private val premiumRepository: PremiumRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val updateCheckerService: UpdateCheckerService,
+    private val accountRepository: AccountRepository,
+    private val categoryRepository: CategoryRepository,
+    private val transactionRepository: TransactionRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -69,6 +82,21 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(isPremium = premium.isPremium) }
             }
         }
+        viewModelScope.launch {
+            accountRepository.getAllAccounts().collect { accounts ->
+                _uiState.update { it.copy(accountCount = accounts.size) }
+            }
+        }
+        viewModelScope.launch {
+            categoryRepository.getAllCategories().collect { categories ->
+                _uiState.update { it.copy(categoryCount = categories.size) }
+            }
+        }
+        viewModelScope.launch {
+            transactionRepository.getAllTransactions().collect { txs ->
+                _uiState.update { it.copy(transactionCount = txs.size) }
+            }
+        }
     }
 
     // Profile Settings
@@ -76,9 +104,25 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(showProfileEditDialog = show) }
     }
 
-    fun updateProfile(name: String, tagline: String, avatarUri: String, coverUri: String, currency: String) {
+    fun updateProfile(
+        name: String,
+        tagline: String,
+        avatarUri: String,
+        coverUri: String,
+        currency: String,
+        savingsGoal: String = "15000",
+        financialYearStart: String = "April"
+    ) {
         viewModelScope.launch {
-            userPreferencesRepository.updateProfile(name, tagline, avatarUri, coverUri, currency)
+            userPreferencesRepository.updateProfile(
+                name = name,
+                tagline = tagline,
+                avatarUri = avatarUri,
+                coverUri = coverUri,
+                currency = currency,
+                savingsGoal = savingsGoal,
+                financialYearStart = financialYearStart
+            )
             _uiState.update { it.copy(showProfileEditDialog = false, statusMessage = "Profile updated!") }
         }
     }
@@ -102,12 +146,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setDisplayScale(scale: Float) {
-        viewModelScope.launch {
-            userPreferencesRepository.setDisplayScale(scale)
-        }
-    }
-
     // Notifications
     fun setDailyReminder(enabled: Boolean, time: String) {
         viewModelScope.launch {
@@ -126,12 +164,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // Updates
+    // Updates & Pop Card
     fun checkForUpdates() {
         viewModelScope.launch {
             _uiState.update { it.copy(isCheckingUpdate = true, statusMessage = null) }
             val result = updateCheckerService.checkForUpdates()
-            _uiState.update { it.copy(isCheckingUpdate = false) }
+            _uiState.update {
+                it.copy(
+                    isCheckingUpdate = false,
+                    showUpdateDialog = true,
+                    updateCheckResult = result
+                )
+            }
 
             if (result.isSuccess) {
                 userPreferencesRepository.setUpdateInfo(
@@ -140,16 +184,12 @@ class SettingsViewModel @Inject constructor(
                     releaseUrl = result.downloadUrl,
                     notes = result.releaseNotes
                 )
-                val msg = if (result.hasUpdate) {
-                    "Update available: ${result.latestVersion}!"
-                } else {
-                    "You are on the latest version (${com.knowspends.app.BuildConfig.VERSION_NAME})"
-                }
-                _uiState.update { it.copy(statusMessage = msg) }
-            } else {
-                _uiState.update { it.copy(statusMessage = result.errorMessage ?: "Failed to check updates") }
             }
         }
+    }
+
+    fun dismissUpdateDialog() {
+        _uiState.update { it.copy(showUpdateDialog = false) }
     }
 
     // Pro / Premium

@@ -66,8 +66,7 @@ class MainActivity : FragmentActivity() {
             KnowSpendsTheme(
                 themeMode = userPreferences.themeMode,
                 dynamicColor = userPreferences.dynamicColor,
-                fontId = userPreferences.fontId,
-                displayScale = userPreferences.displayScale
+                fontId = userPreferences.fontId
             ) {
                 if (isAppLocked && securityConfig.isBiometricEnabled) {
                     AppLockScreen(

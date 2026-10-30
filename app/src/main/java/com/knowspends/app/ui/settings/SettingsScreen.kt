@@ -25,10 +25,12 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DarkMode
@@ -46,6 +48,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
@@ -92,6 +95,7 @@ import com.knowspends.app.BuildConfig
 import com.knowspends.app.ui.components.VyxelActionPill
 import com.knowspends.app.ui.components.VyxelActionRow
 import com.knowspends.app.ui.components.VyxelSettingsCard
+import com.knowspends.app.ui.components.VyxelThemeSegmentedRow
 import com.knowspends.app.ui.components.VyxelToggleRow
 import com.knowspends.app.ui.premium.PremiumPaywallSheet
 import com.knowspends.app.ui.theme.AppFont
@@ -153,7 +157,9 @@ fun SettingsScreen(
                 tagline = prefs.profileTagline,
                 avatarUri = uri.toString(),
                 coverUri = prefs.profileCoverUri,
-                currency = prefs.currencySymbol
+                currency = prefs.currencySymbol,
+                savingsGoal = prefs.monthlySavingsGoal,
+                financialYearStart = prefs.financialYearStart
             )
         }
     }
@@ -239,80 +245,6 @@ fun SettingsScreen(
                                 Icon(Icons.Default.Undo, null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
                                 Text("Undo")
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Update Alert Card (if new version detected) ───────────────────
-            if (prefs.updateAvailable && prefs.latestVersionName.isNotBlank()) {
-                item(key = "update_alert") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(8.dp, VyxelShapeTokens.Card),
-                        shape = VyxelShapeTokens.Card,
-                        colors = CardDefaults.cardColors(
-                            containerColor = scheme.primaryContainer
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudDownload,
-                                        contentDescription = null,
-                                        tint = scheme.primary,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                    Spacer(Modifier.width(10.dp))
-                                    Column {
-                                        Text(
-                                            text = "New Update Available!",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = scheme.onPrimaryContainer
-                                        )
-                                        Text(
-                                            text = "Version ${prefs.latestVersionName}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = scheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (prefs.latestReleaseNotes.isNotBlank()) {
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = prefs.latestReleaseNotes,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 3,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = scheme.onPrimaryContainer.copy(alpha = 0.9f)
-                                )
-                            }
-
-                            Spacer(Modifier.height(14.dp))
-
-                            Button(
-                                onClick = {
-                                    val url = prefs.latestReleaseUrl.ifBlank {
-                                        "https://github.com/prajwalprince94-cmd/Expence/releases"
-                                    }
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = VyxelShapeTokens.Pill
-                            ) {
-                                Icon(Icons.Default.CloudDownload, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Download ${prefs.latestVersionName}")
                             }
                         }
                     }
@@ -408,10 +340,169 @@ fun SettingsScreen(
                             color = scheme.onSurface
                         )
                         Text(
-                            text = prefs.profileTagline.ifBlank { "100% Offline Vault • Currency: ${prefs.currencySymbol}" },
+                            text = prefs.profileTagline.ifBlank { "100% Offline Vault • Financial Privacy First" },
                             style = MaterialTheme.typography.bodySmall,
                             color = scheme.onSurfaceVariant
                         )
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Ledger Stats Auto-Layout Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Stat 1: Accounts
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(VyxelShapeTokens.CardSmall)
+                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = scheme.primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "${uiState.accountCount}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onSurface
+                                    )
+                                }
+                                Text(
+                                    text = "Accounts",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Stat 2: Records
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(VyxelShapeTokens.CardSmall)
+                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ReceiptLong,
+                                        contentDescription = null,
+                                        tint = scheme.secondary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "${uiState.transactionCount}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onSurface
+                                    )
+                                }
+                                Text(
+                                    text = "Records",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Stat 3: Monthly Goal
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(VyxelShapeTokens.CardSmall)
+                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.TrendingUp,
+                                        contentDescription = null,
+                                        tint = scheme.tertiary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "${prefs.currencySymbol}${prefs.monthlySavingsGoal}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "Savings Goal",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // Secondary Info Badges
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(VyxelShapeTokens.Pill)
+                                    .background(scheme.primaryContainer.copy(alpha = 0.5f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Currency: ${prefs.currencySymbol}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(VyxelShapeTokens.Pill)
+                                    .background(scheme.secondaryContainer.copy(alpha = 0.5f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "FY: ${prefs.financialYearStart}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSecondaryContainer,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(VyxelShapeTokens.Pill)
+                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.6f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "100% Offline",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -427,26 +518,10 @@ fun SettingsScreen(
                     )
                     Spacer(Modifier.height(8.dp))
 
-                    val modes = listOf(
-                        "system" to "System",
-                        "light" to "Light",
-                        "dark" to "Dark",
-                        "amoled" to "AMOLED"
+                    VyxelThemeSegmentedRow(
+                        selectedTheme = prefs.themeMode,
+                        onThemeSelected = { viewModel.setThemeMode(it) }
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        modes.forEach { (modeKey, modeTitle) ->
-                            val selected = prefs.themeMode == modeKey
-                            FilterChip(
-                                selected = selected,
-                                onClick = { viewModel.setThemeMode(modeKey) },
-                                label = { Text(modeTitle) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
 
                     Spacer(Modifier.height(14.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
@@ -540,46 +615,6 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 4. Display Size & Scaling ─────────────────────────────────────
-            item(key = "display_scale") {
-                VyxelSettingsCard(title = "Display Size & Scaling") {
-                    Text(
-                        text = "Scale Factor",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.primary
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    val scales = listOf(
-                        0.85f to "Compact (85%)",
-                        1.0f to "Standard (100%)",
-                        1.15f to "Large (115%)",
-                        1.30f to "Extra (130%)"
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        scales.forEach { (scaleVal, label) ->
-                            val selected = prefs.displayScale == scaleVal
-                            FilterChip(
-                                selected = selected,
-                                onClick = { viewModel.setDisplayScale(scaleVal) },
-                                label = { Text(label.split(" ")[0]) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "Preview: Dynamic layout tuned for Samsung Galaxy S24 FE Dynamic AMOLED 2X.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant
-                    )
-                }
-            }
 
             // ── 5. Notifications & Daily Reminders ────────────────────────────
             item(key = "notifications") {
@@ -870,12 +905,14 @@ fun SettingsScreen(
         var editName by remember { mutableStateOf(prefs.profileName) }
         var editTagline by remember { mutableStateOf(prefs.profileTagline) }
         var editCurrency by remember { mutableStateOf(prefs.currencySymbol) }
+        var editSavingsGoal by remember { mutableStateOf(prefs.monthlySavingsGoal) }
+        var editFyStart by remember { mutableStateOf(prefs.financialYearStart) }
 
         AlertDialog(
             onDismissRequest = { viewModel.showProfileDialog(false) },
             title = { Text("Edit Profile & Ledger") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
@@ -897,6 +934,20 @@ fun SettingsScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    OutlinedTextField(
+                        value = editSavingsGoal,
+                        onValueChange = { editSavingsGoal = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Monthly Savings Target") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editFyStart,
+                        onValueChange = { editFyStart = it },
+                        label = { Text("Financial Year Start (e.g. April)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             },
             confirmButton = {
@@ -907,7 +958,9 @@ fun SettingsScreen(
                             tagline = editTagline.trim(),
                             avatarUri = prefs.profileAvatarUri,
                             coverUri = prefs.profileCoverUri,
-                            currency = editCurrency.trim().ifBlank { "₹" }
+                            currency = editCurrency.trim().ifBlank { "₹" },
+                            savingsGoal = editSavingsGoal.trim().ifBlank { "15000" },
+                            financialYearStart = editFyStart.trim().ifBlank { "April" }
                         )
                     }
                 ) {
@@ -917,6 +970,83 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.showProfileDialog(false) }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // ── Update Alert Pop Dialog ───────────────────────────────────────────────
+    if (uiState.showUpdateDialog) {
+        val result = uiState.updateCheckResult
+        val hasUpdate = result?.hasUpdate == true || prefs.updateAvailable
+        val latestVer = result?.latestVersion?.ifBlank { prefs.latestVersionName } ?: prefs.latestVersionName
+        val releaseNotes = result?.releaseNotes?.ifBlank { prefs.latestReleaseNotes } ?: prefs.latestReleaseNotes
+        val downloadUrl = (result?.downloadUrl ?: prefs.latestReleaseUrl).ifBlank {
+            "https://github.com/prajwalprince94-cmd/Expence/releases"
+        }
+
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissUpdateDialog() },
+            icon = {
+                Icon(
+                    imageVector = if (hasUpdate) Icons.Default.CloudDownload else Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = if (hasUpdate) scheme.primary else scheme.secondary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = if (hasUpdate) "Update Available!" else "You're Up to Date",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (hasUpdate) {
+                        Text(
+                            text = "A newer version of KnowSpends ($latestVer) is available! Your installed version is ${BuildConfig.VERSION_NAME}.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        if (releaseNotes.isNotBlank()) {
+                            Text(
+                                text = releaseNotes,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant,
+                                maxLines = 6,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "KnowSpends is running the latest version (${BuildConfig.VERSION_NAME}). Your personal ledger is optimized and secure.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                if (hasUpdate) {
+                    Button(
+                        onClick = {
+                            viewModel.dismissUpdateDialog()
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)))
+                        }
+                    ) {
+                        Text("Download $latestVer")
+                    }
+                } else {
+                    Button(onClick = { viewModel.dismissUpdateDialog() }) {
+                        Text("Got it")
+                    }
+                }
+            },
+            dismissButton = {
+                if (hasUpdate) {
+                    TextButton(onClick = { viewModel.dismissUpdateDialog() }) {
+                        Text("Later")
+                    }
                 }
             }
         )

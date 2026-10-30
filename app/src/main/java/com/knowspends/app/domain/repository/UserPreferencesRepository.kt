@@ -10,12 +10,13 @@ interface UserPreferencesRepository {
         tagline: String,
         avatarUri: String,
         coverUri: String,
-        currency: String
+        currency: String,
+        savingsGoal: String,
+        financialYearStart: String
     )
     suspend fun setThemeMode(themeMode: String)
     suspend fun setDynamicColor(enabled: Boolean)
     suspend fun setFontId(fontId: String)
-    suspend fun setDisplayScale(scale: Float)
     suspend fun setDailyReminder(enabled: Boolean, time: String)
     suspend fun setBudgetAlert(enabled: Boolean)
     suspend fun setAutoCheckUpdates(enabled: Boolean)

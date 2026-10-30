@@ -136,7 +136,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Monthly Summary Card
+        // Monthly Summary Card with Enriched Cashflow Analytics
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,31 +149,103 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(
-                    text = "NET MONTHLY SAVINGS",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                // Header Row: Label + Cashflow Status Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "NET MONTHLY SAVINGS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 0.8.sp
+                    )
+
+                    val isPositive = uiState.monthlySummary.netSavingsMinor >= 0
+                    val badgeBg = if (isPositive) IncomeColor.copy(alpha = 0.15f) else ExpenseColor.copy(alpha = 0.15f)
+                    val badgeFg = if (isPositive) IncomeColor else ExpenseColor
+                    val statusText = if (isPositive) "Positive Margin" else "Deficit"
+
+                    Box(
+                        modifier = Modifier
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
+                            .background(badgeBg)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = badgeFg
+                        )
+                    }
+                }
+
+                // Main Metric: Formatted Net Savings
                 Text(
                     text = uiState.formattedNetSavings,
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black),
                     color = if (uiState.monthlySummary.netSavingsMinor >= 0) IncomeColor else ExpenseColor
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Income Stat
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                // Visual Cashflow Bar
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .fillMaxWidth(uiState.spendRatePercent.coerceIn(0f, 1f))
+                                .height(6.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
+                                .background(if (uiState.spendRatePercent > 0.9f) ExpenseColor else IncomeColor)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Savings Rate: ${uiState.savingsRatePercent}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${uiState.daysRemainingInMonth} days left in ${uiState.currentMonthLabel.split(" ")[0]}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                // Balanced 2-Column Stats (Auto-Layout)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Income Stat
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
                                 .clip(ExpressiveShapes.Clover)
                                 .background(IncomeColor.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
@@ -182,10 +254,9 @@ fun HomeScreen(
                                 imageVector = Icons.Default.ArrowDownward,
                                 contentDescription = "Income",
                                 tint = IncomeColor,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
                                 text = "Income",
@@ -194,18 +265,22 @@ fun HomeScreen(
                             )
                             Text(
                                 text = uiState.formattedIncome,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
                                 color = IncomeColor
                             )
                         }
                     }
 
-                    // Expense Stat (Algorithmic 4-Point Star shape)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Expense Stat
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(36.dp)
                                 .clip(ExpressiveShapes.Star4)
                                 .background(ExpenseColor.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
@@ -214,20 +289,19 @@ fun HomeScreen(
                                 imageVector = Icons.Default.ArrowUpward,
                                 contentDescription = "Expense",
                                 tint = ExpenseColor,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Expenses",
+                                text = "Daily: ${uiState.dailyAverageExpense}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = uiState.formattedExpense,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
                                 color = ExpenseColor
                             )
                         }

@@ -37,6 +37,29 @@ data class HomeUiState(
 
     val formattedNetSavings: String
         get() = MoneyFormatter.formatPaise(monthlySummary.netSavingsMinor)
+
+    val savingsRatePercent: Int
+        get() = if (monthlySummary.totalIncomeMinor > 0) {
+            ((monthlySummary.netSavingsMinor.toFloat() / monthlySummary.totalIncomeMinor.toFloat()) * 100).toInt().coerceIn(-100, 100)
+        } else 0
+
+    val spendRatePercent: Float
+        get() = if (monthlySummary.totalIncomeMinor > 0) {
+            (monthlySummary.totalExpenseMinor.toFloat() / monthlySummary.totalIncomeMinor.toFloat()).coerceIn(0f, 1.5f)
+        } else if (monthlySummary.totalExpenseMinor > 0) 1.0f else 0.0f
+
+    val dailyAverageExpense: String
+        get() {
+            val day = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+            val avg = monthlySummary.totalExpenseMinor / maxOf(1, day)
+            return MoneyFormatter.formatPaise(avg)
+        }
+
+    val daysRemainingInMonth: Int
+        get() {
+            val cal = Calendar.getInstance()
+            return maxOf(0, cal.getActualMaximum(Calendar.DAY_OF_MONTH) - cal.get(Calendar.DAY_OF_MONTH))
+        }
 }
 
 @HiltViewModel
