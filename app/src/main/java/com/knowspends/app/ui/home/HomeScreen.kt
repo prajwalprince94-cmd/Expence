@@ -18,6 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.knowspends.app.ui.theme.fadingEdges
+import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -68,6 +70,7 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
@@ -104,7 +107,7 @@ fun HomeScreen(
 
                 // Net Worth Badge
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                     modifier = Modifier.padding(4.dp)
                 ) {
@@ -133,7 +136,7 @@ fun HomeScreen(
         // Monthly Summary Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
             )
@@ -273,7 +276,7 @@ fun HomeScreen(
         if (uiState.recentTransactions.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
                 )
@@ -314,8 +317,9 @@ fun AccountCard(
     Card(
         modifier = modifier
             .width(160.dp)
+            .pressScale(0.97f)
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         )
@@ -363,8 +367,9 @@ fun RecentTransactionItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .pressScale(0.98f)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )
