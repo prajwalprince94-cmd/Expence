@@ -29,15 +29,19 @@ import androidx.compose.ui.unit.dp
 object KnowSpendsMotion {
     /** Snappy spring for micro-interactions (chips, toggles, keypad taps). */
     val snappy = spring<Float>(dampingRatio = 0.78f, stiffness = 600f)
+    fun <T> snappy() = spring<T>(dampingRatio = 0.78f, stiffness = 600f)
 
     /** Expressive spring for cards, container expansions, and modal sheets. */
     val expressive = spring<Float>(dampingRatio = 0.72f, stiffness = 480f)
+    fun <T> expressive() = spring<T>(dampingRatio = 0.72f, stiffness = 480f)
 
     /** Bouncy spring for alerts, confirmation badges, and floating pops. */
     val bouncy = spring<Float>(dampingRatio = 0.62f, stiffness = 380f)
+    fun <T> bouncy() = spring<T>(dampingRatio = 0.62f, stiffness = 380f)
 
     /** Smooth spring for scroll parallax and shape transitions. */
     val smooth = spring<Float>(dampingRatio = 0.85f, stiffness = 260f)
+    fun <T> smooth() = spring<T>(dampingRatio = 0.85f, stiffness = 260f)
 }
 
 /**
