@@ -275,7 +275,7 @@ fun AddTransactionScreen(
                                 leadingIcon = {
                                     CategoryBadge(
                                         categoryName = category.name,
-                                        iconKey = category.icon,
+                                        iconKey = category.iconKey,
                                         color = Color(category.colour),
                                         size = 18.dp
                                     )
