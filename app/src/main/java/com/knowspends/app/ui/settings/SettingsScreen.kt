@@ -115,6 +115,7 @@ import com.knowspends.app.ui.theme.pressScale
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    onNavigateToBudgets: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -589,6 +590,18 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // ── 1.5 Budgets & Limits (Moved from bottom navigation) ───────────
+            item(key = "budgets_limits") {
+                VyxelSettingsCard(title = "Budgets & Limits") {
+                    VyxelActionRow(
+                        title = "Monthly Budgets & Category Limits",
+                        subtitle = "Track envelope spending, monitor budget health, and rollover unspent savings",
+                        icon = Icons.Default.AccountBalanceWallet,
+                        onClick = onNavigateToBudgets
+                    )
                 }
             }
 

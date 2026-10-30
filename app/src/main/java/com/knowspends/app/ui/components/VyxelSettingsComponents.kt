@@ -342,3 +342,58 @@ fun VyxelThemeSegmentedRow(
         }
     }
 }
+
+@Composable
+fun <T> VyxelSegmentedRow(
+    items: List<T>,
+    selectedIndex: Int,
+    onSelectIndex: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary,
+    activeContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    labelProvider: (T) -> String
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier
+            .clip(VyxelShapeTokens.Pill)
+            .background(scheme.surfaceContainerHighest.copy(alpha = 0.55f))
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.Pill)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        items.forEachIndexed { index, item ->
+            val isSelected = selectedIndex == index
+            val bgAnim by animateColorAsState(
+                targetValue = if (isSelected) activeColor else Color.Transparent,
+                animationSpec = KnowSpendsMotion.expressive(),
+                label = "segBg"
+            )
+            val fgAnim by animateColorAsState(
+                targetValue = if (isSelected) activeContentColor else scheme.onSurfaceVariant,
+                animationSpec = KnowSpendsMotion.expressive(),
+                label = "segFg"
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .pressScale(0.96f)
+                    .clip(VyxelShapeTokens.Pill)
+                    .background(bgAnim)
+                    .clickable { onSelectIndex(index) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = labelProvider(item),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = fgAnim,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+

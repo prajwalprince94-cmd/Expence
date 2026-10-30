@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +19,7 @@ import com.knowspends.app.domain.repository.SecurityRepository
 import com.knowspends.app.ui.navigation.KnowSpendsAppRoot
 import com.knowspends.app.ui.security.AppLockScreen
 import com.knowspends.app.ui.security.BiometricAuthManager
+import com.knowspends.app.ui.splash.SplashScreen
 import com.knowspends.app.ui.theme.KnowSpendsTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -63,17 +67,29 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
+            var showSplash by remember { mutableStateOf(true) }
+
             KnowSpendsTheme(
                 themeMode = userPreferences.themeMode,
                 dynamicColor = userPreferences.dynamicColor,
                 fontId = userPreferences.fontId
             ) {
-                if (isAppLocked && securityConfig.isBiometricEnabled) {
-                    AppLockScreen(
-                        onUnlockClicked = { promptUnlock() }
-                    )
-                } else {
-                    KnowSpendsAppRoot(initialRoute = intent?.getStringExtra("ROUTE"))
+                Crossfade(
+                    targetState = showSplash,
+                    animationSpec = tween(durationMillis = 400),
+                    label = "splashCrossfade"
+                ) { isSplashActive ->
+                    if (isSplashActive) {
+                        SplashScreen(onSplashFinished = { showSplash = false })
+                    } else {
+                        if (isAppLocked && securityConfig.isBiometricEnabled) {
+                            AppLockScreen(
+                                onUnlockClicked = { promptUnlock() }
+                            )
+                        } else {
+                            KnowSpendsAppRoot(initialRoute = intent?.getStringExtra("ROUTE"))
+                        }
+                    }
                 }
             }
         }

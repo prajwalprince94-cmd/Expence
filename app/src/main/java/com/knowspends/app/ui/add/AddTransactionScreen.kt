@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,43 +20,37 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import com.knowspends.app.ui.components.CategoryBadge
-import com.knowspends.app.ui.theme.ExpressiveShapes
-import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,14 +58,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.knowspends.app.domain.model.TransactionType
+import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.components.VyxelSegmentedRow
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.TransferColor
+import com.knowspends.app.ui.theme.VyxelShapeTokens
+import com.knowspends.app.ui.theme.pressScale
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -88,6 +86,11 @@ fun AddTransactionScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scheme = MaterialTheme.colorScheme
+
+    var showNoteDialog by remember { mutableStateOf(false) }
+    var showAccountDialog by remember { mutableStateOf(false) }
+    var showTransferAccountDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvents.collect {
@@ -103,6 +106,15 @@ fun AddTransactionScreen(
 
     val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
+    val typeColor = when (uiState.type) {
+        TransactionType.EXPENSE -> ExpenseColor
+        TransactionType.INCOME -> IncomeColor
+        TransactionType.TRANSFER -> TransferColor
+    }
+
+    val selectedAccount = uiState.accounts.find { it.id == uiState.selectedAccountId }
+    val selectedTransferAccount = uiState.accounts.find { it.id == uiState.selectedTransferAccountId }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -111,7 +123,8 @@ fun AddTransactionScreen(
                 title = {
                     Text(
                         text = if (uiState.transactionId != null) "Edit Transaction" else "Add Transaction",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
@@ -130,214 +143,158 @@ fun AddTransactionScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Transaction Type Tabs (Expense, Income, Transfer)
-            val tabs = listOf(
-                TransactionType.EXPENSE to "Expense",
-                TransactionType.INCOME to "Income",
-                TransactionType.TRANSFER to "Transfer"
-            )
-            val selectedTabIndex = tabs.indexOfFirst { it.first == uiState.type }
+            // ── 1. Type Switcher (Expense | Income | Transfer) ─────────────────
+            val types = listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER)
+            val selectedTypeIndex = types.indexOf(uiState.type).coerceAtLeast(0)
 
-            TabRow(
-                selectedTabIndex = selectedTabIndex.coerceAtLeast(0),
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                tabs.forEachIndexed { index, (type, label) ->
-                    val color = when (type) {
-                        TransactionType.EXPENSE -> ExpenseColor
-                        TransactionType.INCOME -> IncomeColor
-                        TransactionType.TRANSFER -> TransferColor
-                    }
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { viewModel.onEvent(AddTransactionEvent.OnTypeSelected(type)) },
-                        text = {
-                            Text(
-                                text = label,
-                                color = if (selectedTabIndex == index) color else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                }
+                VyxelSegmentedRow(
+                    items = types,
+                    selectedIndex = selectedTypeIndex,
+                    onSelectIndex = { index ->
+                        viewModel.onEvent(AddTransactionEvent.OnTypeSelected(types[index]))
+                    },
+                    activeColor = typeColor,
+                    activeContentColor = Color.White,
+                    labelProvider = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+                )
             }
 
-            // Scrollable Options Content (Amount, Accounts, Categories, Date, Note)
+            // ── 2. Hero Amount Display ────────────────────────────────────────
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Large Formatted Amount Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp, horizontal = 20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "AMOUNT",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = uiState.formattedAmount,
-                            style = MaterialTheme.typography.displayMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = when (uiState.type) {
-                                    TransactionType.EXPENSE -> ExpenseColor
-                                    TransactionType.INCOME -> IncomeColor
-                                    TransactionType.TRANSFER -> TransferColor
-                                }
-                            )
-                        )
-                    }
+                Text(
+                    text = uiState.formattedAmount,
+                    fontSize = 42.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = typeColor,
+                    letterSpacing = (-1.0).sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // ── 3. Context Pills Row (Account, Date, Note) ────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Account Pill
+                ContextPill(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    text = selectedAccount?.name ?: "Account",
+                    onClick = { showAccountDialog = true }
+                )
+
+                // Transfer Target Account Pill (if transfer)
+                if (uiState.type == TransactionType.TRANSFER) {
+                    ContextPill(
+                        icon = Icons.Default.SwapHoriz,
+                        text = "To: ${selectedTransferAccount?.name ?: "Select Target"}",
+                        onClick = { showTransferAccountDialog = true }
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Account Selection Row
-                Text(
-                    text = if (uiState.type == TransactionType.TRANSFER) "From Account" else "Account",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Date Pill
+                ContextPill(
+                    icon = Icons.Default.CalendarToday,
+                    text = dateFormatter.format(Date(uiState.dateMillis)),
+                    onClick = {
+                        val cal = Calendar.getInstance().apply { timeInMillis = uiState.dateMillis }
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                val newCal = Calendar.getInstance().apply {
+                                    set(year, month, dayOfMonth)
+                                }
+                                viewModel.onEvent(AddTransactionEvent.OnDateSelected(newCal.timeInMillis))
+                            },
+                            cal.get(Calendar.YEAR),
+                            cal.get(Calendar.MONTH),
+                            cal.get(Calendar.DAY_OF_MONTH)
+                        ).show()
+                    }
                 )
+
+                // Note Pill
+                ContextPill(
+                    icon = Icons.Default.Description,
+                    text = if (uiState.note.isNotBlank()) uiState.note else "Note",
+                    onClick = { showNoteDialog = true }
+                )
+            }
+
+            // ── 4. Category Quick Rail (For Expense & Income) ─────────────────
+            if (uiState.type != TransactionType.TRANSFER && uiState.categories.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    uiState.accounts.forEach { account ->
-                        FilterChip(
-                            selected = uiState.selectedAccountId == account.id,
-                            onClick = { viewModel.onEvent(AddTransactionEvent.OnAccountSelected(account.id)) },
-                            label = { Text(account.name) }
-                        )
-                    }
-                }
+                    uiState.categories.forEach { category ->
+                        val isSelected = uiState.selectedCategoryId == category.id
+                        val categoryBg = if (isSelected) {
+                            scheme.primaryContainer
+                        } else {
+                            scheme.surfaceContainerHigh.copy(alpha = 0.65f)
+                        }
+                        val categoryBorder = if (isSelected) {
+                            BorderStroke(1.2.dp, scheme.primary)
+                        } else {
+                            BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
+                        }
 
-                // Transfer Destination Account
-                if (uiState.type == TransactionType.TRANSFER) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "To Account",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        uiState.accounts
-                            .filter { it.id != uiState.selectedAccountId }
-                            .forEach { account ->
-                                FilterChip(
-                                    selected = uiState.selectedTransferAccountId == account.id,
-                                    onClick = { viewModel.onEvent(AddTransactionEvent.OnTransferAccountSelected(account.id)) },
-                                    label = { Text(account.name) }
-                                )
-                            }
-                    }
-                }
-
-                // Category Chips (for Expense & Income)
-                if (uiState.type != TransactionType.TRANSFER && uiState.categories.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "Category",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        uiState.categories.forEach { category ->
-                            val isSelected = uiState.selectedCategoryId == category.id
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { viewModel.onEvent(AddTransactionEvent.OnCategorySelected(category.id)) },
-                                leadingIcon = {
-                                    CategoryBadge(
-                                        categoryName = category.name,
-                                        iconKey = category.iconKey,
-                                        color = Color(category.colour),
-                                        size = 18.dp
-                                    )
-                                },
-                                label = { Text(category.name) }
+                        Row(
+                            modifier = Modifier
+                                .pressScale(0.96f)
+                                .clip(VyxelShapeTokens.Pill)
+                                .background(categoryBg)
+                                .border(categoryBorder, VyxelShapeTokens.Pill)
+                                .clickable {
+                                    viewModel.onEvent(AddTransactionEvent.OnCategorySelected(category.id))
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            CategoryBadge(
+                                categoryName = category.name,
+                                iconKey = category.iconKey,
+                                color = Color(category.colour),
+                                size = 16.dp
+                            )
+                            Text(
+                                text = category.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface
                             )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Date Picker & Note Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Date Button
-                    FilterChip(
-                        selected = false,
-                        onClick = {
-                            val cal = Calendar.getInstance().apply { timeInMillis = uiState.dateMillis }
-                            DatePickerDialog(
-                                context,
-                                { _, year, month, dayOfMonth ->
-                                    val newCal = Calendar.getInstance().apply {
-                                        set(year, month, dayOfMonth)
-                                    }
-                                    viewModel.onEvent(AddTransactionEvent.OnDateSelected(newCal.timeInMillis))
-                                },
-                                cal.get(Calendar.YEAR),
-                                cal.get(Calendar.MONTH),
-                                cal.get(Calendar.DAY_OF_MONTH)
-                            ).show()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.CalendarToday,
-                                contentDescription = "Date",
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        label = { Text(dateFormatter.format(Date(uiState.dateMillis))) }
-                    )
-
-                    // Note text field
-                    OutlinedTextField(
-                        value = uiState.note,
-                        onValueChange = { viewModel.onEvent(AddTransactionEvent.OnNoteChanged(it)) },
-                        placeholder = { Text("Note (optional)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                }
             }
 
-            // Built-in Instant Numeric Keypad (Under 5 seconds & 3 taps)
-            NumericKeypad(
+            Spacer(modifier = Modifier.weight(1f))
+
+            // ── 5. Tactile Numeric Keypad ──────────────────────────────────────
+            VyxelNumericKeypad(
                 onKeyPress = { viewModel.onEvent(AddTransactionEvent.OnKeypadPress(it)) },
                 onBackspace = { viewModel.onEvent(AddTransactionEvent.OnBackspace) },
                 onSave = { viewModel.onEvent(AddTransactionEvent.OnSave) },
@@ -346,10 +303,223 @@ fun AddTransactionScreen(
             )
         }
     }
+
+    // ── Note Modal Dialog ──────────────────────────────────────────────────────
+    if (showNoteDialog) {
+        var noteDraft by remember { mutableStateOf(uiState.note) }
+        AlertDialog(
+            onDismissRequest = { showNoteDialog = false },
+            title = {
+                Text(
+                    text = "Transaction Note",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = noteDraft,
+                    onValueChange = { noteDraft = it },
+                    placeholder = { Text("e.g. Lunch with friends, groceries...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.onEvent(AddTransactionEvent.OnNoteChanged(noteDraft))
+                        showNoteDialog = false
+                    },
+                    shape = VyxelShapeTokens.Pill
+                ) {
+                    Text("Done")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNoteDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = VyxelShapeTokens.Card
+        )
+    }
+
+    // ── Account Selector Dialog ────────────────────────────────────────────────
+    if (showAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showAccountDialog = false },
+            title = {
+                Text(
+                    text = "Select Account",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    uiState.accounts.forEach { account ->
+                        val isSelected = account.id == uiState.selectedAccountId
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pressScale(0.96f)
+                                .clip(VyxelShapeTokens.Card)
+                                .background(if (isSelected) scheme.primaryContainer else scheme.surfaceContainerHigh)
+                                .clickable {
+                                    viewModel.onEvent(AddTransactionEvent.OnAccountSelected(account.id))
+                                    showAccountDialog = false
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalanceWallet,
+                                contentDescription = null,
+                                tint = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = account.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = scheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showAccountDialog = false }) {
+                    Text("Close")
+                }
+            },
+            shape = VyxelShapeTokens.Card
+        )
+    }
+
+    // ── Transfer Target Account Selector Dialog ────────────────────────────────
+    if (showTransferAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showTransferAccountDialog = false },
+            title = {
+                Text(
+                    text = "Select Destination Account",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    uiState.accounts
+                        .filter { it.id != uiState.selectedAccountId }
+                        .forEach { account ->
+                            val isSelected = account.id == uiState.selectedTransferAccountId
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pressScale(0.96f)
+                                    .clip(VyxelShapeTokens.Card)
+                                    .background(if (isSelected) scheme.primaryContainer else scheme.surfaceContainerHigh)
+                                    .clickable {
+                                        viewModel.onEvent(AddTransactionEvent.OnTransferAccountSelected(account.id))
+                                        showTransferAccountDialog = false
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalanceWallet,
+                                    contentDescription = null,
+                                    tint = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = account.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = scheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showTransferAccountDialog = false }) {
+                    Text("Close")
+                }
+            },
+            shape = VyxelShapeTokens.Card
+        )
+    }
 }
 
 @Composable
-private fun NumericKeypad(
+private fun ContextPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier
+            .pressScale(0.96f)
+            .clip(VyxelShapeTokens.Pill)
+            .background(scheme.surfaceContainerHigh)
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.Pill)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = scheme.primary,
+            modifier = Modifier.size(15.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = scheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun VyxelNumericKeypad(
     onKeyPress: (Char) -> Unit,
     onBackspace: () -> Unit,
     onSave: () -> Unit,
@@ -357,17 +527,18 @@ private fun NumericKeypad(
     isSaving: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val scheme = MaterialTheme.colorScheme
+
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 2.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+        color = scheme.surfaceContainerLowest,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val rows = listOf(
                 listOf('1', '2', '3'),
@@ -385,11 +556,11 @@ private fun NumericKeypad(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .defaultMinSize(minHeight = 52.dp)
-                                .pressScale(0.94f)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f))
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), MaterialTheme.shapes.medium)
+                                .defaultMinSize(minHeight = 54.dp)
+                                .pressScale(0.95f)
+                                .clip(VyxelShapeTokens.Card)
+                                .background(scheme.surfaceContainerHigh.copy(alpha = 0.65f))
+                                .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.Card)
                                 .clickable {
                                     if (char == '⌫') onBackspace() else onKeyPress(char)
                                 },
@@ -399,14 +570,15 @@ private fun NumericKeypad(
                                 Icon(
                                     imageVector = Icons.Default.Backspace,
                                     contentDescription = "Backspace",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = scheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             } else {
                                 Text(
                                     text = char.toString(),
-                                    fontSize = 22.sp,
+                                    fontSize = 24.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = scheme.onSurface
                                 )
                             }
                         }
@@ -414,9 +586,9 @@ private fun NumericKeypad(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
-            // Expressive Action Buttons: Save & Quick Add Another
+            // Action Row: Save & + Another
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -426,19 +598,21 @@ private fun NumericKeypad(
                     enabled = !isSaving,
                     modifier = Modifier
                         .weight(1f)
-                        .defaultMinSize(minHeight = 52.dp)
-                        .pressScale(0.97f),
-                    shape = MaterialTheme.shapes.medium
+                        .defaultMinSize(minHeight = 50.dp)
+                        .pressScale(0.96f),
+                    shape = VyxelShapeTokens.Pill,
+                    colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Save",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
@@ -446,19 +620,21 @@ private fun NumericKeypad(
                     onClick = onSaveAndAddAnother,
                     enabled = !isSaving,
                     modifier = Modifier
-                        .defaultMinSize(minHeight = 52.dp)
-                        .pressScale(0.97f),
-                    shape = MaterialTheme.shapes.medium
+                        .defaultMinSize(minHeight = 50.dp)
+                        .pressScale(0.96f),
+                    shape = VyxelShapeTokens.Pill,
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.7f))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "+ Another",
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

@@ -32,7 +32,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
         val bottomNavItems = listOf(
             Home,
             Transactions,
-            Budgets,
             Reports,
             Settings
         )

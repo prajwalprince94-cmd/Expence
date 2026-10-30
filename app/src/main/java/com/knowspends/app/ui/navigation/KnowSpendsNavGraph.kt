@@ -123,13 +123,13 @@ fun KnowSpendsAppRoot(
                     )
                 }
                 composable(Screen.Budgets.route) {
-                    BudgetsScreen()
+                    BudgetsScreen(onNavigateUp = { navController.navigateUp() })
                 }
                 composable(Screen.Reports.route) {
                     ReportsScreen()
                 }
                 composable(Screen.Settings.route) {
-                    SettingsScreen()
+                    SettingsScreen(onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) })
                 }
                 composable(
                     route = Screen.ReviewInbox.route,

@@ -1,10 +1,12 @@
 package com.knowspends.app.ui.home
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.theme.KnowSpendsMotion
+import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.auroraGlow
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
@@ -890,44 +894,88 @@ fun AccountEditTypeDialog(
     onDismiss: () -> Unit
 ) {
     var selectedType by remember { mutableStateOf(account.type) }
+    val scheme = MaterialTheme.colorScheme
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = scheme.surfaceContainerLow,
         title = {
             Text(
                 text = "Select Account Type",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface
             )
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Choose the type of ledger bucket for ${account.name}:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Choose the ledger classification for ${account.name}:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+
+                val accountTypes = listOf(
+                    AccountType.CASH to Pair("Cash", Icons.Default.Payments),
+                    AccountType.BANK to Pair("Bank", Icons.Default.AccountBalance),
+                    AccountType.WALLET to Pair("Wallet", Icons.Default.AccountBalanceWallet),
+                    AccountType.CARD to Pair("Card", Icons.Default.CreditCard)
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf(AccountType.CASH, AccountType.BANK, AccountType.WALLET, AccountType.CARD).forEach { type ->
-                        val isSelected = selectedType == type
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedType = type },
-                            label = {
-                                Text(
-                                    text = type.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            shape = CircleShape
-                        )
+                    accountTypes.chunked(2).forEach { rowPair ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowPair.forEach { (type, info) ->
+                                val (name, icon) = info
+                                val isSelected = selectedType == type
+                                val borderStroke = if (isSelected) {
+                                    BorderStroke(1.5.dp, scheme.primary)
+                                } else {
+                                    BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .pressScale(0.96f)
+                                        .clip(VyxelShapeTokens.Card)
+                                        .background(
+                                            if (isSelected) scheme.primaryContainer
+                                            else scheme.surfaceContainerHigh
+                                        )
+                                        .border(borderStroke, VyxelShapeTokens.Card)
+                                        .clickable { selectedType = type }
+                                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) scheme.onPrimaryContainer else scheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = name,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -935,7 +983,7 @@ fun AccountEditTypeDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(selectedType) },
-                shape = CircleShape
+                shape = VyxelShapeTokens.Pill
             ) {
                 Text("Save Type", fontWeight = FontWeight.Bold)
             }
@@ -945,7 +993,7 @@ fun AccountEditTypeDialog(
                 Text("Back")
             }
         },
-        shape = MaterialTheme.shapes.extraLarge
+        shape = VyxelShapeTokens.Card
     )
 }
 
@@ -975,7 +1023,9 @@ fun ExpenseAnalyticsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Text(
                         text = "Expense Insights",
                         style = MaterialTheme.typography.titleMedium,
@@ -989,28 +1039,43 @@ fun ExpenseAnalyticsCard(
                     )
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Row(
                     modifier = Modifier
-                        .clip(CircleShape)
+                        .clip(VyxelShapeTokens.Pill)
                         .background(scheme.surfaceContainerHigh)
-                        .padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        .border(1.dp, scheme.outlineVariant.copy(alpha = 0.55f), VyxelShapeTokens.Pill)
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     listOf("7 Days", "Categories").forEachIndexed { index, label ->
                         val isSelected = selectedTab == index
+                        val bgAnim by animateColorAsState(
+                            targetValue = if (isSelected) scheme.primary else Color.Transparent,
+                            animationSpec = KnowSpendsMotion.expressive(),
+                            label = "tabBg"
+                        )
+                        val fgAnim by animateColorAsState(
+                            targetValue = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
+                            animationSpec = KnowSpendsMotion.expressive(),
+                            label = "tabFg"
+                        )
                         Box(
                             modifier = Modifier
-                                .clip(CircleShape)
-                                .background(if (isSelected) scheme.primary else Color.Transparent)
+                                .pressScale(0.96f)
+                                .clip(VyxelShapeTokens.Pill)
+                                .background(bgAnim)
                                 .clickable { selectedTab = index }
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant
+                                color = fgAnim,
+                                maxLines = 1
                             )
                         }
                     }
@@ -1188,11 +1253,13 @@ fun CategoryBreakdownDonutChart(
                     color = scheme.onSurfaceVariant
                 )
                 Text(
-                    text = totalExpenseFormatted.replace("₹", "₹\n"),
+                    text = totalExpenseFormatted,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurface,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

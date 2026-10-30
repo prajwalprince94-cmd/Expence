@@ -25,6 +25,7 @@ import com.knowspends.app.ui.components.ExpressiveWavyProgressIndicator
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -75,6 +76,7 @@ import com.knowspends.app.ui.theme.IncomeColor
 @Composable
 fun BudgetsScreen(
     modifier: Modifier = Modifier,
+    onNavigateUp: (() -> Unit)? = null,
     viewModel: BudgetsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -89,6 +91,16 @@ fun BudgetsScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
+                },
+                navigationIcon = {
+                    if (onNavigateUp != null) {
+                        IconButton(onClick = onNavigateUp) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.openSetBudgetDialog() }) {
