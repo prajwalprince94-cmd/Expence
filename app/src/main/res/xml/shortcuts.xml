@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_expense"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_input_add"
+        android:shortcutShortLabel="@string/shortcut_add_expense"
+        android:shortcutLongLabel="@string/shortcut_add_expense">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.knowspends.app"
+            android:targetClass="com.knowspends.app.MainActivity">
+            <extra android:name="ROUTE" android:value="add_transaction" />
+            <extra android:name="TYPE" android:value="EXPENSE" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="add_income"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_input_add"
+        android:shortcutShortLabel="@string/shortcut_add_income"
+        android:shortcutLongLabel="@string/shortcut_add_income">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.knowspends.app"
+            android:targetClass="com.knowspends.app.MainActivity">
+            <extra android:name="ROUTE" android:value="add_transaction" />
+            <extra android:name="TYPE" android:value="INCOME" />
+        </intent>
+    </shortcut>
+</shortcuts>

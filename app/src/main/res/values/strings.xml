@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">KnowSpends</string>
+    <string name="widget_quick_add_description">Quickly log expenses in under 5 seconds</string>
+    <string name="shortcut_add_expense">Add Expense</string>
+    <string name="shortcut_add_income">Add Income</string>
+</resources>
