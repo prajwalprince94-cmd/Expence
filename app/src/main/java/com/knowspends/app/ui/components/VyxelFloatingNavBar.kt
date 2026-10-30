@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -80,11 +81,11 @@ fun VyxelFloatingNavBar(
                 borderColor = scheme.outlineVariant.copy(alpha = 0.35f),
                 borderWidth = 1.dp
             )
-            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .padding(horizontal = 5.dp, vertical = 5.dp)
             .animateContentSize(animationSpec = KnowSpendsMotion.SizeSpring)
             .wrapContentHeight(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         items.forEach { screen ->
             val isSelected = currentRoute == screen.route
@@ -132,7 +133,8 @@ private fun VyxelNavItem(
 
     Row(
         modifier = Modifier
-            .pressScale(0.94f)
+            .defaultMinSize(minWidth = 36.dp, minHeight = 36.dp)
+            .pressScale(0.95f)
             .clip(pillShape)
             .background(pillBgColor)
             .clickable(
@@ -144,8 +146,8 @@ private fun VyxelNavItem(
                 }
             )
             .padding(
-                horizontal = if (selected) 15.dp else 13.dp,
-                vertical = 11.dp
+                horizontal = if (selected) 10.dp else 7.dp,
+                vertical = 7.dp
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -156,7 +158,7 @@ private fun VyxelNavItem(
                     contentDescription = screen.title,
                     tint = iconTint,
                     modifier = Modifier
-                        .size(21.dp)
+                        .size(20.dp)
                         .graphicsLayer {
                             scaleX = iconScale
                             scaleY = iconScale
@@ -184,12 +186,14 @@ private fun VyxelNavItem(
         ) { isSelected ->
             if (isSelected) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(Modifier.width(7.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
                         text = screen.title,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         color = scheme.onPrimary,
                         maxLines = 1,
+                        softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

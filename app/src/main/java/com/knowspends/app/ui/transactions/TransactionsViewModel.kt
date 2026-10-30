@@ -2,6 +2,7 @@ package com.knowspends.app.ui.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.knowspends.app.domain.model.Account
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.AccountRepository
@@ -34,6 +35,11 @@ data class TransactionsUiState(
     val selectedAccountId: Long? = null,
     val dayGroups: List<DayGroup> = emptyList(),
     val totalTransactionsCount: Int = 0,
+    val accounts: List<Account> = emptyList(),
+    val totalExpenseMinor: Long = 0L,
+    val totalIncomeMinor: Long = 0L,
+    val formattedExpenseTotal: String = "₹0.00",
+    val formattedIncomeTotal: String = "₹0.00",
     val isLoading: Boolean = false
 )
 
@@ -49,10 +55,11 @@ class TransactionsViewModel @Inject constructor(
 
     val uiState: StateFlow<TransactionsUiState> = combine(
         transactionRepository.getAllTransactionsWithDetails(),
+        accountRepository.getAllAccounts(),
         _searchQuery,
         _selectedType,
         _selectedAccountId
-    ) { allTransactions, query, typeFilter, accountFilter ->
+    ) { allTransactions, accounts, query, typeFilter, accountFilter ->
         val filtered = allTransactions.filter { item ->
             val matchesQuery = query.isBlank() ||
                     item.transaction.note.contains(query, ignoreCase = true) ||
@@ -69,6 +76,8 @@ class TransactionsViewModel @Inject constructor(
         }
 
         val groups = groupTransactionsByDay(filtered)
+        val expenseSum = filtered.filter { it.transaction.type == TransactionType.EXPENSE }.sumOf { it.transaction.amountMinor }
+        val incomeSum = filtered.filter { it.transaction.type == TransactionType.INCOME }.sumOf { it.transaction.amountMinor }
 
         TransactionsUiState(
             searchQuery = query,
@@ -76,6 +85,11 @@ class TransactionsViewModel @Inject constructor(
             selectedAccountId = accountFilter,
             dayGroups = groups,
             totalTransactionsCount = filtered.size,
+            accounts = accounts,
+            totalExpenseMinor = expenseSum,
+            totalIncomeMinor = incomeSum,
+            formattedExpenseTotal = MoneyFormatter.formatPaise(expenseSum, includeSymbol = true),
+            formattedIncomeTotal = MoneyFormatter.formatPaise(incomeSum, includeSymbol = true),
             isLoading = false
         )
     }.stateIn(
