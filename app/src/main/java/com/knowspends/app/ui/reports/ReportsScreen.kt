@@ -240,7 +240,7 @@ fun CategoryReportContent(
             modifier = modifier
                 .fillMaxSize()
                 .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Interactive Donut Chart
@@ -362,7 +362,7 @@ fun MonthlyTrendsContent(
             modifier = modifier
                 .fillMaxSize()
                 .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(trends, key = { it.yearMonth }) { item ->
@@ -472,7 +472,7 @@ fun TopPayeesContent(
             modifier = modifier
                 .fillMaxSize()
                 .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(payees, key = { it.payeeName }) { item ->

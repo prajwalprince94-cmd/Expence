@@ -198,7 +198,7 @@ fun BudgetsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(

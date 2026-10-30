@@ -437,6 +437,8 @@ fun SettingsScreen(
                     subtitle = "KnowSpends v1.0.0 • Target Android 16 (API 36)"
                 )
             }
+
+            Spacer(modifier = Modifier.height(100.dp))
         }
 
         // Restore Confirmation Dialog

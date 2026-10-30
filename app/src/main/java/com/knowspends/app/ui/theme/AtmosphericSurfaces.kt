@@ -9,6 +9,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -126,5 +127,24 @@ fun Modifier.glassSurface(
     return this
         .then(blurModifier)
         .clip(shape)
+        .background(containerColor)
         .border(borderWidth, borderColor, shape)
 }
+
+/**
+ * Expressive glassSurface overload matching Vyxel Apps syntax:
+ * `Modifier.glassSurface(color, shape)`
+ */
+fun Modifier.glassSurface(
+    containerColor: Color,
+    shape: Shape,
+    borderColor: Color = containerColor.copy(alpha = 0.25f),
+    borderWidth: Dp = 1.dp,
+    blurRadius: Float = 24f
+): Modifier = glassSurface(
+    shape = shape,
+    containerColor = containerColor,
+    borderColor = borderColor,
+    borderWidth = borderWidth,
+    blurRadius = blurRadius
+)

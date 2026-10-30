@@ -2,6 +2,7 @@ package com.knowspends.app.ui.theme
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -42,6 +43,9 @@ object KnowSpendsMotion {
     /** Smooth spring for scroll parallax and shape transitions. */
     val smooth = spring<Float>(dampingRatio = 0.85f, stiffness = 260f)
     fun <T> smooth() = spring<T>(dampingRatio = 0.85f, stiffness = 260f)
+
+    /** Fade tween strictly for alpha cross-fades matching VyxelMotion.fade(). */
+    fun <T> fade(durationMs: Int = 200) = tween<T>(durationMillis = durationMs)
 }
 
 /**

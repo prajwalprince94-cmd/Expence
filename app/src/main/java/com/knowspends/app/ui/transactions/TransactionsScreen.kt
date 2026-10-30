@@ -181,7 +181,7 @@ fun TransactionsScreen(
                     .fillMaxSize()
                     .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
                     .padding(innerPadding),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 uiState.dayGroups.forEach { dayGroup ->
                     stickyHeader(key = dayGroup.dateLabel) {
