@@ -1,34 +1,34 @@
 package com.knowspends.app.ui.navigation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.ui.graphics.graphicsLayer
-import com.knowspends.app.ui.theme.KnowSpendsMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
-import com.knowspends.app.ui.components.VyxelFloatingNavBar
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -41,10 +41,12 @@ import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.ui.add.AddTransactionScreen
 import com.knowspends.app.ui.budgets.BudgetsScreen
 import com.knowspends.app.ui.components.ExpressiveFabMenu
+import com.knowspends.app.ui.components.VyxelFloatingNavBar
 import com.knowspends.app.ui.home.HomeScreen
 import com.knowspends.app.ui.inbox.ReviewInboxScreen
 import com.knowspends.app.ui.reports.ReportsScreen
 import com.knowspends.app.ui.settings.SettingsScreen
+import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.transactions.TransactionsScreen
 
 @Composable
@@ -52,7 +54,7 @@ fun KnowSpendsAppRoot(
     navController: NavHostController = rememberNavController(),
     initialRoute: String? = null
 ) {
-    androidx.compose.runtime.LaunchedEffect(initialRoute) {
+    LaunchedEffect(initialRoute) {
         if (initialRoute == "add_transaction") {
             navController.navigate(Screen.AddTransaction.createRoute())
         }
@@ -63,7 +65,7 @@ fun KnowSpendsAppRoot(
 
     var isFabExpanded by remember { mutableStateOf(false) }
 
-    androidx.compose.runtime.LaunchedEffect(currentRoute) {
+    LaunchedEffect(currentRoute) {
         isFabExpanded = false
     }
 
@@ -82,64 +84,7 @@ fun KnowSpendsAppRoot(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            if (barOffset < 140.dp) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .graphicsLayer {
-                            translationY = barOffset.toPx()
-                            alpha = ((140.dp - barOffset) / 140.dp).coerceIn(0f, 1f)
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    VyxelFloatingNavBar(
-                        items = Screen.bottomNavItems,
-                        currentRoute = currentRoute,
-                        onItemClick = { screen ->
-                            if (currentRoute != screen.route) {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-        },
-        floatingActionButton = {
-            if (fabOffset < 140.dp) {
-                Box(
-                    modifier = Modifier.graphicsLayer {
-                        translationY = fabOffset.toPx()
-                        alpha = ((140.dp - fabOffset) / 140.dp).coerceIn(0f, 1f)
-                    }
-                ) {
-                    ExpressiveFabMenu(
-                        expanded = isFabExpanded,
-                        onExpandChanged = { isFabExpanded = it },
-                        onAddExpense = {
-                            isFabExpanded = false
-                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.EXPENSE))
-                        },
-                        onAddIncome = {
-                            isFabExpanded = false
-                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.INCOME))
-                        },
-                        onAddTransfer = {
-                            isFabExpanded = false
-                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.TRANSFER))
-                        }
-                    )
-                }
-            }
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -154,22 +99,15 @@ fun KnowSpendsAppRoot(
                 startDestination = Screen.Home.route,
                 modifier = Modifier.fillMaxSize(),
                 enterTransition = {
-                    fadeIn(animationSpec = androidx.compose.animation.core.tween(140, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                    fadeIn(tween(150)) + slideInVertically(tween(210)) { it / 16 } +
+                        scaleIn(initialScale = 0.98f, animationSpec = tween(210))
                 },
-                exitTransition = {
-                    fadeOut(animationSpec = androidx.compose.animation.core.tween(90, easing = androidx.compose.animation.core.FastOutSlowInEasing))
-                },
-                popEnterTransition = {
-                    fadeIn(animationSpec = androidx.compose.animation.core.tween(140, easing = androidx.compose.animation.core.FastOutSlowInEasing))
-                },
-                popExitTransition = {
-                    fadeOut(animationSpec = androidx.compose.animation.core.tween(90, easing = androidx.compose.animation.core.FastOutSlowInEasing))
-                }
+                exitTransition = { fadeOut(tween(80)) }
             ) {
                 composable(Screen.Home.route) {
                     HomeScreen(
                         onNavigateToTransactions = {
-                            navController.navigate(Screen.Transactions.route)
+                            navController.navigateSingleTop(Screen.Transactions.route)
                         },
                         onTransactionClick = { transactionId ->
                             navController.navigate(Screen.AddTransaction.createRoute(transactionId))
@@ -198,12 +136,12 @@ fun KnowSpendsAppRoot(
                 composable(
                     route = Screen.ReviewInbox.route,
                     enterTransition = {
-                        slideInHorizontally(animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
-                            fadeIn(animationSpec = androidx.compose.animation.core.tween(160))
+                        slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { it } +
+                            fadeIn(animationSpec = tween(160))
                     },
                     popExitTransition = {
-                        slideOutHorizontally(animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
-                            fadeOut(animationSpec = androidx.compose.animation.core.tween(120))
+                        slideOutHorizontally(animationSpec = tween(180, easing = FastOutSlowInEasing)) { it } +
+                            fadeOut(animationSpec = tween(120))
                     }
                 ) {
                     ReviewInboxScreen(
@@ -224,16 +162,68 @@ fun KnowSpendsAppRoot(
                         }
                     ),
                     enterTransition = {
-                        slideInHorizontally(animationSpec = androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
-                            fadeIn(animationSpec = androidx.compose.animation.core.tween(160))
+                        slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { it } +
+                            fadeIn(animationSpec = tween(160))
                     },
                     popExitTransition = {
-                        slideOutHorizontally(animationSpec = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } +
-                            fadeOut(animationSpec = androidx.compose.animation.core.tween(120))
+                        slideOutHorizontally(animationSpec = tween(180, easing = FastOutSlowInEasing)) { it } +
+                            fadeOut(animationSpec = tween(120))
                     }
                 ) {
                     AddTransactionScreen(
                         onNavigateUp = { navController.navigateUp() }
+                    )
+                }
+            }
+
+            // Stride-style Floating Navigation Bar Overlay (eliminates scaffold bottomBar re-measurement)
+            if (barOffset < 140.dp) {
+                VyxelFloatingNavBar(
+                    items = Screen.bottomNavItems,
+                    currentRoute = currentRoute,
+                    onItemClick = { screen ->
+                        if (currentRoute != screen.route) {
+                            navController.navigateSingleTop(screen.route)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 18.dp)
+                        .graphicsLayer {
+                            translationY = barOffset.toPx()
+                            alpha = ((140.dp - barOffset) / 140.dp).coerceIn(0f, 1f)
+                        }
+                )
+            }
+
+            // Floating Action Button Overlay
+            if (fabOffset < 140.dp) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .navigationBarsPadding()
+                        .padding(bottom = 86.dp, end = 16.dp)
+                        .graphicsLayer {
+                            translationY = fabOffset.toPx()
+                            alpha = ((140.dp - fabOffset) / 140.dp).coerceIn(0f, 1f)
+                        }
+                ) {
+                    ExpressiveFabMenu(
+                        expanded = isFabExpanded,
+                        onExpandChanged = { isFabExpanded = it },
+                        onAddExpense = {
+                            isFabExpanded = false
+                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.EXPENSE))
+                        },
+                        onAddIncome = {
+                            isFabExpanded = false
+                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.INCOME))
+                        },
+                        onAddTransfer = {
+                            isFabExpanded = false
+                            navController.navigate(Screen.AddTransaction.createRoute(type = TransactionType.TRANSFER))
+                        }
                     )
                 }
             }
@@ -250,5 +240,15 @@ fun KnowSpendsAppRoot(
                 )
             }
         }
+    }
+}
+
+private fun NavHostController.navigateSingleTop(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }
