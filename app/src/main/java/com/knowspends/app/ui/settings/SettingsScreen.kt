@@ -1034,6 +1034,13 @@ fun SettingsScreen(
                                 )
                             }
                         }
+
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Calibrated for real finger impacts on phone back plate. Tip: You can also add the 'Quick Spend' tile to your Android Quick Settings notification drawer.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
                     }
                 }
             }

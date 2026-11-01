@@ -51,8 +51,10 @@ class MainActivity : FragmentActivity() {
         handleIntent(intent)
 
         backTapDetector = BackTapDetector(this) {
-            if (!isAppLocked) {
-                triggerDynamicIsland = true
+            runOnUiThread {
+                if (!isAppLocked) {
+                    triggerDynamicIsland = true
+                }
             }
         }
 

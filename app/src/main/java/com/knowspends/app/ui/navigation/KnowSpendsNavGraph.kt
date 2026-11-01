@@ -96,10 +96,11 @@ fun KnowSpendsAppRoot(
         label = "barOffset"
     )
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background
+        ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -242,23 +243,22 @@ fun KnowSpendsAppRoot(
                             )
                         }
                     }
-                }
             }
-
-            // Dynamic Island Quick-Add Overlay (iOS Style, Framer Motion Springs)
-            DynamicIslandQuickSpend(
-                uiState = islandUiState,
-                onExpand = { dynamicIslandViewModel.expand() },
-                onCollapse = { dynamicIslandViewModel.collapse() },
-                onDigit = { dynamicIslandViewModel.onDigit(it) },
-                onBackspace = { dynamicIslandViewModel.onBackspace() },
-                onClear = { dynamicIslandViewModel.onClear() },
-                onCategorySelected = { dynamicIslandViewModel.onCategorySelected(it) },
-                onAccountSelected = { dynamicIslandViewModel.onAccountSelected(it) },
-                onSaveExpense = { dynamicIslandViewModel.saveExpense() },
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
+
+        // Dynamic Island Quick-Add Overlay (FullScreen Scrim + Camera Notch Ejection Modal)
+        DynamicIslandQuickSpend(
+            uiState = islandUiState,
+            onExpand = { dynamicIslandViewModel.expand() },
+            onCollapse = { dynamicIslandViewModel.collapse() },
+            onDigit = { dynamicIslandViewModel.onDigit(it) },
+            onBackspace = { dynamicIslandViewModel.onBackspace() },
+            onClear = { dynamicIslandViewModel.onClear() },
+            onCategorySelected = { dynamicIslandViewModel.onCategorySelected(it) },
+            onAccountSelected = { dynamicIslandViewModel.onAccountSelected(it) },
+            onSaveExpense = { dynamicIslandViewModel.saveExpense() },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
