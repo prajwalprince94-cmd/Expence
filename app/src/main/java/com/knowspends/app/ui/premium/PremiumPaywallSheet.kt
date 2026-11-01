@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.knowspends.app.ui.theme.StarGoldColor
 import com.knowspends.app.ui.theme.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -63,13 +64,13 @@ fun PremiumPaywallSheet(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFFB300).copy(alpha = 0.2f)),
+                    .background(StarGoldColor.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
-                    tint = Color(0xFFFFB300),
+                    tint = StarGoldColor,
                     modifier = Modifier.size(36.dp)
                 )
             }

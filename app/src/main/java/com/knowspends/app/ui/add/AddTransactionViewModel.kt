@@ -37,6 +37,7 @@ data class AddTransactionUiState(
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
     val isSaving: Boolean = false,
+    val navigateUp: Boolean = false,
     val errorMessage: String? = null
 ) {
     val amountMinor: Long
@@ -82,8 +83,9 @@ class AddTransactionViewModel @Inject constructor(
     )
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
 
-    private val _navigationEvents = MutableSharedFlow<Unit>()
-    val navigationEvents: SharedFlow<Unit> = _navigationEvents.asSharedFlow()
+    fun onNavigatedUp() {
+        _uiState.update { it.copy(navigateUp = false) }
+    }
 
     init {
         loadData()
@@ -244,7 +246,7 @@ class AddTransactionViewModel @Inject constructor(
                         )
                     }
                 } else {
-                    _navigationEvents.emit(Unit)
+                    _uiState.update { it.copy(isSaving = false, navigateUp = true) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false, errorMessage = e.localizedMessage ?: "Failed to save") }

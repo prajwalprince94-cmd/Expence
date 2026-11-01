@@ -56,7 +56,6 @@ fun VyxelSettingsCard(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = scheme.primary,
-                letterSpacing = 1.sp,
                 modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
             )
         }

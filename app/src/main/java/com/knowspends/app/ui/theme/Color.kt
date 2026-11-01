@@ -60,7 +60,18 @@ val SurfaceVariantDark = Color(0xFF404944)
 val OnSurfaceVariantDark = Color(0xFFBFC9C2)
 val OutlineDark = Color(0xFF8A938C)
 
-// Semantic Money Colors
+// Semantic Money & Accent Colors
 val ExpenseColor = Color(0xFFE04F4F)
 val IncomeColor = Color(0xFF2E9F68)
 val TransferColor = Color(0xFF388E3C)
+val WarningColor = Color(0xFFF57C00)
+val StarGoldColor = Color(0xFFFFB300)
+
+// Standard Chart Palette
+val ChartPalette = listOf(
+    Color(0xFF26A69A),
+    Color(0xFF42A5F5),
+    Color(0xFFFFA726),
+    Color(0xFFAB47BC),
+    Color(0xFFEF5350)
+)

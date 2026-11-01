@@ -11,6 +11,7 @@ import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.TransactionRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -44,6 +45,7 @@ data class HomeUiState(
     val recentTransactions: List<TransactionWithDetails> = emptyList(),
     val dailyExpenses7Days: List<DayExpenseItem> = emptyList(),
     val categoryExpenses: List<CategoryExpenseShare> = emptyList(),
+    val selectedAnalyticsTab: Int = 0,
     val isLoading: Boolean = false
 ) {
     val formattedTotalNetWorth: String
@@ -113,11 +115,14 @@ class HomeViewModel @Inject constructor(
         monthEndMillis = calendar.timeInMillis
     }
 
+    private val _selectedAnalyticsTab = MutableStateFlow(0)
+
     val uiState: StateFlow<HomeUiState> = combine(
         transactionRepository.getMonthlySummary(monthStartMillis, monthEndMillis),
         accountRepository.getActiveAccountsWithBalances(),
-        transactionRepository.getAllTransactionsWithDetails()
-    ) { summary, accounts, transactions ->
+        transactionRepository.getAllTransactionsWithDetails(),
+        _selectedAnalyticsTab
+    ) { summary, accounts, transactions, selectedTab ->
         val netWorth = accounts.sumOf { it.currentBalanceMinor }
         val recents = transactions.take(6)
 
@@ -182,6 +187,7 @@ class HomeViewModel @Inject constructor(
             recentTransactions = recents,
             dailyExpenses7Days = dailyItems,
             categoryExpenses = categoryShares,
+            selectedAnalyticsTab = selectedTab,
             isLoading = false
         )
     }.stateIn(
@@ -189,6 +195,10 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState(isLoading = true, currentMonthLabel = currentMonthLabel)
     )
+
+    fun onAnalyticsTabSelected(tab: Int) {
+        _selectedAnalyticsTab.value = tab
+    }
 
     fun updateAccount(account: Account) {
         viewModelScope.launch {

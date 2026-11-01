@@ -180,8 +180,7 @@ fun SplashScreen(
                 // Brand Title
                 Text(
                     text = "KnowSpends",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = 32.sp,
+                    style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.8).sp
                     ),

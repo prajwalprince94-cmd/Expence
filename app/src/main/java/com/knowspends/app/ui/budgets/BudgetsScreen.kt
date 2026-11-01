@@ -71,6 +71,7 @@ import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.theme.ErrorDark
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
+import com.knowspends.app.ui.theme.WarningColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,7 +151,7 @@ fun BudgetsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         color = when {
                             uiState.totalSpentMinor > uiState.totalBudgetedMinor -> ExpenseColor
-                            uiState.totalProgressRatio >= 0.8f -> Color(0xFFF57C00)
+                            uiState.totalProgressRatio >= 0.8f -> WarningColor
                             else -> IncomeColor
                         }
                     )
@@ -303,7 +304,7 @@ fun CategoryBudgetCard(
                 modifier = Modifier.fillMaxWidth(),
                 color = when (budget.status) {
                     BudgetStatus.SAFE -> IncomeColor
-                    BudgetStatus.WARNING -> Color(0xFFF57C00)
+                    BudgetStatus.WARNING -> WarningColor
                     BudgetStatus.OVERSPENT -> ExpenseColor
                 }
             )
@@ -338,14 +339,14 @@ fun CategoryBudgetCard(
                             Icon(
                                 imageVector = Icons.Default.Warning,
                                 contentDescription = "Warning",
-                                tint = Color(0xFFF57C00),
+                                tint = WarningColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "${(budget.progressRatio * 100).toInt()}% used",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFF57C00)
+                                color = WarningColor
                             )
                         }
                     }

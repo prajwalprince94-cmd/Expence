@@ -92,9 +92,10 @@ fun AddTransactionScreen(
     var showAccountDialog by remember { mutableStateOf(false) }
     var showTransferAccountDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.navigationEvents.collect {
+    LaunchedEffect(uiState.navigateUp) {
+        if (uiState.navigateUp) {
             onNavigateUp()
+            viewModel.onNavigatedUp()
         }
     }
 
@@ -173,10 +174,11 @@ fun AddTransactionScreen(
             ) {
                 Text(
                     text = uiState.formattedAmount,
-                    fontSize = 42.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-1.0).sp
+                    ),
                     color = typeColor,
-                    letterSpacing = (-1.0).sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -576,7 +578,7 @@ private fun VyxelNumericKeypad(
                             } else {
                                 Text(
                                     text = char.toString(),
-                                    fontSize = 24.sp,
+                                    style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = scheme.onSurface
                                 )

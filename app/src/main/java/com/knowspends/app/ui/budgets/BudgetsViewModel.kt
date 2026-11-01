@@ -48,6 +48,11 @@ data class BudgetsUiState(
         get() = MoneyFormatter.formatPaise(totalRemainingMinor)
 }
 
+data class BudgetDialogState(
+    val isOpen: Boolean = false,
+    val selectedBudget: CategoryBudget? = null
+)
+
 @HiltViewModel
 class BudgetsViewModel @Inject constructor(
     private val budgetRepository: BudgetRepository,
@@ -63,7 +68,7 @@ class BudgetsViewModel @Inject constructor(
     private val periodStartMillis: Long
     private val periodEndMillis: Long
 
-    private val _dialogState = MutableStateFlow<Pair<Boolean, CategoryBudget?>>(false to null)
+    private val _dialogState = MutableStateFlow(BudgetDialogState())
 
     init {
         currentPeriod = periodFormat.format(calendar.time)
@@ -88,7 +93,7 @@ class BudgetsViewModel @Inject constructor(
         budgetRepository.getBudgetsForPeriod(currentPeriod, periodStartMillis, periodEndMillis),
         categoryRepository.getCategoriesByKind(TransactionType.EXPENSE),
         _dialogState
-    ) { budgets, categories, (dialogOpen, editBudget) ->
+    ) { budgets, categories, dialogState ->
         val totalBudget = budgets.sumOf { it.budgetAmountMinor }
         val totalSpent = budgets.sumOf { it.spentAmountMinor }
 
@@ -99,8 +104,8 @@ class BudgetsViewModel @Inject constructor(
             categories = categories,
             totalBudgetedMinor = totalBudget,
             totalSpentMinor = totalSpent,
-            isSetBudgetDialogOpen = dialogOpen,
-            selectedBudgetForEdit = editBudget,
+            isSetBudgetDialogOpen = dialogState.isOpen,
+            selectedBudgetForEdit = dialogState.selectedBudget,
             isLoading = false
         )
     }.stateIn(
@@ -110,11 +115,11 @@ class BudgetsViewModel @Inject constructor(
     )
 
     fun openSetBudgetDialog(budget: CategoryBudget? = null) {
-        _dialogState.value = true to budget
+        _dialogState.value = BudgetDialogState(isOpen = true, selectedBudget = budget)
     }
 
     fun closeSetBudgetDialog() {
-        _dialogState.value = false to null
+        _dialogState.value = BudgetDialogState(isOpen = false, selectedBudget = null)
     }
 
     fun saveBudget(categoryId: Long, amountMinor: Long, rollover: Boolean) {

@@ -91,6 +91,7 @@ import com.knowspends.app.domain.model.AccountType
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.util.MoneyFormatter
+import com.knowspends.app.ui.theme.ChartPalette
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.TransferColor
@@ -153,7 +154,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header: Clean Label
                 Text(
@@ -355,10 +356,13 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Expense Visual Analytics (7-Day Bar Chart & Category Donut Chart)
-        ExpenseAnalyticsCard(uiState = uiState)
+        ExpenseAnalyticsCard(
+            uiState = uiState,
+            onTabSelected = { viewModel.onAnalyticsTabSelected(it) }
+        )
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -822,7 +826,7 @@ fun AccountEditBalanceDialog(
                     val balancePaise = ((balanceText.toDoubleOrNull() ?: 0.0) * 100).toLong()
                     onSave(balancePaise)
                 },
-                shape = CircleShape
+                shape = VyxelShapeTokens.Pill
             ) {
                 Text("Save Balance", fontWeight = FontWeight.Bold)
             }
@@ -880,7 +884,7 @@ fun AccountEditNameDialog(
                 onClick = {
                     if (name.isNotBlank()) onSave(name.trim())
                 },
-                shape = CircleShape
+                shape = VyxelShapeTokens.Pill
             ) {
                 Text("Save Name", fontWeight = FontWeight.Bold)
             }
@@ -1008,9 +1012,10 @@ fun AccountEditTypeDialog(
 @Composable
 fun ExpenseAnalyticsCard(
     uiState: HomeUiState,
+    onTabSelected: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    val selectedTab = uiState.selectedAnalyticsTab
     val scheme = MaterialTheme.colorScheme
 
     Card(
@@ -1074,7 +1079,7 @@ fun ExpenseAnalyticsCard(
                                 .pressScale(0.96f)
                                 .clip(VyxelShapeTokens.Pill)
                                 .background(bgAnim)
-                                .clickable { selectedTab = index }
+                                .clickable { onTabSelected(index) }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -1142,7 +1147,6 @@ fun SevenDaySpendingChart(
                         Text(
                             text = item.formattedAmount.replace("₹", "").split(".")[0],
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (item.isToday) scheme.primary else scheme.onSurfaceVariant,
                             maxLines = 1
@@ -1154,7 +1158,7 @@ fun SevenDaySpendingChart(
                         modifier = Modifier
                             .fillMaxWidth(0.55f)
                             .fillMaxHeight(animatedRatio)
-                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 4.dp, bottomEnd = 4.dp))
+                            .clip(VyxelShapeTokens.ChartBar)
                             .background(
                                 if (item.isToday) {
                                     Brush.verticalGradient(
@@ -1209,13 +1213,7 @@ fun CategoryBreakdownDonutChart(
         return
     }
 
-    val defaultPalette = listOf(
-        Color(0xFF26A69A),
-        Color(0xFF42A5F5),
-        Color(0xFFFFA726),
-        Color(0xFFAB47BC),
-        Color(0xFFEF5350)
-    )
+    val defaultPalette = ChartPalette
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -1257,7 +1255,6 @@ fun CategoryBreakdownDonutChart(
                 Text(
                     text = "Total",
                     style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp,
                     color = scheme.onSurfaceVariant
                 )
                 Text(

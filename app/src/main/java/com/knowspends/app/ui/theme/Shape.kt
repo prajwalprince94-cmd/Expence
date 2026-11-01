@@ -22,4 +22,5 @@ object VyxelShapeTokens {
     val CardSmall = RoundedCornerShape(16.dp)
     val Chip = RoundedCornerShape(12.dp)
     val IconSmall = RoundedCornerShape(10.dp)
+    val ChartBar = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
 }

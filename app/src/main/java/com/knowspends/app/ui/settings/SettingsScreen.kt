@@ -106,6 +106,7 @@ import com.knowspends.app.ui.components.VyxelThemeSegmentedRow
 import com.knowspends.app.ui.components.VyxelToggleRow
 import com.knowspends.app.ui.premium.PremiumPaywallSheet
 import com.knowspends.app.ui.theme.AppFont
+import com.knowspends.app.ui.theme.GradientPresets
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.getFontFamily
@@ -269,10 +270,10 @@ fun SettingsScreen(
                         .wrapContentHeight()
                 ) {
                     val coverBrush = when (prefs.profileCoverUri) {
-                        "gradient:ocean" -> Brush.linearGradient(listOf(Color(0xFF007799), Color(0xFF00A896), Color(0xFF028090)))
-                        "gradient:sunset" -> Brush.linearGradient(listOf(Color(0xFFFF5722), Color(0xFFFF9800), Color(0xFFFFC107)))
-                        "gradient:amethyst" -> Brush.linearGradient(listOf(Color(0xFF7B1FA2), Color(0xFF9C27B0), Color(0xFFBA68C8)))
-                        "gradient:midnight" -> Brush.linearGradient(listOf(Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64)))
+                        "gradient:ocean" -> GradientPresets.Ocean
+                        "gradient:sunset" -> GradientPresets.Sunset
+                        "gradient:amethyst" -> GradientPresets.Amethyst
+                        "gradient:midnight" -> GradientPresets.Midnight
                         else -> Brush.linearGradient(
                             listOf(
                                 scheme.primary.copy(alpha = 0.85f),
@@ -286,7 +287,7 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(130.dp)
+                            .height(128.dp)
                             .background(coverBrush)
                     )
 
@@ -924,7 +925,7 @@ fun SettingsScreen(
                             )
                             Button(
                                 onClick = { viewModel.installDownloadedApk(context) },
-                                shape = CircleShape
+                                shape = VyxelShapeTokens.Pill
                             ) {
                                 Text("Install Now")
                             }
@@ -1069,7 +1070,7 @@ fun SettingsScreen(
                                 selected = editCoverUri == key,
                                 onClick = { editCoverUri = key },
                                 label = { Text(label) },
-                                shape = CircleShape
+                                shape = VyxelShapeTokens.Pill
                             )
                         }
                     }
@@ -1110,7 +1111,7 @@ fun SettingsScreen(
                                 selected = editCurrency == symbol,
                                 onClick = { editCurrency = symbol },
                                 label = { Text(symbol, fontWeight = FontWeight.Bold) },
-                                shape = CircleShape
+                                shape = VyxelShapeTokens.Pill
                             )
                         }
                     }
@@ -1141,7 +1142,7 @@ fun SettingsScreen(
                                 selected = editSavingsGoal == preset,
                                 onClick = { editSavingsGoal = preset },
                                 label = { Text(preset) },
-                                shape = CircleShape
+                                shape = VyxelShapeTokens.Pill
                             )
                         }
                     }
@@ -1179,7 +1180,7 @@ fun SettingsScreen(
                             financialYearStart = editFyStart.trim().ifBlank { "April" }
                         )
                     },
-                    shape = CircleShape
+                    shape = VyxelShapeTokens.Pill
                 ) {
                     Text("Save Profile", fontWeight = FontWeight.Bold)
                 }
@@ -1295,7 +1296,7 @@ fun SettingsScreen(
                             onClick = {
                                 viewModel.installDownloadedApk(context)
                             },
-                            shape = CircleShape
+                            shape = VyxelShapeTokens.Pill
                         ) {
                             Text("Install Now", fontWeight = FontWeight.Bold)
                         }
@@ -1303,7 +1304,7 @@ fun SettingsScreen(
                         Button(
                             onClick = {},
                             enabled = false,
-                            shape = CircleShape
+                            shape = VyxelShapeTokens.Pill
                         ) {
                             Text("Downloading ${(uiState.downloadProgress * 100).toInt()}%")
                         }
@@ -1312,7 +1313,7 @@ fun SettingsScreen(
                             onClick = {
                                 viewModel.downloadAndInstallUpdate(context, downloadUrl)
                             },
-                            shape = CircleShape
+                            shape = VyxelShapeTokens.Pill
                         ) {
                             Text("In-App Update ($latestVer)", fontWeight = FontWeight.Bold)
                         }
@@ -1320,7 +1321,7 @@ fun SettingsScreen(
                 } else {
                     Button(
                         onClick = { viewModel.dismissUpdateDialog() },
-                        shape = CircleShape
+                        shape = VyxelShapeTokens.Pill
                     ) {
                         Text("Got it")
                     }
