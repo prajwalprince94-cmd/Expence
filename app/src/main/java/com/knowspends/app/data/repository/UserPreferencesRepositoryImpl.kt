@@ -51,6 +51,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val LATEST_VERSION_NAME = stringPreferencesKey("latest_version_name")
         val LATEST_RELEASE_URL = stringPreferencesKey("latest_release_url")
         val LATEST_RELEASE_NOTES = stringPreferencesKey("latest_release_notes")
+
+        val BACK_TAP_ENABLED = booleanPreferencesKey("back_tap_enabled")
+        val BACK_TAP_SENSITIVITY = stringPreferencesKey("back_tap_sensitivity")
     }
 
     override val userPreferencesFlow: Flow<UserPreferences> = context.userPreferencesDataStore.data.map { prefs ->
@@ -76,7 +79,10 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             updateAvailable = prefs[Keys.UPDATE_AVAILABLE] ?: false,
             latestVersionName = prefs[Keys.LATEST_VERSION_NAME] ?: "",
             latestReleaseUrl = prefs[Keys.LATEST_RELEASE_URL] ?: "",
-            latestReleaseNotes = prefs[Keys.LATEST_RELEASE_NOTES] ?: ""
+            latestReleaseNotes = prefs[Keys.LATEST_RELEASE_NOTES] ?: "",
+
+            backTapEnabled = prefs[Keys.BACK_TAP_ENABLED] ?: true,
+            backTapSensitivity = prefs[Keys.BACK_TAP_SENSITIVITY] ?: "normal"
         )
     }.flowOn(ioDispatcher)
 
@@ -156,6 +162,14 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             prefs[Keys.LATEST_VERSION_NAME] = version
             prefs[Keys.LATEST_RELEASE_URL] = releaseUrl
             prefs[Keys.LATEST_RELEASE_NOTES] = notes
+        }
+        Unit
+    }
+
+    override suspend fun setBackTapSettings(enabled: Boolean, sensitivity: String) = withContext(ioDispatcher) {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[Keys.BACK_TAP_ENABLED] = enabled
+            prefs[Keys.BACK_TAP_SENSITIVITY] = sensitivity
         }
         Unit
     }

@@ -26,5 +26,9 @@ data class UserPreferences(
     val updateAvailable: Boolean = false,
     val latestVersionName: String = "",
     val latestReleaseUrl: String = "",
-    val latestReleaseNotes: String = ""
+    val latestReleaseNotes: String = "",
+
+    // Tap to Add (Dynamic Island & Back Tap)
+    val backTapEnabled: Boolean = true,
+    val backTapSensitivity: String = "normal" // "high", "normal", "low"
 )

@@ -28,4 +28,17 @@
             <extra android:name="TYPE" android:value="INCOME" />
         </intent>
     </shortcut>
+    <shortcut
+        android:shortcutId="dynamic_island"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:shortcutShortLabel="@string/shortcut_dynamic_island"
+        android:shortcutLongLabel="@string/shortcut_dynamic_island_desc">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.knowspends.app"
+            android:targetClass="com.knowspends.app.MainActivity">
+            <extra android:name="TRIGGER_DYNAMIC_ISLAND" android:value="true" />
+        </intent>
+    </shortcut>
 </shortcuts>

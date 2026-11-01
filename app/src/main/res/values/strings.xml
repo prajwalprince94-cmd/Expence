@@ -3,4 +3,6 @@
     <string name="widget_quick_add_description">Quickly log expenses in under 5 seconds</string>
     <string name="shortcut_add_expense">Add Expense</string>
     <string name="shortcut_add_income">Add Income</string>
+    <string name="shortcut_dynamic_island">Quick Spend</string>
+    <string name="shortcut_dynamic_island_desc">Open Dynamic Island Quick Spend</string>
 </resources>

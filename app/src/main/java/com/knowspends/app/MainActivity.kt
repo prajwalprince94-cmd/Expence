@@ -1,5 +1,6 @@
 package com.knowspends.app
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
@@ -16,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.knowspends.app.domain.model.SecurityConfig
 import com.knowspends.app.domain.repository.SecurityRepository
+import com.knowspends.app.sensor.BackTapDetector
 import com.knowspends.app.ui.navigation.KnowSpendsAppRoot
 import com.knowspends.app.ui.security.AppLockScreen
 import com.knowspends.app.ui.security.BiometricAuthManager
@@ -40,9 +42,19 @@ class MainActivity : FragmentActivity() {
     private var isAppLocked by mutableStateOf(false)
     private var backgroundTimestamp: Long = 0L
 
+    private var triggerDynamicIsland by mutableStateOf(false)
+    private var backTapDetector: BackTapDetector? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleIntent(intent)
+
+        backTapDetector = BackTapDetector(this) {
+            if (!isAppLocked) {
+                triggerDynamicIsland = true
+            }
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -61,6 +73,7 @@ class MainActivity : FragmentActivity() {
                 launch {
                     userPreferencesRepository.userPreferencesFlow.collectLatest { prefs ->
                         userPreferences = prefs
+                        updateBackTapSensitivity()
                     }
                 }
             }
@@ -87,11 +100,52 @@ class MainActivity : FragmentActivity() {
                                 onUnlockClicked = { promptUnlock() }
                             )
                         } else {
-                            KnowSpendsAppRoot(initialRoute = intent?.getStringExtra("ROUTE"))
+                            KnowSpendsAppRoot(
+                                initialRoute = intent?.getStringExtra("ROUTE"),
+                                triggerDynamicIsland = triggerDynamicIsland,
+                                onDynamicIslandDismissed = { triggerDynamicIsland = false }
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (userPreferences.backTapEnabled) {
+            updateBackTapSensitivity()
+            backTapDetector?.start()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        backTapDetector?.stop()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("TRIGGER_DYNAMIC_ISLAND", false) == true ||
+            intent?.getStringExtra("TRIGGER_DYNAMIC_ISLAND") == "true" ||
+            intent?.data?.host == "dynamic-island"
+        ) {
+            triggerDynamicIsland = true
+        }
+    }
+
+    private fun updateBackTapSensitivity() {
+        val detector = backTapDetector ?: return
+        detector.sensitivityThreshold = when (userPreferences.backTapSensitivity) {
+            "high" -> BackTapDetector.SENSITIVITY_HIGH
+            "low" -> BackTapDetector.SENSITIVITY_LOW
+            else -> BackTapDetector.SENSITIVITY_NORMAL
         }
     }
 

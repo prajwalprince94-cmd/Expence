@@ -26,4 +26,5 @@ interface UserPreferencesRepository {
         releaseUrl: String,
         notes: String
     )
+    suspend fun setBackTapSettings(enabled: Boolean, sensitivity: String)
 }

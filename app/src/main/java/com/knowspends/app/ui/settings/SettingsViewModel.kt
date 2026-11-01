@@ -460,4 +460,10 @@ class SettingsViewModel @Inject constructor(
     fun clearStatusMessage() {
         _uiState.update { it.copy(statusMessage = null) }
     }
+
+    fun setBackTapSettings(enabled: Boolean, sensitivity: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setBackTapSettings(enabled, sensitivity)
+        }
+    }
 }

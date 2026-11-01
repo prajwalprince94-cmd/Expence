@@ -55,6 +55,7 @@ import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Update
@@ -841,6 +842,42 @@ fun SettingsScreen(
                         checked = uiState.securityConfig.isSecureScreenEnabled,
                         onCheckedChange = { viewModel.toggleSecureScreen(it) }
                     )
+                }
+            }
+
+            // ── Tap to Add & Dynamic Island ──────────────────────────
+            item(key = "dynamic_island") {
+                VyxelSettingsCard(title = "Tap to Add & Dynamic Island") {
+                    VyxelToggleRow(
+                        title = "Back-Tap Dynamic Island",
+                        subtitle = "Double-tap physical back of phone to trigger iOS Dynamic Island quick spend popup (90fps Framer Motion)",
+                        checked = uiState.userPreferences.backTapEnabled,
+                        onCheckedChange = { viewModel.setBackTapSettings(it, uiState.userPreferences.backTapSensitivity) },
+                        icon = Icons.Default.TouchApp
+                    )
+
+                    if (uiState.userPreferences.backTapEnabled) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Sensitivity:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
+                            listOf("high" to "High", "normal" to "Normal", "low" to "Low").forEach { (key, label) ->
+                                FilterChip(
+                                    selected = uiState.userPreferences.backTapSensitivity == key,
+                                    onClick = { viewModel.setBackTapSettings(true, key) },
+                                    label = { Text(label) },
+                                    shape = VyxelShapeTokens.Pill
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

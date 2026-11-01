@@ -47,12 +47,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.knowspends.app.domain.model.TransactionType
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.knowspends.app.ui.add.AddTransactionScreen
 import com.knowspends.app.ui.budgets.BudgetsScreen
 import com.knowspends.app.ui.components.VyxelFloatingNavBar
 import com.knowspends.app.ui.components.bouncyClickable
 import com.knowspends.app.ui.home.HomeScreen
 import com.knowspends.app.ui.inbox.ReviewInboxScreen
+import com.knowspends.app.ui.island.DynamicIslandQuickSpend
+import com.knowspends.app.ui.island.DynamicIslandViewModel
 import com.knowspends.app.ui.reports.ReportsScreen
 import com.knowspends.app.ui.settings.SettingsScreen
 import com.knowspends.app.ui.theme.KnowSpendsMotion
@@ -61,11 +65,23 @@ import com.knowspends.app.ui.transactions.TransactionsScreen
 @Composable
 fun KnowSpendsAppRoot(
     navController: NavHostController = rememberNavController(),
-    initialRoute: String? = null
+    initialRoute: String? = null,
+    triggerDynamicIsland: Boolean = false,
+    onDynamicIslandDismissed: () -> Unit = {},
+    dynamicIslandViewModel: DynamicIslandViewModel = hiltViewModel()
 ) {
+    val islandUiState by dynamicIslandViewModel.uiState.collectAsStateWithLifecycle()
+
     LaunchedEffect(initialRoute) {
         if (initialRoute == "add_transaction") {
             navController.navigate(Screen.AddTransaction.createRoute())
+        }
+    }
+
+    LaunchedEffect(triggerDynamicIsland) {
+        if (triggerDynamicIsland) {
+            dynamicIslandViewModel.expand()
+            onDynamicIslandDismissed()
         }
     }
 
@@ -228,6 +244,20 @@ fun KnowSpendsAppRoot(
                     }
                 }
             }
+
+            // Dynamic Island Quick-Add Overlay (iOS Style, Framer Motion Springs)
+            DynamicIslandQuickSpend(
+                uiState = islandUiState,
+                onExpand = { dynamicIslandViewModel.expand() },
+                onCollapse = { dynamicIslandViewModel.collapse() },
+                onDigit = { dynamicIslandViewModel.onDigit(it) },
+                onBackspace = { dynamicIslandViewModel.onBackspace() },
+                onClear = { dynamicIslandViewModel.onClear() },
+                onCategorySelected = { dynamicIslandViewModel.onCategorySelected(it) },
+                onAccountSelected = { dynamicIslandViewModel.onAccountSelected(it) },
+                onSaveExpense = { dynamicIslandViewModel.saveExpense() },
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
