@@ -12,12 +12,17 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -167,18 +172,18 @@ fun HomeScreen(
                 )
 
                 // Visual Cashflow Bar
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
+                            .heightIn(min = 6.dp)
                             .clip(MaterialTheme.shapes.extraSmall)
                             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(uiState.spendRatePercent.coerceIn(0f, 1f))
-                                .height(6.dp)
+                                .heightIn(min = 6.dp)
                                 .clip(MaterialTheme.shapes.extraSmall)
                                 .background(if (uiState.spendRatePercent > 0.9f) ExpenseColor else IncomeColor)
                         )
@@ -207,7 +212,9 @@ fun HomeScreen(
 
                 // Balanced 3-Column Stats (Auto-Layout: Income, Spent, Daily Average)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -254,7 +261,7 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .width(1.dp)
-                            .height(30.dp)
+                            .fillMaxHeight(0.65f)
                             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     )
 
@@ -301,7 +308,7 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .width(1.dp)
-                            .height(30.dp)
+                            .fillMaxHeight(0.65f)
                             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     )
 
@@ -445,8 +452,9 @@ fun HomeScreen(
             }
         }
 
-        // Generous bottom clearance for the floating navigation bar and + button
-        Spacer(modifier = Modifier.height(140.dp))
+        // Adaptive bottom clearance for the floating navigation bar and + button
+        val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        Spacer(modifier = Modifier.height(navBarPadding + 80.dp))
     }
 
     // Individual Account Editing Modal Flow
