@@ -163,7 +163,7 @@ class DynamicIslandViewModel @Inject constructor(
                     note = "Quick Tap Spend",
                     payee = "Quick Add"
                 )
-                transactionRepository.insertTransaction(tx)
+                transactionRepository.saveTransaction(tx)
 
                 // 2. Deduct from selected account balance
                 val acc = state.selectedAccount
