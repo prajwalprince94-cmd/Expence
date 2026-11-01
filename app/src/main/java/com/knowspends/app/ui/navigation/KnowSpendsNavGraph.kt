@@ -73,8 +73,10 @@ fun KnowSpendsAppRoot(
     val islandUiState by dynamicIslandViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(initialRoute) {
-        if (initialRoute == "add_transaction") {
-            navController.navigate(Screen.AddTransaction.createRoute())
+        when (initialRoute) {
+            "add_transaction" -> navController.navigate(Screen.AddTransaction.createRoute())
+            "inbox" -> navController.navigate(Screen.ReviewInbox.route)
+            "transactions" -> navController.navigateSingleTop(Screen.Transactions.route)
         }
     }
 

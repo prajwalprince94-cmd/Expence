@@ -29,8 +29,17 @@ class PendingTransactionRepositoryImpl @Inject constructor(
         return pendingTransactionDao.getPendingCountFlow().flowOn(ioDispatcher)
     }
 
-    override suspend fun parseAndAddMessage(rawText: String): Boolean = withContext(ioDispatcher) {
-        val parsed = BankMessageParser.parse(rawText) ?: return@withContext false
+    override suspend fun parseAndAddMessage(
+        rawText: String,
+        sender: String?,
+        dateMillis: Long
+    ): Boolean = withContext(ioDispatcher) {
+        val parsed = BankMessageParser.parse(rawText, sender, dateMillis) ?: return@withContext false
+
+        // Deduplicate: avoid re-adding identical message already in review
+        if (pendingTransactionDao.countByRawMessage(parsed.rawMessage) > 0) {
+            return@withContext false
+        }
 
         val entity = PendingTransactionEntity(
             amountMinor = parsed.amountMinor,

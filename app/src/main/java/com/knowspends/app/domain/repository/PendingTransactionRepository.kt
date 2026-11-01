@@ -6,7 +6,11 @@ import kotlinx.coroutines.flow.Flow
 interface PendingTransactionRepository {
     fun getPendingTransactions(): Flow<List<PendingTransactionEntity>>
     fun getPendingCount(): Flow<Int>
-    suspend fun parseAndAddMessage(rawText: String): Boolean
+    suspend fun parseAndAddMessage(
+        rawText: String,
+        sender: String? = null,
+        dateMillis: Long = System.currentTimeMillis()
+    ): Boolean
     suspend fun approveTransaction(pendingId: Long, accountId: Long, categoryId: Long?): Long
     suspend fun dismissTransaction(pendingId: Long)
 }

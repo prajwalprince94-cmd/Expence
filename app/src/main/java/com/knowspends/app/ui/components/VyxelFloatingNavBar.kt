@@ -61,9 +61,18 @@ fun Modifier.bouncyClickable(
     enabled: Boolean = true,
     onClick: () -> Unit
 ): Modifier {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val focused by interaction.collectIsFocusedAsState()
+
+    androidx.compose.runtime.LaunchedEffect(pressed) {
+        if (pressed) {
+            com.knowspends.app.util.VyxelHaptics.tick(context, view)
+        }
+    }
+
     val scale by animateFloatAsState(
         targetValue = if (pressed) scaleDown else 1f,
         animationSpec = spring(
@@ -90,7 +99,10 @@ fun Modifier.bouncyClickable(
             indication = null,
             enabled = enabled,
             role = Role.Tab,
-            onClick = onClick
+            onClick = {
+                com.knowspends.app.util.VyxelHaptics.click(context, view)
+                onClick()
+            }
         )
 }
 

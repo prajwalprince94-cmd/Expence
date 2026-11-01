@@ -111,7 +111,7 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
+            .fadingEdges(topFade = 16.dp, bottomFade = 36.dp)
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {

@@ -103,7 +103,7 @@ class MainActivity : FragmentActivity() {
                             )
                         } else {
                             KnowSpendsAppRoot(
-                                initialRoute = intent?.getStringExtra("ROUTE"),
+                                initialRoute = intent?.getStringExtra("ROUTE") ?: intent?.getStringExtra("initial_route"),
                                 triggerDynamicIsland = triggerDynamicIsland,
                                 onDynamicIslandDismissed = { triggerDynamicIsland = false }
                             )

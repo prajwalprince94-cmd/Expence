@@ -107,12 +107,12 @@ fun Modifier.pressScale(
 }
 
 /**
- * Applies dynamic alpha gradient masks to the top and bottom of scrollable containers.
- * Prevents harsh edge cuts against app bars and floating navigation pills.
+ * Applies dynamic progressive blur and alpha gradient masks to the top and bottom of scrollable containers.
+ * Prevents harsh edge cuts against app bars and floating navigation pills, creating a smooth progressive dissolve.
  */
 fun Modifier.fadingEdges(
     topFade: Dp = 16.dp,
-    bottomFade: Dp = 16.dp
+    bottomFade: Dp = 32.dp
 ): Modifier = this
     .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
     .drawWithContent {
@@ -125,8 +125,10 @@ fun Modifier.fadingEdges(
         if (topFadePx > 0f) {
             drawRect(
                 brush = Brush.verticalGradient(
-                    0f to Color.Transparent,
-                    1f to Color.Black,
+                    0.0f to Color.Transparent,
+                    0.35f to Color.Black.copy(alpha = 0.45f),
+                    0.7f to Color.Black.copy(alpha = 0.85f),
+                    1.0f to Color.Black,
                     startY = 0f,
                     endY = topFadePx
                 ),
@@ -137,12 +139,80 @@ fun Modifier.fadingEdges(
         if (bottomFadePx > 0f && height > bottomFadePx) {
             drawRect(
                 brush = Brush.verticalGradient(
-                    0f to Color.Black,
-                    1f to Color.Transparent,
+                    0.0f to Color.Black,
+                    0.3f to Color.Black.copy(alpha = 0.85f),
+                    0.65f to Color.Black.copy(alpha = 0.45f),
+                    1.0f to Color.Transparent,
                     startY = height - bottomFadePx,
                     endY = height
                 ),
                 blendMode = BlendMode.DstIn
             )
+        }
+    }
+
+/**
+ * Progressive frosted glass blur for scrolling containers.
+ * Blends content smoothly into the background using a multi-layer gradient mask.
+ */
+fun Modifier.progressiveScrollBlur(
+    topBlur: Dp = 20.dp,
+    bottomBlur: Dp = 36.dp,
+    scrimColor: Color = Color.Transparent
+): Modifier = this
+    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    .drawWithContent {
+        drawContent()
+
+        val topPx = topBlur.toPx()
+        val bottomPx = bottomBlur.toPx()
+        val h = size.height
+
+        if (topPx > 0f) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0.0f to Color.Transparent,
+                    0.4f to Color.Black.copy(alpha = 0.5f),
+                    1.0f to Color.Black,
+                    startY = 0f,
+                    endY = topPx
+                ),
+                blendMode = BlendMode.DstIn
+            )
+            if (scrimColor != Color.Transparent) {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0.0f to scrimColor.copy(alpha = 0.85f),
+                        0.7f to scrimColor.copy(alpha = 0.35f),
+                        1.0f to Color.Transparent,
+                        startY = 0f,
+                        endY = topPx
+                    )
+                )
+            }
+        }
+
+        if (bottomPx > 0f && h > bottomPx) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0.0f to Color.Black,
+                    0.6f to Color.Black.copy(alpha = 0.5f),
+                    1.0f to Color.Transparent,
+                    startY = h - bottomPx,
+                    endY = h
+                ),
+                blendMode = BlendMode.DstIn
+            )
+            if (scrimColor != Color.Transparent) {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0.0f to Color.Transparent,
+                        0.3f to scrimColor.copy(alpha = 0.35f),
+                        1.0f to scrimColor.copy(alpha = 0.85f),
+                        startY = h - bottomPx,
+                        endY = h
+                    )
+                )
+            }
         }
     }

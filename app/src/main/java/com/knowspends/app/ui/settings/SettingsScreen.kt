@@ -183,25 +183,48 @@ fun SettingsScreen(
         }
     }
 
+    var hasSmsPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
     val smsPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val receiveGranted = permissions[Manifest.permission.RECEIVE_SMS] == true
         val readGranted = permissions[Manifest.permission.READ_SMS] == true
         if (receiveGranted || readGranted) {
+            hasSmsPermission = true
             viewModel.setSmsSettings(true, prefs.smsDirectAutoAdd)
+        } else {
+            hasSmsPermission = false
         }
     }
 
-    val hasSmsPermission = ContextCompat.checkSelfPermission(
-        context, Manifest.permission.RECEIVE_SMS
-    ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-        context, Manifest.permission.READ_SMS
-    ) == PackageManager.PERMISSION_GRANTED
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                hasSmsPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(bottom = 92.dp, start = 16.dp, end = 16.dp)
+            )
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -217,7 +240,7 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
+                .fadingEdges(topFade = 16.dp, bottomFade = 36.dp)
                 .padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -638,24 +661,58 @@ fun SettingsScreen(
                     VyxelToggleRow(
                         title = "Auto-Capture Incoming SMS",
                         subtitle = "Parse debit, credit, UPI, and wallet transactions in real-time from bank alerts",
-                        checked = prefs.smsAutoCaptureEnabled && hasSmsPermission,
+                        checked = prefs.smsAutoCaptureEnabled,
                         onCheckedChange = { isChecked ->
-                            if (isChecked) {
-                                if (hasSmsPermission) {
-                                    viewModel.setSmsSettings(true, prefs.smsDirectAutoAdd)
-                                } else {
-                                    smsPermissionLauncher.launch(
-                                        arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
-                                    )
-                                }
-                            } else {
-                                viewModel.setSmsSettings(false, prefs.smsDirectAutoAdd)
+                            com.knowspends.app.util.VyxelHaptics.tick(context)
+                            viewModel.setSmsSettings(isChecked, prefs.smsDirectAutoAdd)
+                            if (isChecked && !hasSmsPermission) {
+                                smsPermissionLauncher.launch(
+                                    arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+                                )
                             }
                         },
                         icon = Icons.Default.Sms
                     )
 
-                    if (prefs.smsAutoCaptureEnabled && hasSmsPermission) {
+                    if (!hasSmsPermission) {
+                        Spacer(Modifier.height(10.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = scheme.errorContainer.copy(alpha = 0.35f)
+                            ),
+                            shape = VyxelShapeTokens.Card
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "SMS Permission Needed",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.error
+                                )
+                                Text(
+                                    text = "Grant SMS permissions so KnowSpends can read incoming alerts and fetch past transactions.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                VyxelActionPill(
+                                    text = "Grant SMS Permission",
+                                    icon = Icons.Default.Security,
+                                    onClick = {
+                                        com.knowspends.app.util.VyxelHaptics.click(context)
+                                        smsPermissionLauncher.launch(
+                                            arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+                                        )
+                                    },
+                                    isPrimary = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    if (prefs.smsAutoCaptureEnabled) {
                         Spacer(Modifier.height(10.dp))
                         Text(
                             text = "Capture Mode:",
@@ -671,13 +728,19 @@ fun SettingsScreen(
                         ) {
                             FilterChip(
                                 selected = !prefs.smsDirectAutoAdd,
-                                onClick = { viewModel.setSmsSettings(true, false) },
+                                onClick = {
+                                    com.knowspends.app.util.VyxelHaptics.tick(context)
+                                    viewModel.setSmsSettings(true, false)
+                                },
                                 label = { Text("Smart Review Inbox") },
                                 shape = VyxelShapeTokens.Pill
                             )
                             FilterChip(
                                 selected = prefs.smsDirectAutoAdd,
-                                onClick = { viewModel.setSmsSettings(true, true) },
+                                onClick = {
+                                    com.knowspends.app.util.VyxelHaptics.tick(context)
+                                    viewModel.setSmsSettings(true, true)
+                                },
                                 label = { Text("Direct Auto-Add") },
                                 shape = VyxelShapeTokens.Pill
                             )
@@ -692,51 +755,48 @@ fun SettingsScreen(
                             color = scheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
                         )
+                    }
 
-                        Spacer(Modifier.height(10.dp))
-                        HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                        Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Scan Past SMS",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Import transactions from the past 30 days of SMS messages",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = scheme.onSurfaceVariant
-                                )
-                            }
-                            if (uiState.isScanningSms) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                            } else {
-                                VyxelActionPill(
-                                    text = "Scan 30 Days",
-                                    icon = Icons.Default.Sync,
-                                    onClick = { viewModel.scanPastSms(30) }
-                                )
-                            }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Sync & Scan Past SMS",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Import and parse bank and UPI transactions from the past 30 days of messages",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
                         }
-                    } else if (!hasSmsPermission) {
-                        Spacer(Modifier.height(8.dp))
-                        VyxelActionPill(
-                            text = "Grant SMS Permission",
-                            icon = Icons.Default.Security,
-                            onClick = {
-                                smsPermissionLauncher.launch(
-                                    arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
-                                )
-                            },
-                            isPrimary = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Spacer(Modifier.width(8.dp))
+                        if (uiState.isScanningSms) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        } else {
+                            VyxelActionPill(
+                                text = "Scan 30 Days",
+                                icon = Icons.Default.Sync,
+                                onClick = {
+                                    com.knowspends.app.util.VyxelHaptics.click(context)
+                                    if (hasSmsPermission) {
+                                        viewModel.scanPastSms(30)
+                                    } else {
+                                        smsPermissionLauncher.launch(
+                                            arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -788,9 +848,47 @@ fun SettingsScreen(
                         title = "Tactile Haptic Feedback",
                         subtitle = "Subtle vibration sensations when tapping buttons, keypad inputs, and transactions",
                         checked = prefs.hapticsEnabled,
-                        onCheckedChange = { viewModel.setHapticsEnabled(it) },
+                        onCheckedChange = { enabled ->
+                            viewModel.setHapticsEnabled(enabled)
+                            if (enabled) {
+                                com.knowspends.app.util.VyxelHaptics.success(context)
+                            }
+                        },
                         icon = Icons.Default.Vibration
                     )
+
+                    if (prefs.hapticsEnabled) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Test Haptic Feedback:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = false,
+                                onClick = { com.knowspends.app.util.VyxelHaptics.tick(context) },
+                                label = { Text("Light Tick") },
+                                shape = VyxelShapeTokens.Pill
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { com.knowspends.app.util.VyxelHaptics.click(context) },
+                                label = { Text("Click Tap") },
+                                shape = VyxelShapeTokens.Pill
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { com.knowspends.app.util.VyxelHaptics.heavy(context) },
+                                label = { Text("Firm Pulse") },
+                                shape = VyxelShapeTokens.Pill
+                            )
+                        }
+                    }
                 }
             }
 

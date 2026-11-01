@@ -111,4 +111,32 @@ class BankMessageParserTest {
         assertEquals(TransactionType.INCOME, axisParsed?.type)
         assertEquals("Salary", axisParsed?.suggestedCategoryName)
     }
+
+    @Test
+    fun `parse real-world sbi, icici, axis and vpa formats`() {
+        // SBI format with debited by ... transfer to
+        val sbi = "Dear SBI UPI User, A/C 1234 debited by 500.0 on 28Oct26 transfer to ZOMATO Ref No 123456. If not you, call 1800."
+        val sbiParsed = BankMessageParser.parse(sbi, sender = "VK-SBIUPI")
+        assertNotNull(sbiParsed)
+        assertEquals(50000L, sbiParsed?.amountMinor)
+        assertEquals(TransactionType.EXPENSE, sbiParsed?.type)
+        assertEquals("ZOMATO", sbiParsed?.merchantOrPayee)
+        assertEquals("State Bank of India", sbiParsed?.bankName)
+
+        // ICICI format with debited for
+        val icici = "Your A/C ending with 5678 has been debited for INR 1,250.00 on 28-Oct-26. Info: UPI-SWIGGY-swiggy@axis. Available Balance is INR 24,000.00."
+        val iciciParsed = BankMessageParser.parse(icici, sender = "BP-ICICIB")
+        assertNotNull(iciciParsed)
+        assertEquals(125000L, iciciParsed?.amountMinor)
+        assertEquals("SWIGGY", iciciParsed?.merchantOrPayee)
+        assertEquals("ICICI Bank", iciciParsed?.bankName)
+
+        // Axis format with debited with ... towards
+        val axis = "Your A/C no. XX1234 is debited with INR 899.00 on 29-10-26 towards AMAZON. UPI Ref 123456."
+        val axisParsed = BankMessageParser.parse(axis, sender = "AD-AXISBK")
+        assertNotNull(axisParsed)
+        assertEquals(89900L, axisParsed?.amountMinor)
+        assertEquals("AMAZON", axisParsed?.merchantOrPayee)
+        assertEquals("Axis Bank", axisParsed?.bankName)
+    }
 }

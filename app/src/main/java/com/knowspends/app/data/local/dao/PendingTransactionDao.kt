@@ -27,4 +27,7 @@ interface PendingTransactionDao {
 
     @Query("SELECT * FROM pending_transactions WHERE id = :id")
     suspend fun getById(id: Long): PendingTransactionEntity?
+
+    @Query("SELECT COUNT(*) FROM pending_transactions WHERE rawMessage = :rawMessage")
+    suspend fun countByRawMessage(rawMessage: String): Int
 }

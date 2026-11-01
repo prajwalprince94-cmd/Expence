@@ -114,7 +114,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     )
                 } else {
                     // Smart Review Inbox Mode (Default): Add to pending_transactions for 1-tap ledger approval
-                    entryPoint.pendingTransactionRepository().parseAndAddMessage(fullBody)
+                    entryPoint.pendingTransactionRepository().parseAndAddMessage(fullBody, sender, parsed.dateMillis)
                     val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
                     NotificationHelper.showSmsTransactionNotification(
                         context = context,

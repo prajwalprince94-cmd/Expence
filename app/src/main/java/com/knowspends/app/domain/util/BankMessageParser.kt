@@ -20,8 +20,8 @@ typealias ParsedBankMessage = ParsedFinancialMessage
 object BankMessageParser {
 
     private val OTP_PATTERNS = listOf(
-        Pattern.compile("(?i)\\b(otp|verification code|one time password|secret code|do not share)\\b"),
-        Pattern.compile("(?i)\\b(pre-approved|apply now|congratulations|click here to claim)\\b")
+        Pattern.compile("(?i)\\b(otp|verification code|one time password|secret code|security code|do not share|valid for|is your secret)\\b"),
+        Pattern.compile("(?i)\\b(pre-approved|apply now|congratulations|click here to claim|win up to)\\b")
     )
 
     fun isIgnoredMessage(text: String): Boolean {
@@ -33,7 +33,7 @@ object BankMessageParser {
         return false
     }
 
-    fun parse(rawText: String, sender: String? = null): ParsedFinancialMessage? {
+    fun parse(rawText: String, sender: String? = null, messageDate: Long = System.currentTimeMillis()): ParsedFinancialMessage? {
         val trimmed = rawText.trim()
         if (isIgnoredMessage(trimmed)) {
             return null
@@ -43,15 +43,15 @@ object BankMessageParser {
         val upiOrWalletApp = extractUpiOrWalletApp(trimmed, sender)
         val accountTail = extractAccountTail(trimmed)
 
-        // 1. Google Pay / PhonePe / Paytm / BHIM: "Paid ₹450 to Starbucks"
-        val upiExpenseRegex = Pattern.compile("(?i)(?:paid|sent|transfer(?:red)?)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s*(?:to|towards)\\s+([^.,\n]+)")
-        val upiExpenseMatcher = upiExpenseRegex.matcher(trimmed)
-        if (upiExpenseMatcher.find()) {
-            val amountStr = upiExpenseMatcher.group(1) ?: "0"
-            val payee = upiExpenseMatcher.group(2)?.trim() ?: "UPI Merchant"
+        // 1. Paid/Sent/Transfer Expense: "Paid Rs.450 to Starbucks" / "Sent Rs.350 from A/c to rahul@upi"
+        val paidRegex = Pattern.compile("(?i)(?:paid|sent|transfer(?:red)?)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)(?:.*?(?:to|towards)\\s+([^.,\n]+))?")
+        val paidMatcher = paidRegex.matcher(trimmed)
+        if (paidMatcher.find()) {
+            val amountStr = paidMatcher.group(1) ?: "0"
+            val rawPayee = paidMatcher.group(2)?.trim()
             val amountMinor = MoneyFormatter.parseToPaise(amountStr)
             if (amountMinor > 0) {
-                val cleanPayee = cleanMerchant(payee)
+                val cleanPayee = cleanMerchant(rawPayee ?: (bankName ?: "UPI Transfer"))
                 return ParsedFinancialMessage(
                     amountMinor = amountMinor,
                     type = TransactionType.EXPENSE,
@@ -60,20 +60,67 @@ object BankMessageParser {
                     upiOrWalletApp = upiOrWalletApp ?: "UPI",
                     accountTail = accountTail,
                     suggestedCategoryName = inferCategory(cleanPayee, trimmed, TransactionType.EXPENSE),
+                    dateMillis = messageDate,
                     rawMessage = trimmed
                 )
             }
         }
 
-        // 2. UPI Received / Income: "Received ₹2,000 from Rohit"
-        val upiIncomeRegex = Pattern.compile("(?i)(?:received|credited with)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s*(?:from)?\\s+([^.,\n]+)?")
-        val upiIncomeMatcher = upiIncomeRegex.matcher(trimmed)
-        if (upiIncomeMatcher.find()) {
-            val amountStr = upiIncomeMatcher.group(1) ?: "0"
-            val senderName = upiIncomeMatcher.group(2)?.trim() ?: "Payer"
+        // 2. Debited with verb BEFORE amount: "debited by 500.00" / "debited for INR 1,250" / "debited with Rs 899" / "spent INR 1,500"
+        val verbBeforeDebitRegex = Pattern.compile("(?i)(?:debited\\s*(?:by|for|with|towards)?|deducted\\s*(?:by|for)?|spent\\s*(?:an amount of)?|withdrawn\\s*(?:by|of)?)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)(?:.*?(?:to|at|towards|info:?|transfer to|vpa)\\s+([^.,\n]+))?")
+        val verbBeforeMatcher = verbBeforeDebitRegex.matcher(trimmed)
+        if (verbBeforeMatcher.find()) {
+            val amountStr = verbBeforeMatcher.group(1) ?: "0"
+            val rawPayee = verbBeforeMatcher.group(2)?.trim()
             val amountMinor = MoneyFormatter.parseToPaise(amountStr)
             if (amountMinor > 0) {
-                val cleanSender = cleanMerchant(senderName)
+                val cleanPayee = cleanMerchant(rawPayee ?: (bankName ?: "Bank Debit"))
+                return ParsedFinancialMessage(
+                    amountMinor = amountMinor,
+                    type = TransactionType.EXPENSE,
+                    merchantOrPayee = cleanPayee,
+                    bankName = bankName,
+                    upiOrWalletApp = upiOrWalletApp,
+                    accountTail = accountTail,
+                    suggestedCategoryName = inferCategory(cleanPayee, trimmed, TransactionType.EXPENSE),
+                    dateMillis = messageDate,
+                    rawMessage = trimmed
+                )
+            }
+        }
+
+        // 3. Debited with verb AFTER amount: "Rs.1,500.00 debited from HDFC A/c to Swiggy" / "INR 500 spent at Starbucks"
+        val verbAfterDebitRegex = Pattern.compile("(?i)(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:debited|spent|withdrawn|deducted)(?:.*?(?:to|at|towards|info:?|transfer to|vpa)\\s+([^.,\n]+))?")
+        val verbAfterMatcher = verbAfterDebitRegex.matcher(trimmed)
+        if (verbAfterMatcher.find()) {
+            val amountStr = verbAfterMatcher.group(1) ?: "0"
+            val rawPayee = verbAfterMatcher.group(2)?.trim()
+            val amountMinor = MoneyFormatter.parseToPaise(amountStr)
+            if (amountMinor > 0) {
+                val cleanPayee = cleanMerchant(rawPayee ?: (bankName ?: "Bank Debit"))
+                return ParsedFinancialMessage(
+                    amountMinor = amountMinor,
+                    type = TransactionType.EXPENSE,
+                    merchantOrPayee = cleanPayee,
+                    bankName = bankName,
+                    upiOrWalletApp = upiOrWalletApp,
+                    accountTail = accountTail,
+                    suggestedCategoryName = inferCategory(cleanPayee, trimmed, TransactionType.EXPENSE),
+                    dateMillis = messageDate,
+                    rawMessage = trimmed
+                )
+            }
+        }
+
+        // 4. Credited with verb BEFORE amount: "credited with Rs 2,000" / "received INR 5,000"
+        val verbBeforeCreditRegex = Pattern.compile("(?i)(?:credited\\s*(?:with|by|for|to)?|received)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)(?:.*?(?:by|from|info:?)\\s+([^.,\n]+))?")
+        val verbBeforeCreditMatcher = verbBeforeCreditRegex.matcher(trimmed)
+        if (verbBeforeCreditMatcher.find()) {
+            val amountStr = verbBeforeCreditMatcher.group(1) ?: "0"
+            val rawSender = verbBeforeCreditMatcher.group(2)?.trim()
+            val amountMinor = MoneyFormatter.parseToPaise(amountStr)
+            if (amountMinor > 0) {
+                val cleanSender = cleanMerchant(rawSender ?: (bankName ?: "Income"))
                 return ParsedFinancialMessage(
                     amountMinor = amountMinor,
                     type = TransactionType.INCOME,
@@ -82,74 +129,30 @@ object BankMessageParser {
                     upiOrWalletApp = upiOrWalletApp ?: "UPI",
                     accountTail = accountTail,
                     suggestedCategoryName = inferCategory(cleanSender, trimmed, TransactionType.INCOME),
+                    dateMillis = messageDate,
                     rawMessage = trimmed
                 )
             }
         }
 
-        // 3. Bank Debit (HDFC, SBI, ICICI, Axis, Kotak, etc.):
-        // e.g. "Rs.1,500.00 debited from HDFC Bank A/c ending with **1234 to SWIGGY on 28-OCT-26"
-        val bankDebitRegex = Pattern.compile("(?i)(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s+(?:debited|spent|withdrawn).*?(?:to|at|towards|info:?)\\s+([^.,\n]+)")
-        val bankDebitMatcher = bankDebitRegex.matcher(trimmed)
-        if (bankDebitMatcher.find()) {
-            val amountStr = bankDebitMatcher.group(1) ?: "0"
-            val merchant = bankDebitMatcher.group(2)?.trim() ?: "Merchant"
+        // 5. Credited with verb AFTER amount: "Rs 50,000 credited to account XX1234 by Salary"
+        val verbAfterCreditRegex = Pattern.compile("(?i)(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:credited|received)(?:.*?(?:by|from|info:?)\\s+([^.,\n]+))?")
+        val verbAfterCreditMatcher = verbAfterCreditRegex.matcher(trimmed)
+        if (verbAfterCreditMatcher.find()) {
+            val amountStr = verbAfterCreditMatcher.group(1) ?: "0"
+            val rawSender = verbAfterCreditMatcher.group(2)?.trim()
             val amountMinor = MoneyFormatter.parseToPaise(amountStr)
-
             if (amountMinor > 0) {
-                val cleanMerch = cleanMerchant(merchant)
-                return ParsedFinancialMessage(
-                    amountMinor = amountMinor,
-                    type = TransactionType.EXPENSE,
-                    merchantOrPayee = cleanMerch,
-                    bankName = bankName,
-                    upiOrWalletApp = upiOrWalletApp,
-                    accountTail = accountTail,
-                    suggestedCategoryName = inferCategory(cleanMerch, trimmed, TransactionType.EXPENSE),
-                    rawMessage = trimmed
-                )
-            }
-        }
-
-        // 4. Bank Credit / Salary (HDFC, SBI, ICICI):
-        // e.g. "INR 75,000.00 credited to Acct XX9876 on 30-OCT-26 by SALARY"
-        val bankCreditRegex = Pattern.compile("(?i)(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s+credited.*?(?:by|from|info:?)\\s+([^.,\n]+)")
-        val bankCreditMatcher = bankCreditRegex.matcher(trimmed)
-        if (bankCreditMatcher.find()) {
-            val amountStr = bankCreditMatcher.group(1) ?: "0"
-            val senderPayer = bankCreditMatcher.group(2)?.trim() ?: "Income Source"
-            val amountMinor = MoneyFormatter.parseToPaise(amountStr)
-
-            if (amountMinor > 0) {
-                val cleanPayer = cleanMerchant(senderPayer)
+                val cleanSender = cleanMerchant(rawSender ?: (bankName ?: "Income"))
                 return ParsedFinancialMessage(
                     amountMinor = amountMinor,
                     type = TransactionType.INCOME,
-                    merchantOrPayee = cleanPayer,
+                    merchantOrPayee = cleanSender,
                     bankName = bankName,
-                    upiOrWalletApp = upiOrWalletApp,
+                    upiOrWalletApp = upiOrWalletApp ?: "UPI",
                     accountTail = accountTail,
-                    suggestedCategoryName = inferCategory(cleanPayer, trimmed, TransactionType.INCOME),
-                    rawMessage = trimmed
-                )
-            }
-        }
-
-        // 5. Fallback debit pattern: "debited by ₹500" or "spent ₹120"
-        val genericDebitRegex = Pattern.compile("(?i)(?:debited\\s+by|spent)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)")
-        val genericDebitMatcher = genericDebitRegex.matcher(trimmed)
-        if (genericDebitMatcher.find()) {
-            val amountStr = genericDebitMatcher.group(1) ?: "0"
-            val amountMinor = MoneyFormatter.parseToPaise(amountStr)
-            if (amountMinor > 0) {
-                return ParsedFinancialMessage(
-                    amountMinor = amountMinor,
-                    type = TransactionType.EXPENSE,
-                    merchantOrPayee = bankName ?: "Bank Debit",
-                    bankName = bankName,
-                    upiOrWalletApp = upiOrWalletApp,
-                    accountTail = accountTail,
-                    suggestedCategoryName = inferCategory("Debit", trimmed, TransactionType.EXPENSE),
+                    suggestedCategoryName = inferCategory(cleanSender, trimmed, TransactionType.INCOME),
+                    dateMillis = messageDate,
                     rawMessage = trimmed
                 )
             }
@@ -160,22 +163,26 @@ object BankMessageParser {
 
     private fun extractBankName(text: String, sender: String?): String? {
         val combined = "$text ${sender ?: ""}"
+        val senderUpper = sender?.uppercase() ?: ""
         return when {
-            Pattern.compile("(?i)\\b(hdfc|hdfcbk)\\b").matcher(combined).find() -> "HDFC Bank"
-            Pattern.compile("(?i)\\b(sbi|sbin|state bank)\\b").matcher(combined).find() -> "State Bank of India"
-            Pattern.compile("(?i)\\b(icici|icicib)\\b").matcher(combined).find() -> "ICICI Bank"
-            Pattern.compile("(?i)\\b(axis|axisbk)\\b").matcher(combined).find() -> "Axis Bank"
-            Pattern.compile("(?i)\\b(kotak|kkbk)\\b").matcher(combined).find() -> "Kotak Mahindra Bank"
-            Pattern.compile("(?i)\\b(pnb|punb|punjab national)\\b").matcher(combined).find() -> "Punjab National Bank"
-            Pattern.compile("(?i)\\b(bob|barb|bank of baroda)\\b").matcher(combined).find() -> "Bank of Baroda"
-            Pattern.compile("(?i)\\b(canara|cnrb)\\b").matcher(combined).find() -> "Canara Bank"
-            Pattern.compile("(?i)\\b(union bank|ubi)\\b").matcher(combined).find() -> "Union Bank of India"
-            Pattern.compile("(?i)\\b(indusind|indb)\\b").matcher(combined).find() -> "IndusInd Bank"
-            Pattern.compile("(?i)\\b(federal|fdrl)\\b").matcher(combined).find() -> "Federal Bank"
-            Pattern.compile("(?i)\\b(idfc|idfb)\\b").matcher(combined).find() -> "IDFC First Bank"
-            Pattern.compile("(?i)\\b(yes bank|yesb)\\b").matcher(combined).find() -> "Yes Bank"
-            Pattern.compile("(?i)\\b(rbl|ratnakar)\\b").matcher(combined).find() -> "RBL Bank"
-            Pattern.compile("(?i)\\b(au small finance|aubank)\\b").matcher(combined).find() -> "AU Bank"
+            senderUpper.contains("HDFC") || Pattern.compile("(?i)\\b(hdfc|hdfcbk)\\b").matcher(combined).find() -> "HDFC Bank"
+            senderUpper.contains("SBI") || Pattern.compile("(?i)\\b(sbi|sbin|state bank)\\b").matcher(combined).find() -> "State Bank of India"
+            senderUpper.contains("ICICI") || Pattern.compile("(?i)\\b(icici|icicib)\\b").matcher(combined).find() -> "ICICI Bank"
+            senderUpper.contains("AXIS") || Pattern.compile("(?i)\\b(axis|axisbk)\\b").matcher(combined).find() -> "Axis Bank"
+            senderUpper.contains("KOTAK") || Pattern.compile("(?i)\\b(kotak|kkbk)\\b").matcher(combined).find() -> "Kotak Mahindra Bank"
+            senderUpper.contains("PNB") || Pattern.compile("(?i)\\b(pnb|punb|punjab national)\\b").matcher(combined).find() -> "Punjab National Bank"
+            senderUpper.contains("BOB") || Pattern.compile("(?i)\\b(bob|barb|bank of baroda)\\b").matcher(combined).find() -> "Bank of Baroda"
+            senderUpper.contains("CAN") || Pattern.compile("(?i)\\b(canara|cnrb)\\b").matcher(combined).find() -> "Canara Bank"
+            senderUpper.contains("UNION") || Pattern.compile("(?i)\\b(union bank|ubi)\\b").matcher(combined).find() -> "Union Bank of India"
+            senderUpper.contains("INDUS") || Pattern.compile("(?i)\\b(indusind|indb)\\b").matcher(combined).find() -> "IndusInd Bank"
+            senderUpper.contains("FDRL") || senderUpper.contains("FED") || Pattern.compile("(?i)\\b(federal|fdrl)\\b").matcher(combined).find() -> "Federal Bank"
+            senderUpper.contains("IDFC") || Pattern.compile("(?i)\\b(idfc|idfb)\\b").matcher(combined).find() -> "IDFC First Bank"
+            senderUpper.contains("YES") || Pattern.compile("(?i)\\b(yes bank|yesb)\\b").matcher(combined).find() -> "Yes Bank"
+            senderUpper.contains("RBL") || Pattern.compile("(?i)\\b(rbl|ratnakar)\\b").matcher(combined).find() -> "RBL Bank"
+            senderUpper.contains("AU") || Pattern.compile("(?i)\\b(au small finance|aubank)\\b").matcher(combined).find() -> "AU Bank"
+            senderUpper.contains("PAYTM") || Pattern.compile("(?i)\\b(paytm bank|paytmb)\\b").matcher(combined).find() -> "Paytm Payments Bank"
+            senderUpper.contains("JIO") || Pattern.compile("(?i)\\b(jio bank|jiobp)\\b").matcher(combined).find() -> "Jio Payments Bank"
+            senderUpper.contains("AIRTEL") || Pattern.compile("(?i)\\b(airtel bank|airtel payments)\\b").matcher(combined).find() -> "Airtel Payments Bank"
             else -> null
         }
     }
@@ -191,6 +198,7 @@ object BankMessageParser {
             Pattern.compile("(?i)\\b(bhim)\\b").matcher(combined).find() -> "BHIM"
             Pattern.compile("(?i)\\b(whatsapp)\\b").matcher(combined).find() -> "WhatsApp Pay"
             Pattern.compile("(?i)\\b(mobikwik)\\b").matcher(combined).find() -> "Mobikwik"
+            Pattern.compile("(?i)\\b(freecharge)\\b").matcher(combined).find() -> "Freecharge"
             else -> null
         }
     }
@@ -202,10 +210,36 @@ object BankMessageParser {
     }
 
     private fun cleanMerchant(raw: String): String {
-        return raw.replace(Regex("(?i)\\b(on|ref|upi|ref no|bal|avl|txn|is|via|using|vpa)\\b.*"), "")
-            .replace(Regex("[^A-Za-z0-9 &'-]"), "")
-            .trim()
-            .ifBlank { "Merchant" }
+        var str = raw.trim()
+
+        // 1. Strip leading prefixes like "VPA ", "UPI/ ", "to ", "at ", "towards "
+        str = str.replace(Regex("(?i)^(?:vpa|upi|upi[-/]|to|at|towards|info:?)\\s*"), "")
+
+        // 2. Strip trailing metadata starting with on/ref/rrn/bal/avl/txn/via/using
+        str = str.replace(Regex("(?i)\\b(on|ref|ref no|rrn|upi ref|bal|avl|avail|avl bal|txn|is|via|using)\\b.*"), "")
+
+        // 3. If it's a VPA handle like swiggy@icici or starbucks@okhdfcbank, extract the handle
+        if (str.contains("@")) {
+            val handle = str.substringBefore("@").trim()
+            if (handle.isNotBlank() && handle.length >= 3) {
+                str = handle
+            }
+        }
+
+        // 4. Strip technical merchant codes like "UPI/12345/SWIGGY" -> "SWIGGY"
+        if (str.contains("/")) {
+            val parts = str.split("/").map { it.trim() }.filter { it.isNotBlank() }
+            str = parts.lastOrNull { !it.all { c -> c.isDigit() } } ?: parts.last()
+        }
+
+        // 5. Clean special characters except letters, digits, space, &, -
+        str = str.replace(Regex("[^A-Za-z0-9 &'-]"), " ").trim()
+
+        // 6. Clean whitespace and preserve original case
+        val words = str.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        val cleaned = words.joinToString(" ")
+
+        return cleaned.ifBlank { "Merchant" }
     }
 
     fun inferCategory(merchant: String, rawMessage: String, type: TransactionType): String {
@@ -221,7 +255,7 @@ object BankMessageParser {
         val text = "$merchant $rawMessage".lowercase()
         return when {
             // Food & Dining
-            listOf("swiggy", "zomato", "starbucks", "mcdonald", "burger king", "kfc", "domino", "pizza", "subway", "haldiram", "cafe", "restaurant", "bakery", "chai", "bar", "dhabha", "dining", "biryani").any { text.contains(it) } -> "Food & Dining"
+            listOf("swiggy", "zomato", "starbucks", "mcdonald", "burger king", "kfc", "domino", "pizza", "subway", "haldiram", "cafe", "restaurant", "bakery", "chai", "bar", "dhabha", "dining", "biryani", "food").any { text.contains(it) } -> "Food & Dining"
 
             // Groceries
             listOf("blinkit", "zepto", "instamart", "bigbasket", "dmart", "spencer", "nature's basket", "more", "supermarket", "grocery", "kirana", "vegetable", "fruits", "milk", "dairy", "mother dairy", "country delight").any { text.contains(it) } -> "Groceries"
