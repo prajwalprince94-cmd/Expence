@@ -171,3 +171,8 @@ fun createAppTypography(fontFamily: FontFamily = PlusJakartaSans): Typography {
 }
 
 val Typography = createAppTypography()
+
+object VyxelTypographyTokens {
+    val TrackingUppercase = 0.8.sp
+    val TrackingTagline = 0.6.sp
+}

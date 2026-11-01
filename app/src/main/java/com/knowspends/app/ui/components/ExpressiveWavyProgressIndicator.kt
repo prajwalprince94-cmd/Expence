@@ -7,18 +7,22 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -46,10 +50,24 @@ fun ExpressiveWavyProgressIndicator(
 ) {
     val motionIntensity = LocalMotionIntensity.current
     val density = LocalDensity.current
+    val context = LocalContext.current
+
+    val animScale = remember(context) {
+        try {
+            Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1.0f
+            )
+        } catch (_: Exception) {
+            1.0f
+        }
+    }
+    val shouldAnimate = motionIntensity > 0f && animScale > 0f
 
     // Smoothly animate progress updates with snappy spring
     val targetProgress = progress.coerceIn(0f, 1.5f)
-    val animatedProgress by if (animateProgress && motionIntensity > 0f) {
+    val animatedProgress by if (animateProgress && shouldAnimate) {
         animateFloatAsState(
             targetValue = targetProgress,
             animationSpec = KnowSpendsMotion.snappy(),
@@ -76,8 +94,8 @@ fun ExpressiveWavyProgressIndicator(
     }
 
     // Continuous wave oscillation (freeze if motion sensitivity is requested)
-    val transition = rememberInfiniteTransition(label = "wavyPhaseTransition")
-    val phase by if (motionIntensity > 0f) {
+    val phase by if (shouldAnimate) {
+        val transition = rememberInfiniteTransition(label = "wavyPhaseTransition")
         val duration = if (animatedProgress >= 0.85f) 1200 else 2400
         transition.animateFloat(
             initialValue = 0f,
@@ -89,12 +107,7 @@ fun ExpressiveWavyProgressIndicator(
             label = "wavyPhase"
         )
     } else {
-        transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 0f,
-            animationSpec = infiniteRepeatable(tween(1000)),
-            label = "staticPhase"
-        )
+        remember { mutableStateOf(0f) }
     }
 
     val strokeWidthPx = with(density) { strokeWidth.toPx() }

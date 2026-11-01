@@ -218,3 +218,9 @@ fun VyxelFloatingNavBar(
         }
     }
 }
+
+/**
+ * Standard bottom clearance for scrollable screens so content remains visible
+ * above the floating navigation bar.
+ */
+val VyxelNavBarBottomClearance = 120.dp

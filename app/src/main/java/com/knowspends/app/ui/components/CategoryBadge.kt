@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Work
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -70,7 +71,8 @@ fun CategoryBadge(
         }
     } else {
         // Deterministic two-tone monogram fallback with algorithmic shape
-        val brush = remember(categoryName) { monogramBrush(categoryName) }
+        val isDark = isSystemInDarkTheme()
+        val brush = remember(categoryName, isDark) { monogramBrush(categoryName, isDark) }
         val initial = remember(categoryName) {
             categoryName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
         }
@@ -132,14 +134,18 @@ fun resolveCategoryIcon(iconKey: String?): ImageVector? {
 
 /**
  * Generates a deterministic two-tone gradient brush using the string's hashcode.
+ * Adapts lightness for dark mode / AMOLED pure-black backgrounds.
  */
-fun monogramBrush(name: String): Brush {
+fun monogramBrush(name: String, isDark: Boolean = false): Brush {
     val hash = abs(name.hashCode())
     val hue1 = (hash % 360).toFloat()
     val hue2 = ((hash + 45) % 360).toFloat()
 
-    val c1 = Color.hsl(hue1, 0.65f, 0.48f)
-    val c2 = Color.hsl(hue2, 0.75f, 0.38f)
+    val l1 = if (isDark) 0.38f else 0.48f
+    val l2 = if (isDark) 0.28f else 0.38f
+
+    val c1 = Color.hsl(hue1, 0.65f, l1)
+    val c2 = Color.hsl(hue2, 0.75f, l2)
 
     return Brush.linearGradient(listOf(c1, c2))
 }

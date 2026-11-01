@@ -78,6 +78,7 @@ import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.components.VyxelNavBarBottomClearance
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.KnowSpendsMotion
@@ -313,8 +314,8 @@ fun TransactionsScreen(
                     .fillMaxSize()
                     .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
                     .padding(innerPadding),
-                contentPadding = PaddingValues(top = 4.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                contentPadding = PaddingValues(top = 4.dp, bottom = VyxelNavBarBottomClearance),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 uiState.dayGroups.forEach { dayGroup ->
                     stickyHeader(key = dayGroup.dateLabel) {

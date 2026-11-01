@@ -44,9 +44,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.theme.LocalMotionIntensity
 import com.knowspends.app.ui.theme.VyxelShapeTokens
+import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import kotlinx.coroutines.delay
 
 @Composable
@@ -123,6 +126,7 @@ fun SplashScreen(
     Surface(
         modifier = modifier
             .fillMaxSize()
+            .semantics { contentDescription = "Skip splash screen, tap anywhere to continue" }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -187,14 +191,14 @@ fun SplashScreen(
                     color = scheme.onSurface
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Expressive Subtitle / Tagline
                 Text(
                     text = "Zero-Network Private Personal Ledger",
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = VyxelTypographyTokens.TrackingTagline
                     ),
                     color = scheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -204,7 +208,7 @@ fun SplashScreen(
 
                 // Minimal Ambient Activity Dots
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(

@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.theme.VyxelShapeTokens
+import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.auroraGlow
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
@@ -161,7 +162,7 @@ fun HomeScreen(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 0.8.sp
+                    letterSpacing = VyxelTypographyTokens.TrackingUppercase
                 )
 
                 // Main Metric: Formatted Net Savings
