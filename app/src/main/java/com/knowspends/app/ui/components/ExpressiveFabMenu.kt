@@ -29,6 +29,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -205,14 +207,14 @@ private fun FabMenuItem(
             }
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         // Algorithmic Shape Mini FAB Icon
         SmallFloatingActionButton(
             onClick = onClick,
             shape = shape,
             containerColor = containerColor,
-            contentColor = Color.White,
+            contentColor = contentColorFor(containerColor).takeOrElse { Color.White },
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
             modifier = Modifier.size(44.dp)
         ) {

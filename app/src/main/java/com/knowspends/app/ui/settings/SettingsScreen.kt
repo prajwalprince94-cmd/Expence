@@ -824,15 +824,16 @@ fun SettingsScreen(
                                 FilterChip(
                                     selected = uiState.securityConfig.lockTimeoutMinutes == min,
                                     onClick = { viewModel.setLockTimeout(min) },
-                                    label = { Text(label) }
+                                    label = { Text(label) },
+                                    shape = VyxelShapeTokens.Pill
                                 )
                             }
                         }
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
 
                     VyxelToggleRow(
                         title = "Hide in Recent Apps",
@@ -1063,7 +1064,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         gradientThemes.forEach { (key, label) ->
                             FilterChip(
@@ -1104,7 +1105,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         currencyPresets.forEach { symbol ->
                             FilterChip(
@@ -1135,7 +1136,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         goalPresets.forEach { preset ->
                             FilterChip(

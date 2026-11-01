@@ -17,7 +17,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +63,7 @@ fun Modifier.bouncyClickable(
 ): Modifier {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val focused by interaction.collectIsFocusedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) scaleDown else 1f,
         animationSpec = spring(
@@ -67,15 +72,26 @@ fun Modifier.bouncyClickable(
         ),
         label = "bouncyPress"
     )
+    val focusRingColor = MaterialTheme.colorScheme.primary
     return graphicsLayer {
         scaleX = scale
         scaleY = scale
-    }.clickable(
-        interactionSource = interaction,
-        indication = null,
-        enabled = enabled,
-        onClick = onClick
-    )
+    }
+        .drawBehind {
+            if (focused) {
+                drawCircle(
+                    color = focusRingColor,
+                    style = Stroke(width = 2.dp.toPx())
+                )
+            }
+        }
+        .clickable(
+            interactionSource = interaction,
+            indication = null,
+            enabled = enabled,
+            role = Role.Tab,
+            onClick = onClick
+        )
 }
 
 /**

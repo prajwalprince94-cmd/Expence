@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -28,21 +29,27 @@ import kotlin.math.sin
  */
 @Composable
 fun Modifier.auroraGlow(
-    color1: Color = Color(0xFF10B981), // Emerald
-    color2: Color = Color(0xFF6366F1), // Indigo
-    color3: Color = Color(0xFF8B5CF6), // Purple
+    color1: Color = MaterialTheme.colorScheme.primary,
+    color2: Color = MaterialTheme.colorScheme.secondary,
+    color3: Color = MaterialTheme.colorScheme.tertiary,
     alpha: Float = 0.22f
 ): Modifier {
-    val transition = rememberInfiniteTransition(label = "auroraGlow")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(12000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "auroraPhase"
-    )
+    val motionIntensity = LocalMotionIntensity.current
+    val phase = if (motionIntensity <= 0f) {
+        0f
+    } else {
+        val transition = rememberInfiniteTransition(label = "auroraGlow")
+        val animatedPhase by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = (2 * Math.PI).toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(12000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "auroraPhase"
+        )
+        animatedPhase
+    }
 
     return this.drawBehind {
         val w = size.width

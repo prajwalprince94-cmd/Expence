@@ -30,6 +30,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.knowspends.app.ui.theme.ExpressiveShapes
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,17 +75,20 @@ fun CategoryBadge(
             categoryName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
         }
 
+        val textSizeSp = with(LocalDensity.current) { (size * 0.45f).toSp() }
+
         Box(
             modifier = modifier
                 .size(size)
                 .clip(shape)
-                .background(brush),
+                .background(brush)
+                .semantics { contentDescription = categoryName },
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = initial,
                 color = Color.White,
-                fontSize = (size.value * 0.45f).sp,
+                fontSize = textSizeSp,
                 fontWeight = FontWeight.Bold
             )
         }

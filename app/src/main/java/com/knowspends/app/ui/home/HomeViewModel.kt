@@ -46,6 +46,8 @@ data class HomeUiState(
     val dailyExpenses7Days: List<DayExpenseItem> = emptyList(),
     val categoryExpenses: List<CategoryExpenseShare> = emptyList(),
     val selectedAnalyticsTab: Int = 0,
+    val selectedAccountForAction: Account? = null,
+    val activeEditField: AccountEditField? = null,
     val isLoading: Boolean = false
 ) {
     val formattedTotalNetWorth: String
@@ -116,13 +118,23 @@ class HomeViewModel @Inject constructor(
     }
 
     private val _selectedAnalyticsTab = MutableStateFlow(0)
+    private val _selectedAccountForAction = MutableStateFlow<Account?>(null)
+    private val _activeEditField = MutableStateFlow<AccountEditField?>(null)
+
+    private val _uiControlsFlow = combine(
+        _selectedAnalyticsTab,
+        _selectedAccountForAction,
+        _activeEditField
+    ) { tab, account, field ->
+        Triple(tab, account, field)
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         transactionRepository.getMonthlySummary(monthStartMillis, monthEndMillis),
         accountRepository.getActiveAccountsWithBalances(),
         transactionRepository.getAllTransactionsWithDetails(),
-        _selectedAnalyticsTab
-    ) { summary, accounts, transactions, selectedTab ->
+        _uiControlsFlow
+    ) { summary, accounts, transactions, (selectedTab, actionAccount, editField) ->
         val netWorth = accounts.sumOf { it.currentBalanceMinor }
         val recents = transactions.take(6)
 
@@ -188,6 +200,8 @@ class HomeViewModel @Inject constructor(
             dailyExpenses7Days = dailyItems,
             categoryExpenses = categoryShares,
             selectedAnalyticsTab = selectedTab,
+            selectedAccountForAction = actionAccount,
+            activeEditField = editField,
             isLoading = false
         )
     }.stateIn(
@@ -198,6 +212,20 @@ class HomeViewModel @Inject constructor(
 
     fun onAnalyticsTabSelected(tab: Int) {
         _selectedAnalyticsTab.value = tab
+    }
+
+    fun onSelectAccountForAction(account: Account?, field: AccountEditField? = AccountEditField.OPTIONS) {
+        _selectedAccountForAction.value = account
+        _activeEditField.value = field
+    }
+
+    fun onDismissAccountAction() {
+        _selectedAccountForAction.value = null
+        _activeEditField.value = null
+    }
+
+    fun onSelectAccountEditField(field: AccountEditField) {
+        _activeEditField.value = field
     }
 
     fun updateAccount(account: Account) {

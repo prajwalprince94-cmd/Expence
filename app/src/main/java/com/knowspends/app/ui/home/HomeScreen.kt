@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -105,8 +106,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedAccountForAction by remember { mutableStateOf<Account?>(null) }
-    var activeEditField by remember { mutableStateOf<AccountEditField?>(null) }
 
     Column(
         modifier = modifier
@@ -394,8 +393,7 @@ fun HomeScreen(
                 AccountCard(
                     account = account,
                     onClick = {
-                        selectedAccountForAction = account
-                        activeEditField = AccountEditField.OPTIONS
+                        viewModel.onSelectAccountForAction(account)
                     }
                 )
             }
@@ -462,16 +460,13 @@ fun HomeScreen(
     }
 
     // Individual Account Editing Modal Flow
-    selectedAccountForAction?.let { account ->
-        when (activeEditField) {
+    uiState.selectedAccountForAction?.let { account ->
+        when (uiState.activeEditField) {
             AccountEditField.OPTIONS -> {
                 AccountActionOptionsDialog(
                     account = account,
-                    onSelectField = { field -> activeEditField = field },
-                    onDismiss = {
-                        selectedAccountForAction = null
-                        activeEditField = null
-                    }
+                    onSelectField = { field -> viewModel.onSelectAccountEditField(field) },
+                    onDismiss = { viewModel.onDismissAccountAction() }
                 )
             }
             AccountEditField.BALANCE -> {
@@ -479,14 +474,10 @@ fun HomeScreen(
                     account = account,
                     onSave = { newBalancePaise ->
                         viewModel.updateAccountBalance(account.id, newBalancePaise)
-                        selectedAccountForAction = null
-                        activeEditField = null
+                        viewModel.onDismissAccountAction()
                     },
-                    onBack = { activeEditField = AccountEditField.OPTIONS },
-                    onDismiss = {
-                        selectedAccountForAction = null
-                        activeEditField = null
-                    }
+                    onBack = { viewModel.onSelectAccountEditField(AccountEditField.OPTIONS) },
+                    onDismiss = { viewModel.onDismissAccountAction() }
                 )
             }
             AccountEditField.NAME -> {
@@ -494,14 +485,10 @@ fun HomeScreen(
                     account = account,
                     onSave = { newName ->
                         viewModel.updateAccountName(account.id, newName)
-                        selectedAccountForAction = null
-                        activeEditField = null
+                        viewModel.onDismissAccountAction()
                     },
-                    onBack = { activeEditField = AccountEditField.OPTIONS },
-                    onDismiss = {
-                        selectedAccountForAction = null
-                        activeEditField = null
-                    }
+                    onBack = { viewModel.onSelectAccountEditField(AccountEditField.OPTIONS) },
+                    onDismiss = { viewModel.onDismissAccountAction() }
                 )
             }
             AccountEditField.TYPE -> {
@@ -509,14 +496,10 @@ fun HomeScreen(
                     account = account,
                     onSave = { newType ->
                         viewModel.updateAccountType(account.id, newType)
-                        selectedAccountForAction = null
-                        activeEditField = null
+                        viewModel.onDismissAccountAction()
                     },
-                    onBack = { activeEditField = AccountEditField.OPTIONS },
-                    onDismiss = {
-                        selectedAccountForAction = null
-                        activeEditField = null
-                    }
+                    onBack = { viewModel.onSelectAccountEditField(AccountEditField.OPTIONS) },
+                    onDismiss = { viewModel.onDismissAccountAction() }
                 )
             }
             null -> {}
@@ -542,7 +525,7 @@ fun AccountCard(
             .width(160.dp)
             .pressScale(0.97f)
             .padding(vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -552,7 +535,7 @@ fun AccountCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -621,14 +604,14 @@ fun AccountActionOptionsDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Option 1: Balance
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .pressScale(0.98f)
-                        .clickable { onSelectField(AccountEditField.BALANCE) },
+                        .clickable(role = Role.Button) { onSelectField(AccountEditField.BALANCE) },
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
                     border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
@@ -636,7 +619,7 @@ fun AccountActionOptionsDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -675,7 +658,7 @@ fun AccountActionOptionsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .pressScale(0.98f)
-                        .clickable { onSelectField(AccountEditField.NAME) },
+                        .clickable(role = Role.Button) { onSelectField(AccountEditField.NAME) },
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
                     border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
@@ -683,7 +666,7 @@ fun AccountActionOptionsDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -722,7 +705,7 @@ fun AccountActionOptionsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .pressScale(0.98f)
-                        .clickable { onSelectField(AccountEditField.TYPE) },
+                        .clickable(role = Role.Button) { onSelectField(AccountEditField.TYPE) },
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLowest),
                     border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
@@ -730,7 +713,7 @@ fun AccountActionOptionsDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -1175,7 +1158,7 @@ fun SevenDaySpendingChart(
                             )
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = item.dayLabel,
@@ -1271,7 +1254,7 @@ fun CategoryBreakdownDonutChart(
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             shares.forEachIndexed { index, share ->
                 val arcColor = share.colorHex?.let { Color(it) } ?: defaultPalette[index % defaultPalette.size]
@@ -1282,7 +1265,7 @@ fun CategoryBreakdownDonutChart(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Box(
                             modifier = Modifier

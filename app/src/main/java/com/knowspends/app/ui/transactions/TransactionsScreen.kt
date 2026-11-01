@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -588,7 +590,7 @@ fun VyxelSmartSearchBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .defaultMinSize(minHeight = 40.dp)
             .clip(pillShape)
             .background(scheme.surfaceContainerLowest)
             .border(1.dp, scheme.outlineVariant.copy(alpha = 0.7f), pillShape)
@@ -651,17 +653,20 @@ fun VyxelSmartSearchBar(
 
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(24.dp)
                     .clip(CircleShape)
                     .background(scheme.surfaceContainerHighest)
-                    .clickable { onQueryChange("") },
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = "Clear search query"
+                    ) { onQueryChange("") },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Clear,
-                    contentDescription = "Clear",
+                    contentDescription = null,
                     tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(13.dp)
+                    modifier = Modifier.size(14.dp)
                 )
             }
         }
@@ -706,7 +711,7 @@ private fun TransactionTypeSegmentedRow(
                 Color.Transparent
             }
             val targetFg = if (isSelected) {
-                Color.White
+                if (opt.accentColor != null) Color.White else scheme.onPrimary
             } else {
                 scheme.onSurfaceVariant
             }
@@ -720,7 +725,7 @@ private fun TransactionTypeSegmentedRow(
                     .pressScale(0.96f)
                     .clip(VyxelShapeTokens.Pill)
                     .background(bgAnim)
-                    .clickable { onTypeSelected(opt.type) }
+                    .clickable(role = Role.Tab) { onTypeSelected(opt.type) }
                     .padding(vertical = 6.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
