@@ -128,6 +128,12 @@ fun DynamicIslandQuickSpend(
         spring(dampingRatio = 1.0f, stiffness = 1000f)
     }
 
+    val morphIntSizeSpring = if (motionIntensity > 0f) {
+        spring<androidx.compose.ui.unit.IntSize>(dampingRatio = 0.72f, stiffness = 380f)
+    } else {
+        spring(dampingRatio = 1.0f, stiffness = 1000f)
+    }
+
     val islandWidth by animateDpAsState(
         targetValue = if (isExpanded) 364.dp else 156.dp,
         animationSpec = morphDpSpring,
@@ -176,7 +182,7 @@ fun DynamicIslandQuickSpend(
                     }
                 }
                 .clip(RoundedCornerShape(islandCorner))
-                .animateContentSize(animationSpec = morphDpSpring),
+                .animateContentSize(animationSpec = morphIntSizeSpring),
             color = Color(0xFF0F111A), // AMOLED deep glass surface
             border = BorderStroke(
                 width = if (isExpanded) 1.5.dp else 1.dp,
@@ -400,7 +406,7 @@ fun DynamicIslandQuickSpend(
                                     CategoryBadge(
                                         categoryName = cat.name,
                                         iconKey = cat.iconKey,
-                                        colorHex = cat.colorHex,
+                                        color = Color(cat.colour),
                                         size = 20.dp
                                     )
                                     Text(
@@ -442,7 +448,7 @@ fun DynamicIslandQuickSpend(
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 if (key == '⌫') onBackspace() else onDigit(key)
                                             },
-                                        shape = VyxelShapeTokens.Button,
+                                        shape = VyxelShapeTokens.Chip,
                                         color = scheme.surfaceContainerLowest
                                     ) {
                                         Box(

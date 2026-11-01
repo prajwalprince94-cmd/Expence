@@ -6,6 +6,7 @@ import com.knowspends.app.domain.model.Account
 import com.knowspends.app.domain.model.Category
 import com.knowspends.app.domain.model.Transaction
 import com.knowspends.app.domain.model.TransactionType
+import com.knowspends.app.domain.model.UserPreferences
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.CategoryRepository
 import com.knowspends.app.domain.repository.TransactionRepository
@@ -45,10 +46,10 @@ class DynamicIslandViewModel @Inject constructor(
 
     val uiState: StateFlow<DynamicIslandUiState> = combine(
         accountRepository.getActiveAccountsWithBalances(),
-        categoryRepository.getAllCategories(),
+        categoryRepository.getActiveCategories(),
         userPreferencesRepository.userPreferencesFlow,
         _internal
-    ) { accounts, categories, prefs, state ->
+    ) { accounts: List<Account>, categories: List<Category>, prefs: UserPreferences, state: IslandInternalState ->
         val effectiveAccountId = state.selectedAccountId ?: accounts.firstOrNull()?.id
         val effectiveCategoryId = state.selectedCategoryId ?: categories.firstOrNull()?.id
 
