@@ -41,18 +41,30 @@ class ReviewInboxViewModel @Inject constructor(
     private val _isScanningSms = MutableStateFlow(false)
     private val _statusMessage = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<ReviewInboxUiState> = combine(
+    private data class DomainData(
+        val pending: List<PendingTransactionEntity>,
+        val accounts: List<Account>,
+        val categories: List<Category>
+    )
+
+    private val _domainDataFlow = combine(
         pendingRepository.getPendingTransactions(),
         accountRepository.getActiveAccounts(),
-        categoryRepository.getActiveCategories(),
+        categoryRepository.getActiveCategories()
+    ) { pending, accounts, categories ->
+        DomainData(pending, accounts, categories)
+    }
+
+    val uiState: StateFlow<ReviewInboxUiState> = combine(
+        _domainDataFlow,
         _manualInputText,
         _isScanningSms,
         _statusMessage
-    ) { pending, accounts, categories, input, isScanning, msg ->
+    ) { domain, input, isScanning, msg ->
         ReviewInboxUiState(
-            pendingTransactions = pending,
-            accounts = accounts,
-            categories = categories,
+            pendingTransactions = domain.pending,
+            accounts = domain.accounts,
+            categories = domain.categories,
             manualInputText = input,
             isScanningSms = isScanning,
             statusMessage = msg
