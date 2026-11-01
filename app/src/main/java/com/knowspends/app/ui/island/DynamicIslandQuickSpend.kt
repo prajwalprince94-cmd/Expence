@@ -121,8 +121,8 @@ fun DynamicIslandQuickSpend(
 
     // Amount bounce animation when digit is pressed
     val amountScale = remember { Animatable(1f) }
-    LaunchedEffect(uiState.rawAmountPaise) {
-        if (isExpanded && uiState.rawAmountPaise > 0L) {
+    LaunchedEffect(uiState.amountInput) {
+        if (isExpanded && uiState.amountMinor > 0L) {
             amountScale.animateTo(
                 targetValue = 1.08f,
                 animationSpec = tween(durationMillis = 60)
@@ -175,7 +175,7 @@ fun DynamicIslandQuickSpend(
                         ) +
                         slideInVertically(
                             initialOffsetY = { -it / 2 },
-                            animationSpec = spring<Int>(dampingRatio = 0.65f, stiffness = 320f)
+                            animationSpec = spring(dampingRatio = 0.65f, stiffness = 320f)
                         ),
                 exit = fadeOut(animationSpec = tween(120)) +
                         scaleOut(
@@ -185,7 +185,7 @@ fun DynamicIslandQuickSpend(
                         ) +
                         slideOutVertically(
                             targetOffsetY = { -it / 2 },
-                            animationSpec = spring<Int>(dampingRatio = 0.85f, stiffness = 400f)
+                            animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f)
                         )
             ) {
                 val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
