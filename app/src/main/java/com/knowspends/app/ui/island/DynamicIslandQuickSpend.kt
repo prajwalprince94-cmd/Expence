@@ -190,13 +190,13 @@ fun DynamicIslandQuickSpend(
                         ) +
                         slideInVertically(
                             initialOffsetY = { -it },
-                            animationSpec = fluidSpring
+                            animationSpec = if (motionIntensity > 0f) spring(dampingRatio = 0.58f, stiffness = 280f) else spring(dampingRatio = 1.0f, stiffness = 1000f)
                         ),
                 exit = fadeOut(animationSpec = tween(120)) +
                         scaleOut(
                             targetScale = 0.35f,
                             transformOrigin = TransformOrigin(0.5f, 0f),
-                            animationSpec = spring<Float>(dampingRatio = 0.85f, stiffness = 420f)
+                            animationSpec = spring(dampingRatio = 0.85f, stiffness = 420f)
                         ) +
                         slideOutVertically(
                             targetOffsetY = { -it },
