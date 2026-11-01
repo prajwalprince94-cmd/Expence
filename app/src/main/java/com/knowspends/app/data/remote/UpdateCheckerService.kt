@@ -47,13 +47,18 @@ class UpdateCheckerService @Inject constructor(
 
             val responseCode = connection.responseCode
             if (responseCode != HttpURLConnection.HTTP_OK) {
+                val errorMsg = if (responseCode == 403) {
+                    "GitHub API rate limit reached. You can still download the update from GitHub Releases."
+                } else {
+                    "Server returned code $responseCode"
+                }
                 return@withContext UpdateCheckResult(
                     hasUpdate = false,
                     latestVersion = "",
-                    downloadUrl = "",
+                    downloadUrl = "https://github.com/prajwalprince94-cmd/Expence/releases",
                     releaseNotes = "",
                     isSuccess = false,
-                    errorMessage = "Server returned code $responseCode"
+                    errorMessage = errorMsg
                 )
             }
 

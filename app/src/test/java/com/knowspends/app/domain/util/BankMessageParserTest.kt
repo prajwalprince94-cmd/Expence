@@ -78,4 +78,37 @@ class BankMessageParserTest {
 
         assertNull(BankMessageParser.parse(spam))
     }
+
+    @Test
+    fun `detect bank names, upi apps and infer categories accurately`() {
+        // HDFC + Swiggy (Food & Dining)
+        val hdfcMsg = "Dear UPI user, Rs. 340.00 debited from HDFC Bank A/c **4321 to Swiggy via PhonePe on 01-Nov-26"
+        val hdfcParsed = BankMessageParser.parse(hdfcMsg, sender = "VM-HDFCBK")
+        assertNotNull(hdfcParsed)
+        assertEquals("HDFC Bank", hdfcParsed?.bankName)
+        assertEquals("PhonePe", hdfcParsed?.upiOrWalletApp)
+        assertEquals("Food & Dining", hdfcParsed?.suggestedCategoryName)
+
+        // SBI + Uber (Transportation)
+        val sbiMsg = "Rs 450.00 debited from SBI a/c no. XX8899 on 01Nov26 at Uber India via Google Pay."
+        val sbiParsed = BankMessageParser.parse(sbiMsg, sender = "AD-SBIINB")
+        assertNotNull(sbiParsed)
+        assertEquals("State Bank of India", sbiParsed?.bankName)
+        assertEquals("Google Pay", sbiParsed?.upiOrWalletApp)
+        assertEquals("Transportation", sbiParsed?.suggestedCategoryName)
+
+        // ICICI + Blinkit (Groceries)
+        val iciciMsg = "Acct XX5511 debited by INR 620.00 on 01-Nov-26 for transaction at Blinkit Groceries"
+        val iciciParsed = BankMessageParser.parse(iciciMsg)
+        assertNotNull(iciciParsed)
+        assertEquals("Groceries", iciciParsed?.suggestedCategoryName)
+
+        // Axis Bank + Net Banking Salary (Salary)
+        val axisMsg = "Axis Bank: INR 95,000 credited to a/c XX1234 on 01-Nov-26 by Salary Oct 2026"
+        val axisParsed = BankMessageParser.parse(axisMsg)
+        assertNotNull(axisParsed)
+        assertEquals("Axis Bank", axisParsed?.bankName)
+        assertEquals(TransactionType.INCOME, axisParsed?.type)
+        assertEquals("Salary", axisParsed?.suggestedCategoryName)
+    }
 }

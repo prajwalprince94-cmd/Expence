@@ -30,5 +30,13 @@ data class UserPreferences(
 
     // Tap to Add (Dynamic Island & Back Tap)
     val backTapEnabled: Boolean = true,
-    val backTapSensitivity: String = "normal" // "high", "normal", "low"
+    val backTapSensitivity: String = "normal", // "high", "normal", "low"
+
+    // Smart SMS Auto-Tracking
+    val smsAutoCaptureEnabled: Boolean = true,
+    val smsDirectAutoAdd: Boolean = false, // false = Review Inbox first, true = Direct to Ledger
+    val smsLastScanTimestamp: Long = 0L,
+
+    // Feedback & Haptics
+    val hapticsEnabled: Boolean = true
 )

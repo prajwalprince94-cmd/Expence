@@ -27,4 +27,8 @@ interface UserPreferencesRepository {
         notes: String
     )
     suspend fun setBackTapSettings(enabled: Boolean, sensitivity: String)
+    suspend fun setSmsSettings(enabled: Boolean, directAutoAdd: Boolean)
+    suspend fun setSmsLastScanTimestamp(timestamp: Long)
+    suspend fun setHapticsEnabled(enabled: Boolean)
+    suspend fun setCurrency(currency: String)
 }

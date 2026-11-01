@@ -54,6 +54,12 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
         val BACK_TAP_ENABLED = booleanPreferencesKey("back_tap_enabled")
         val BACK_TAP_SENSITIVITY = stringPreferencesKey("back_tap_sensitivity")
+
+        val SMS_AUTO_CAPTURE_ENABLED = booleanPreferencesKey("sms_auto_capture_enabled")
+        val SMS_DIRECT_AUTO_ADD = booleanPreferencesKey("sms_direct_auto_add")
+        val SMS_LAST_SCAN_TIMESTAMP = longPreferencesKey("sms_last_scan_timestamp")
+
+        val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
     }
 
     override val userPreferencesFlow: Flow<UserPreferences> = context.userPreferencesDataStore.data.map { prefs ->
@@ -82,7 +88,13 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             latestReleaseNotes = prefs[Keys.LATEST_RELEASE_NOTES] ?: "",
 
             backTapEnabled = prefs[Keys.BACK_TAP_ENABLED] ?: true,
-            backTapSensitivity = prefs[Keys.BACK_TAP_SENSITIVITY] ?: "normal"
+            backTapSensitivity = prefs[Keys.BACK_TAP_SENSITIVITY] ?: "normal",
+
+            smsAutoCaptureEnabled = prefs[Keys.SMS_AUTO_CAPTURE_ENABLED] ?: true,
+            smsDirectAutoAdd = prefs[Keys.SMS_DIRECT_AUTO_ADD] ?: false,
+            smsLastScanTimestamp = prefs[Keys.SMS_LAST_SCAN_TIMESTAMP] ?: 0L,
+
+            hapticsEnabled = prefs[Keys.HAPTICS_ENABLED] ?: true
         )
     }.flowOn(ioDispatcher)
 
@@ -170,6 +182,35 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         context.userPreferencesDataStore.edit { prefs ->
             prefs[Keys.BACK_TAP_ENABLED] = enabled
             prefs[Keys.BACK_TAP_SENSITIVITY] = sensitivity
+        }
+        Unit
+    }
+
+    override suspend fun setSmsSettings(enabled: Boolean, directAutoAdd: Boolean) = withContext(ioDispatcher) {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[Keys.SMS_AUTO_CAPTURE_ENABLED] = enabled
+            prefs[Keys.SMS_DIRECT_AUTO_ADD] = directAutoAdd
+        }
+        Unit
+    }
+
+    override suspend fun setSmsLastScanTimestamp(timestamp: Long) = withContext(ioDispatcher) {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[Keys.SMS_LAST_SCAN_TIMESTAMP] = timestamp
+        }
+        Unit
+    }
+
+    override suspend fun setHapticsEnabled(enabled: Boolean) = withContext(ioDispatcher) {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[Keys.HAPTICS_ENABLED] = enabled
+        }
+        Unit
+    }
+
+    override suspend fun setCurrency(currency: String) = withContext(ioDispatcher) {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[Keys.CURRENCY_SYMBOL] = currency
         }
         Unit
     }

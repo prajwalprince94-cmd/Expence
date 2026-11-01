@@ -52,8 +52,11 @@ data class SettingsUiState(
     val showRestoreConfirmDialog: Boolean = false,
     val pendingRestoreUri: Uri? = null,
     val showProfileEditDialog: Boolean = false,
+    val showCurrencyDialog: Boolean = false,
+    val showResetConfirmDialog: Boolean = false,
     val showUpdateDialog: Boolean = false,
     val updateCheckResult: UpdateCheckResult? = null,
+    val isScanningSms: Boolean = false,
     val accountCount: Int = 0,
     val categoryCount: Int = 0,
     val transactionCount: Int = 0
@@ -70,6 +73,8 @@ class SettingsViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
+    private val smsScanner: com.knowspends.app.sms.SmsScanner,
+    private val database: com.knowspends.app.data.local.db.KnowSpendsDatabase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -279,6 +284,22 @@ class SettingsViewModel @Inject constructor(
                     )
                 }
 
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    if (!context.packageManager.canRequestPackageInstalls()) {
+                        val unknownSourcesIntent = Intent(
+                            android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:${context.packageName}")
+                        ).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(unknownSourcesIntent)
+                        _uiState.update {
+                            it.copy(statusMessage = "Please allow 'Install unknown apps' permission to update KnowSpends.")
+                        }
+                        return@launch
+                    }
+                }
+
                 val installIntent = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(contentUri, "application/vnd.android.package-archive")
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -299,6 +320,22 @@ class SettingsViewModel @Inject constructor(
     fun installDownloadedApk(context: Context) {
         val uri = _uiState.value.downloadedApkUri ?: return
         try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    val unknownSourcesIntent = Intent(
+                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}")
+                    ).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(unknownSourcesIntent)
+                    _uiState.update {
+                        it.copy(statusMessage = "Please allow 'Install unknown apps' permission to update KnowSpends.")
+                    }
+                    return
+                }
+            }
+
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -464,6 +501,97 @@ class SettingsViewModel @Inject constructor(
     fun setBackTapSettings(enabled: Boolean, sensitivity: String) {
         viewModelScope.launch {
             userPreferencesRepository.setBackTapSettings(enabled, sensitivity)
+        }
+    }
+
+    fun setSmsSettings(enabled: Boolean, directAutoAdd: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setSmsSettings(enabled, directAutoAdd)
+        }
+    }
+
+    fun scanPastSms(daysBack: Int = 30) {
+        if (_uiState.value.isScanningSms) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isScanningSms = true) }
+            val result = smsScanner.scanInbox(daysBack)
+            _uiState.update {
+                it.copy(
+                    isScanningSms = false,
+                    statusMessage = if (result.isSuccess) {
+                        "SMS Scan Complete: ${result.totalScanned} scanned, found ${result.financialFound} (${result.newlyAdded} added to Review Inbox)"
+                    } else {
+                        result.errorMessage ?: "SMS Scan failed"
+                    }
+                )
+            }
+            if (result.isSuccess) {
+                userPreferencesRepository.setSmsLastScanTimestamp(System.currentTimeMillis())
+            }
+        }
+    }
+
+    fun setCurrency(currency: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setCurrency(currency)
+            _uiState.update { it.copy(showCurrencyDialog = false) }
+        }
+    }
+
+    fun showCurrencyDialog(show: Boolean) {
+        _uiState.update { it.copy(showCurrencyDialog = show) }
+    }
+
+    fun setHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setHapticsEnabled(enabled)
+        }
+    }
+
+    fun showResetConfirmDialog(show: Boolean) {
+        _uiState.update { it.copy(showResetConfirmDialog = show) }
+    }
+
+    fun resetAllLedgerData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true, showResetConfirmDialog = false) }
+            try {
+                database.clearAllTables()
+                com.knowspends.app.di.DatabaseModule.seedInitialData(database)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        statusMessage = "All data erased and ledger reset to defaults."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        statusMessage = "Reset failed: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearAppCache(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                var bytesFreed = 0L
+                context.cacheDir.listFiles()?.forEach { file ->
+                    bytesFreed += file.length()
+                    file.deleteRecursively()
+                }
+                context.externalCacheDir?.listFiles()?.forEach { file ->
+                    bytesFreed += file.length()
+                    file.deleteRecursively()
+                }
+                val mbFreed = String.format(java.util.Locale.US, "%.1f", bytesFreed.toDouble() / (1024 * 1024))
+                _uiState.update { it.copy(statusMessage = "Cleared ${mbFreed} MB of cached files and temporary downloads.") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(statusMessage = "Error clearing cache: ${e.localizedMessage}") }
+            }
         }
     }
 }

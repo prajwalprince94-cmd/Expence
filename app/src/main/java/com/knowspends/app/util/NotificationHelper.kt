@@ -42,7 +42,17 @@ object NotificationHelper {
                 enableVibration(true)
             }
 
-            notificationManager.createNotificationChannels(listOf(reminderChannel, budgetChannel))
+            val smsChannel = NotificationChannel(
+                CHANNEL_SMS_TRANSACTIONS_ID,
+                "SMS & Bank Transactions",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Live notifications for auto-detected bank and UPI spendings"
+                enableLights(true)
+                enableVibration(true)
+            }
+
+            notificationManager.createNotificationChannels(listOf(reminderChannel, budgetChannel, smsChannel))
         }
     }
 
@@ -106,6 +116,44 @@ object NotificationHelper {
 
         try {
             NotificationManagerCompat.from(context).notify(BUDGET_ALERT_NOTIFICATION_ID, notification)
+        } catch (_: SecurityException) {
+            // POST_NOTIFICATIONS permission not granted
+        }
+    }
+
+    const val CHANNEL_SMS_TRANSACTIONS_ID = "knowspends_sms_transactions"
+    const val SMS_TRANSACTION_NOTIFICATION_ID = 1003
+
+    fun showSmsTransactionNotification(context: Context, title: String, message: String, route: String = "inbox") {
+        createNotificationChannels(context)
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("ROUTE", route)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            2,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_SMS_TRANSACTIONS_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        try {
+            NotificationManagerCompat.from(context).notify(
+                (System.currentTimeMillis() % 100000).toInt(),
+                notification
+            )
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS permission not granted
         }

@@ -45,7 +45,7 @@ object DatabaseModule {
         }).build()
     }
 
-    private suspend fun seedInitialData(database: KnowSpendsDatabase) {
+    internal suspend fun seedInitialData(database: KnowSpendsDatabase) {
         val accountDao = database.accountDao()
         val categoryDao = database.categoryDao()
 

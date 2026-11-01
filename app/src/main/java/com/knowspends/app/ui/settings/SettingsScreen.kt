@@ -1,11 +1,14 @@
 package com.knowspends.app.ui.settings
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,8 +41,11 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
@@ -54,11 +60,14 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -173,6 +182,22 @@ fun SettingsScreen(
             )
         }
     }
+
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val receiveGranted = permissions[Manifest.permission.RECEIVE_SMS] == true
+        val readGranted = permissions[Manifest.permission.READ_SMS] == true
+        if (receiveGranted || readGranted) {
+            viewModel.setSmsSettings(true, prefs.smsDirectAutoAdd)
+        }
+    }
+
+    val hasSmsPermission = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.RECEIVE_SMS
+    ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
+        context, Manifest.permission.READ_SMS
+    ) == PackageManager.PERMISSION_GRANTED
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -607,6 +632,115 @@ fun SettingsScreen(
                 }
             }
 
+            // ── 1.8 SMS Bank & UPI Auto-Tracking ─────────────────────────────
+            item(key = "sms_auto_tracking") {
+                VyxelSettingsCard(title = "SMS Bank & UPI Auto-Tracking") {
+                    VyxelToggleRow(
+                        title = "Auto-Capture Incoming SMS",
+                        subtitle = "Parse debit, credit, UPI, and wallet transactions in real-time from bank alerts",
+                        checked = prefs.smsAutoCaptureEnabled && hasSmsPermission,
+                        onCheckedChange = { isChecked ->
+                            if (isChecked) {
+                                if (hasSmsPermission) {
+                                    viewModel.setSmsSettings(true, prefs.smsDirectAutoAdd)
+                                } else {
+                                    smsPermissionLauncher.launch(
+                                        arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+                                    )
+                                }
+                            } else {
+                                viewModel.setSmsSettings(false, prefs.smsDirectAutoAdd)
+                            }
+                        },
+                        icon = Icons.Default.Sms
+                    )
+
+                    if (prefs.smsAutoCaptureEnabled && hasSmsPermission) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = "Capture Mode:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.primary
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = !prefs.smsDirectAutoAdd,
+                                onClick = { viewModel.setSmsSettings(true, false) },
+                                label = { Text("Smart Review Inbox") },
+                                shape = VyxelShapeTokens.Pill
+                            )
+                            FilterChip(
+                                selected = prefs.smsDirectAutoAdd,
+                                onClick = { viewModel.setSmsSettings(true, true) },
+                                label = { Text("Direct Auto-Add") },
+                                shape = VyxelShapeTokens.Pill
+                            )
+                        }
+
+                        Text(
+                            text = if (prefs.smsDirectAutoAdd)
+                                "Transactions are recorded directly to ledger accounts immediately."
+                            else
+                                "Transactions arrive in the Review Inbox where you can verify payee and category before approving.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                        Spacer(Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Scan Past SMS",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Import transactions from the past 30 days of SMS messages",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            }
+                            if (uiState.isScanningSms) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            } else {
+                                VyxelActionPill(
+                                    text = "Scan 30 Days",
+                                    icon = Icons.Default.Sync,
+                                    onClick = { viewModel.scanPastSms(30) }
+                                )
+                            }
+                        }
+                    } else if (!hasSmsPermission) {
+                        Spacer(Modifier.height(8.dp))
+                        VyxelActionPill(
+                            text = "Grant SMS Permission",
+                            icon = Icons.Default.Security,
+                            onClick = {
+                                smsPermissionLauncher.launch(
+                                    arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+                                )
+                            },
+                            isPrimary = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
             // ── 2. Appearance & Dynamic Color ─────────────────────────────────
             item(key = "appearance") {
                 VyxelSettingsCard(title = "Appearance & Theme") {
@@ -633,6 +767,29 @@ fun SettingsScreen(
                         checked = prefs.dynamicColor,
                         onCheckedChange = { viewModel.setDynamicColor(it) },
                         icon = Icons.Default.Palette
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    VyxelActionRow(
+                        title = "Default Ledger Currency",
+                        subtitle = "Active: ${prefs.currencySymbol} • Tap to switch between INR (₹), USD ($), EUR (€), GBP (£), and more",
+                        icon = Icons.Default.CurrencyExchange,
+                        onClick = { viewModel.showCurrencyDialog(true) }
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    VyxelToggleRow(
+                        title = "Tactile Haptic Feedback",
+                        subtitle = "Subtle vibration sensations when tapping buttons, keypad inputs, and transactions",
+                        checked = prefs.hapticsEnabled,
+                        onCheckedChange = { viewModel.setHapticsEnabled(it) },
+                        icon = Icons.Default.Vibration
                     )
                 }
             }
@@ -969,6 +1126,35 @@ fun SettingsScreen(
                             }
                         }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Temporary Storage & Cache",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onSurface
+                            )
+                            Text(
+                                text = "Clean downloaded update APKs, cached receipts, and export files",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
+                        }
+                        VyxelActionPill(
+                            text = "Clean Cache",
+                            icon = Icons.Default.CleaningServices,
+                            onClick = { viewModel.clearAppCache(context) }
+                        )
+                    }
                 }
             }
 
@@ -1044,6 +1230,31 @@ fun SettingsScreen(
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // ── 11. Danger Zone ──────────────────────────────────────────────
+            item(key = "danger_zone") {
+                VyxelSettingsCard(title = "Danger Zone") {
+                    Text(
+                        text = "Irreversible ledger operations. Proceed with extreme caution.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.error
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    VyxelActionRow(
+                        title = "Reset All Ledger Data",
+                        subtitle = "Permanently wipe all transactions, accounts, and categories, restoring factory defaults",
+                        icon = Icons.Default.DeleteForever,
+                        onClick = { viewModel.showResetConfirmDialog(true) },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = scheme.error
+                            )
+                        }
                     )
                 }
             }
@@ -1403,6 +1614,157 @@ fun SettingsScreen(
         PremiumPaywallSheet(
             onDismiss = { viewModel.hidePaywall() },
             onUpgradeClicked = { viewModel.upgradeToPremium() }
+        )
+    }
+
+    // ── Currency Quick-Selector Dialog ────────────────────────────────────────
+    if (uiState.showCurrencyDialog) {
+        val currencies = listOf(
+            "₹" to "INR - Indian Rupee",
+            "$" to "USD - US Dollar",
+            "€" to "EUR - Euro",
+            "£" to "GBP - British Pound",
+            "¥" to "JPY / CNY - Japanese Yen / Yuan",
+            "C$" to "CAD - Canadian Dollar",
+            "A$" to "AUD - Australian Dollar",
+            "₩" to "KRW - Korean Won",
+            "د.إ" to "AED - UAE Dirham",
+            "﷼" to "SAR - Saudi Riyal",
+            "S$" to "SGD - Singapore Dollar",
+            "CHF" to "CHF - Swiss Franc"
+        )
+        var customCurrency by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { viewModel.showCurrencyDialog(false) },
+            containerColor = scheme.surfaceContainerLow,
+            title = {
+                Text(
+                    text = "Select Primary Currency",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    currencies.forEach { (symbol, label) ->
+                        val isSelected = prefs.currencySymbol == symbol
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(VyxelShapeTokens.CardSmall)
+                                .background(
+                                    if (isSelected) scheme.primaryContainer.copy(alpha = 0.6f)
+                                    else Color.Transparent
+                                )
+                                .clickable { viewModel.setCurrency(symbol) }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$symbol  $label",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface
+                            )
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, null, tint = scheme.primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Or enter custom symbol:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = customCurrency,
+                            onValueChange = { customCurrency = it },
+                            placeholder = { Text("Symbol") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = {
+                                if (customCurrency.isNotBlank()) {
+                                    viewModel.setCurrency(customCurrency.trim())
+                                }
+                            },
+                            enabled = customCurrency.isNotBlank()
+                        ) {
+                            Text("Set")
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { viewModel.showCurrencyDialog(false) }) {
+                    Text("Close")
+                }
+            },
+            shape = MaterialTheme.shapes.extraLarge
+        )
+    }
+
+    // ── Reset Ledger Confirmation Dialog ──────────────────────────────────────
+    if (uiState.showResetConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.showResetConfirmDialog(false) },
+            containerColor = scheme.surfaceContainerLow,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.DeleteForever,
+                    contentDescription = null,
+                    tint = scheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Erase All Ledger Data?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.error
+                )
+            },
+            text = {
+                Text(
+                    text = "This will permanently delete all recorded transactions, accounts, and categories, restoring default templates. This action CANNOT be undone.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.resetAllLedgerData() },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = scheme.error,
+                        contentColor = scheme.onError
+                    ),
+                    shape = VyxelShapeTokens.Pill
+                ) {
+                    Text("Erase & Reset", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.showResetConfirmDialog(false) }) {
+                    Text("Cancel")
+                }
+            },
+            shape = MaterialTheme.shapes.extraLarge
         )
     }
 }

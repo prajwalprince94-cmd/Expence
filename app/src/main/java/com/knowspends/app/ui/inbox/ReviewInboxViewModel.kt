@@ -8,6 +8,8 @@ import com.knowspends.app.domain.model.Category
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.CategoryRepository
 import com.knowspends.app.domain.repository.PendingTransactionRepository
+import com.knowspends.app.domain.util.BankMessageParser
+import com.knowspends.app.sms.SmsScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +25,7 @@ data class ReviewInboxUiState(
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
     val manualInputText: String = "",
+    val isScanningSms: Boolean = false,
     val statusMessage: String? = null
 )
 
@@ -30,10 +33,12 @@ data class ReviewInboxUiState(
 class ReviewInboxViewModel @Inject constructor(
     private val pendingRepository: PendingTransactionRepository,
     private val accountRepository: AccountRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val smsScanner: SmsScanner
 ) : ViewModel() {
 
     private val _manualInputText = MutableStateFlow("")
+    private val _isScanningSms = MutableStateFlow(false)
     private val _statusMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<ReviewInboxUiState> = combine(
@@ -41,13 +46,15 @@ class ReviewInboxViewModel @Inject constructor(
         accountRepository.getActiveAccounts(),
         categoryRepository.getActiveCategories(),
         _manualInputText,
+        _isScanningSms,
         _statusMessage
-    ) { pending, accounts, categories, input, msg ->
+    ) { pending, accounts, categories, input, isScanning, msg ->
         ReviewInboxUiState(
             pendingTransactions = pending,
             accounts = accounts,
             categories = categories,
             manualInputText = input,
+            isScanningSms = isScanning,
             statusMessage = msg
         )
     }.stateIn(
@@ -75,10 +82,55 @@ class ReviewInboxViewModel @Inject constructor(
         }
     }
 
+    fun scanSmsInbox(daysBack: Int = 30) {
+        if (_isScanningSms.value) return
+        viewModelScope.launch {
+            _isScanningSms.value = true
+            val result = smsScanner.scanInbox(daysBack)
+            _isScanningSms.value = false
+            if (result.isSuccess) {
+                _statusMessage.value = "Scanned ${result.totalScanned} messages: Found ${result.financialFound} transactions (${result.newlyAdded} new added to review)."
+            } else {
+                _statusMessage.value = result.errorMessage ?: "Failed to scan SMS inbox"
+            }
+        }
+    }
+
     fun approveTransaction(pendingId: Long, accountId: Long, categoryId: Long?) {
         viewModelScope.launch {
             pendingRepository.approveTransaction(pendingId, accountId, categoryId)
             _statusMessage.value = "Transaction approved and logged to ledger!"
+        }
+    }
+
+    fun approveAll() {
+        val pendingList = uiState.value.pendingTransactions
+        if (pendingList.isEmpty()) return
+
+        val accounts = uiState.value.accounts
+        val categories = uiState.value.categories
+        val defaultAccountId = accounts.firstOrNull()?.id ?: 1L
+
+        viewModelScope.launch {
+            var approvedCount = 0
+            for (p in pendingList) {
+                val parsed = BankMessageParser.parse(p.rawMessage)
+                val matchingAccount = accounts.find { acc ->
+                    parsed?.accountTail != null && acc.name.contains(parsed.accountTail)
+                } ?: accounts.find { acc ->
+                    parsed?.bankName != null && acc.name.contains(parsed.bankName, ignoreCase = true)
+                } ?: accounts.firstOrNull { it.type.name == "BANK" || it.type.name == "WALLET" }
+                val targetAccountId = matchingAccount?.id ?: defaultAccountId
+
+                val matchingCategory = categories.find { cat ->
+                    parsed?.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
+                }
+                val targetCategoryId = matchingCategory?.id
+
+                pendingRepository.approveTransaction(p.id, targetAccountId, targetCategoryId)
+                approvedCount++
+            }
+            _statusMessage.value = "Approved and logged $approvedCount transactions to ledger!"
         }
     }
 
