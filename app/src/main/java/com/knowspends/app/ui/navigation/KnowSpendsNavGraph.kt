@@ -243,23 +243,25 @@ fun KnowSpendsAppRoot(
                             )
                         }
                     }
+                }
             }
         }
-
-        // Dynamic Island Quick-Add Overlay (FullScreen Scrim + Camera Notch Ejection Modal)
-        DynamicIslandQuickSpend(
-            uiState = islandUiState,
-            onExpand = { dynamicIslandViewModel.expand() },
-            onCollapse = { dynamicIslandViewModel.collapse() },
-            onDigit = { dynamicIslandViewModel.onDigit(it) },
-            onBackspace = { dynamicIslandViewModel.onBackspace() },
-            onClear = { dynamicIslandViewModel.onClear() },
-            onCategorySelected = { dynamicIslandViewModel.onCategorySelected(it) },
-            onAccountSelected = { dynamicIslandViewModel.onAccountSelected(it) },
-            onSaveExpense = { dynamicIslandViewModel.saveExpense() },
-            modifier = Modifier.fillMaxSize()
-        )
     }
+
+    // Dynamic Island Quick-Add Overlay (FullScreen Scrim + Camera Notch Ejection Modal)
+    DynamicIslandQuickSpend(
+        uiState = islandUiState,
+        onExpand = { dynamicIslandViewModel.expand() },
+        onCollapse = { dynamicIslandViewModel.collapse() },
+        onDigit = { dynamicIslandViewModel.onDigit(it) },
+        onBackspace = { dynamicIslandViewModel.onBackspace() },
+        onClear = { dynamicIslandViewModel.onClear() },
+        onCategorySelected = { dynamicIslandViewModel.onCategorySelected(it) },
+        onAccountSelected = { dynamicIslandViewModel.onAccountSelected(it) },
+        onSaveExpense = { dynamicIslandViewModel.saveExpense() },
+        modifier = Modifier.fillMaxSize()
+    )
+}
 }
 
 private fun NavHostController.navigateSingleTop(route: String) {
