@@ -212,16 +212,23 @@ object BankMessageParser {
     private fun cleanMerchant(raw: String): String {
         var str = raw.trim()
 
-        // 1. Strip leading prefixes like "VPA ", "UPI/ ", "to ", "at ", "towards "
-        str = str.replace(Regex("(?i)^(?:vpa|upi|upi[-/]|to|at|towards|info:?)\\s*"), "")
+        // 1. Strip leading prefixes like "VPA ", "UPI/ ", "to ", "at ", "towards ", "Info: "
+        str = str.replace(Regex("(?i)^(?:vpa|upi[-/:]*|to|at|towards|info:?)\\s*"), "")
 
         // 2. Strip trailing metadata starting with on/ref/rrn/bal/avl/txn/via/using
         str = str.replace(Regex("(?i)\\b(on|ref|ref no|rrn|upi ref|bal|avl|avail|avl bal|txn|is|via|using)\\b.*"), "")
 
-        // 3. If it's a VPA handle like swiggy@icici or starbucks@okhdfcbank, extract the handle
+        // 3. If it's a VPA handle like swiggy@icici or SWIGGY-swiggy@axis, extract the merchant name
         if (str.contains("@")) {
             val handle = str.substringBefore("@").trim()
-            if (handle.isNotBlank() && handle.length >= 3) {
+            if (handle.contains("-") || handle.contains("/")) {
+                val parts = handle.split(Regex("[-/]")).map { it.trim() }.filter { it.isNotBlank() }
+                val nonNumeric = parts.filter { !it.all { c -> c.isDigit() } }
+                val candidate = nonNumeric.firstOrNull() ?: parts.firstOrNull()
+                if (!candidate.isNullOrBlank()) {
+                    str = candidate
+                }
+            } else if (handle.isNotBlank() && handle.length >= 3) {
                 str = handle
             }
         }
