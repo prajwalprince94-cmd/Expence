@@ -1,14 +1,18 @@
 package com.knowspends.app.ui.transactions
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,19 +37,18 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -55,21 +56,27 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,31 +86,19 @@ import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.components.VyxelExpressiveChip
 import com.knowspends.app.ui.components.VyxelNavBarBottomClearance
+import com.knowspends.app.ui.components.bouncyClickable
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
-import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.theme.TransferColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
-import com.knowspends.app.ui.theme.fadingEdges
-import com.knowspends.app.ui.theme.glassSurface
 import com.knowspends.app.ui.theme.pressScale
+import com.knowspends.app.ui.theme.progressiveScrollBlur
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import com.knowspends.app.ui.components.VyxelExpressiveChip
-import com.knowspends.app.ui.components.bouncyClickable
-import com.knowspends.app.ui.theme.progressiveScrollBlur
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -134,8 +129,8 @@ fun TransactionsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(scheme.background)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Header Row: Clean Title + Review Inbox Pill Button + Search Toggle
                 Row(
@@ -149,43 +144,46 @@ fun TransactionsScreen(
                     ) {
                         Text(
                             text = "Transactions",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = scheme.onSurface
                         )
 
                         // Count badge
-                        Box(
-                            modifier = Modifier
-                                .clip(VyxelShapeTokens.Pill)
-                                .background(scheme.surfaceContainerHighest)
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        Surface(
+                            shape = VyxelShapeTokens.Pill,
+                            color = scheme.surfaceContainerHighest.copy(alpha = 0.8f)
                         ) {
                             Text(
                                 text = "${uiState.totalTransactionsCount}",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = scheme.primary
+                                color = scheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Review Inbox Pill Button (Direct Access)
                         Surface(
                             onClick = onNavigateToInbox,
                             shape = VyxelShapeTokens.Pill,
                             color = if (uiState.unreviewedSmsCount > 0) scheme.primaryContainer else scheme.surfaceContainerHighest,
-                            border = BorderStroke(1.dp, if (uiState.unreviewedSmsCount > 0) scheme.primary.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.4f)),
+                            border = BorderStroke(
+                                1.dp,
+                                if (uiState.unreviewedSmsCount > 0) scheme.primary.copy(alpha = 0.5f)
+                                else scheme.outlineVariant.copy(alpha = 0.4f)
+                            ),
                             modifier = Modifier.bouncyClickable(onClick = onNavigateToInbox)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ReceiptLong,
@@ -212,14 +210,14 @@ fun TransactionsScreen(
                             },
                             shape = CircleShape,
                             color = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) scheme.primaryContainer else scheme.surfaceContainerHighest,
-                            modifier = Modifier.size(34.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) Icons.Default.Close else Icons.Default.Search,
                                     contentDescription = "Search",
                                     tint = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
-                                    modifier = Modifier.size(17.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -244,7 +242,7 @@ fun TransactionsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     VyxelExpressiveChip(
@@ -300,7 +298,7 @@ fun TransactionsScreen(
                     }
                 }
 
-                // Modern Slim Cashflow Pill
+                // Balanced 3-Column Auto-Layout Cashflow Ribbon
                 TransactionsCashflowPill(
                     incomeFormatted = uiState.formattedIncomeTotal,
                     expenseFormatted = uiState.formattedExpenseTotal,
@@ -335,26 +333,26 @@ fun TransactionsScreen(
                             tint = scheme.primary.copy(alpha = 0.8f)
                         )
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = if (uiState.searchQuery.isNotBlank()) "No matching records found" else "No transactions yet",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = if (uiState.searchQuery.isNotBlank())
                             "Try searching with different keywords or clearing active filters"
                         else
                             "Tap the floating + button to log an expense or income",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = scheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                     if (uiState.searchQuery.isNotBlank() || uiState.selectedType != null || uiState.selectedAccountId != null) {
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = viewModel::clearAllFilters,
                             shape = VyxelShapeTokens.Pill,
@@ -366,7 +364,7 @@ fun TransactionsScreen(
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = null,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
@@ -385,22 +383,18 @@ fun TransactionsScreen(
                     .progressiveScrollBlur(topBlur = 12.dp, bottomBlur = 48.dp, scrimColor = scheme.background)
                     .padding(innerPadding),
                 contentPadding = PaddingValues(top = 4.dp, bottom = VyxelNavBarBottomClearance),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 uiState.dayGroups.forEach { dayGroup ->
                     stickyHeader(key = dayGroup.dateLabel) {
-                        Surface(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 2.dp),
-                            color = scheme.surfaceContainerLow,
-                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.55f)),
-                            shape = VyxelShapeTokens.CardSmall
+                                .background(scheme.background.copy(alpha = 0.94f))
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -410,15 +404,15 @@ fun TransactionsScreen(
                                 ) {
                                     Text(
                                         text = dayGroup.dateLabel,
-                                        style = MaterialTheme.typography.labelMedium,
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = scheme.primary
+                                        color = scheme.onSurface
                                     )
                                     Box(
                                         modifier = Modifier
                                             .clip(VyxelShapeTokens.Pill)
-                                            .background(scheme.surfaceContainerHighest)
-                                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                                            .background(scheme.surfaceContainerHighest.copy(alpha = 0.8f))
+                                            .padding(horizontal = 7.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = "${dayGroup.count}",
@@ -499,7 +493,7 @@ fun TransactionsScreen(
 }
 
 /**
- * Ultra-clean, modern single-line cashflow pill summarizing inflow, outflow, and net balance.
+ * Ultra-clean, modern 3-column auto-layout cashflow ribbon summarizing spent, received, and net balance.
  */
 @Composable
 fun TransactionsCashflowPill(
@@ -518,77 +512,98 @@ fun TransactionsCashflowPill(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = VyxelShapeTokens.Pill,
-        color = scheme.surfaceContainerHighest.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
+        shape = VyxelShapeTokens.CardSmall,
+        color = scheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(vertical = 10.dp, horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            // Outflow / Spent
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Out:",
+                    text = "SPENT",
                     style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text = expenseFormatted,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = ExpenseColor
+                    color = ExpenseColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Text(
-                text = "•",
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.outlineVariant
+            // Vertical Divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(24.dp)
+                    .background(scheme.outlineVariant.copy(alpha = 0.45f))
             )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            // Inflow / Received
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "In:",
+                    text = "RECEIVED",
                     style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text = incomeFormatted,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = IncomeColor
+                    color = IncomeColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Text(
-                text = "•",
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.outlineVariant
+            // Vertical Divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(24.dp)
+                    .background(scheme.outlineVariant.copy(alpha = 0.45f))
             )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            // Net Cashflow
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Net:",
+                    text = "NET",
                     style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text = netFormatted,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = netColor
+                    color = netColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -695,85 +710,11 @@ fun VyxelSmartSearchBar(
     }
 }
 
-private data class TypeOptionItem(
-    val type: TransactionType?,
-    val label: String,
-    val icon: ImageVector? = null,
-    val accentColor: Color? = null
-)
-
-@Composable
-private fun TransactionTypeSegmentedRow(
-    selectedType: TransactionType?,
-    onTypeSelected: (TransactionType?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val scheme = MaterialTheme.colorScheme
-    val options = listOf(
-        TypeOptionItem(null, "All"),
-        TypeOptionItem(TransactionType.EXPENSE, "Expense", Icons.Default.ArrowDownward, ExpenseColor),
-        TypeOptionItem(TransactionType.INCOME, "Income", Icons.Default.ArrowUpward, IncomeColor),
-        TypeOptionItem(TransactionType.TRANSFER, "Transfer", Icons.Default.SwapHoriz, TransferColor)
-    )
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(VyxelShapeTokens.Pill)
-            .background(scheme.surfaceContainerLow)
-            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.Pill)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        options.forEach { opt ->
-            val isSelected = selectedType == opt.type
-            val targetBg = if (isSelected) {
-                opt.accentColor ?: scheme.primary
-            } else {
-                Color.Transparent
-            }
-            val targetFg = if (isSelected) {
-                if (opt.accentColor != null) Color.White else scheme.onPrimary
-            } else {
-                scheme.onSurfaceVariant
-            }
-
-            val bgAnim by animateColorAsState(targetBg, KnowSpendsMotion.expressive(), label = "typeBg")
-            val fgAnim by animateColorAsState(targetFg, KnowSpendsMotion.expressive(), label = "typeFg")
-
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .pressScale(0.96f)
-                    .clip(VyxelShapeTokens.Pill)
-                    .background(bgAnim)
-                    .clickable(role = Role.Tab) { onTypeSelected(opt.type) }
-                    .padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (opt.icon != null) {
-                    Icon(
-                        imageVector = opt.icon,
-                        contentDescription = null,
-                        tint = fgAnim,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(Modifier.width(3.dp))
-                }
-                Text(
-                    text = opt.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = fgAnim,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
+/**
+ * Modern transaction list item with auto layout, clear typography hierarchy,
+ * gesture-based swipe to delete, and long-press confirmation dialog.
+ */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionListItem(
     item: TransactionWithDetails,
@@ -783,6 +724,7 @@ fun TransactionListItem(
 ) {
     val scheme = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val badgeColor = item.categoryColour?.let { Color(it) }
         ?: when (item.transaction.type) {
@@ -791,21 +733,18 @@ fun TransactionListItem(
             TransactionType.TRANSFER -> TransferColor
         }
 
-    val (amountText, amountColor, bgTint) = when (item.transaction.type) {
-        TransactionType.INCOME -> Triple(
+    val (amountText, amountColor) = when (item.transaction.type) {
+        TransactionType.INCOME -> Pair(
             "+ ${MoneyFormatter.formatPaise(item.transaction.amountMinor)}",
-            IncomeColor,
-            IncomeColor.copy(alpha = 0.12f)
+            IncomeColor
         )
-        TransactionType.EXPENSE -> Triple(
+        TransactionType.EXPENSE -> Pair(
             "- ${MoneyFormatter.formatPaise(item.transaction.amountMinor)}",
-            ExpenseColor,
-            ExpenseColor.copy(alpha = 0.12f)
+            ExpenseColor
         )
-        TransactionType.TRANSFER -> Triple(
+        TransactionType.TRANSFER -> Pair(
             MoneyFormatter.formatPaise(item.transaction.amountMinor),
-            TransferColor,
-            TransferColor.copy(alpha = 0.12f)
+            TransferColor
         )
     }
 
@@ -813,123 +752,212 @@ fun TransactionListItem(
         SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(item.transaction.date))
     }
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
-            .pressScale(0.98f)
-            .shadow(2.dp, VyxelShapeTokens.CardSmall)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = scheme.surfaceContainerLowest
-        ),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f)),
-        shape = VyxelShapeTokens.CardSmall
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 11.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Category Badge with expressive rounded container
-            CategoryBadge(
-                categoryName = item.categoryName ?: item.transaction.type.name,
-                iconKey = item.categoryIcon,
-                color = badgeColor,
-                size = 42.dp
-            )
+    val title = when (item.transaction.type) {
+        TransactionType.TRANSFER -> "Transfer to ${item.transferAccountName ?: "Account"}"
+        else -> item.transaction.payee.ifBlank { item.categoryName ?: "Uncategorized" }
+    }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Transaction Details Column
-            Column(modifier = Modifier.weight(1f)) {
-                val title = when (item.transaction.type) {
-                    TransactionType.TRANSFER -> "Transfer to ${item.transferAccountName ?: "Account"}"
-                    else -> item.transaction.payee.ifBlank { item.categoryName ?: "Uncategorized" }
-                }
-
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = "Delete Transaction?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
-
-                Spacer(Modifier.height(2.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete this $title transaction for $amountText?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    }
                 ) {
                     Text(
-                        text = item.accountName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    if (item.transaction.note.isNotBlank()) {
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = item.transaction.note,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                    }
-
-                    Text(
-                        text = "• $timeFormatted",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        text = "Delete",
+                        color = ExpenseColor,
+                        fontWeight = FontWeight.Bold
                     )
                 }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
             }
+        )
+    }
 
-            Spacer(modifier = Modifier.width(8.dp))
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
 
-            // Amount pill badge
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        modifier = modifier,
+        backgroundContent = {
+            val color by animateColorAsState(
+                when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.EndToStart -> ExpenseColor
+                    else -> Color.Transparent
+                },
+                label = "dismissColor"
+            )
             Box(
                 modifier = Modifier
-                    .clip(VyxelShapeTokens.Pill)
-                    .background(bgTint)
-                    .padding(horizontal = 9.dp, vertical = 5.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 2.dp)
+                    .clip(VyxelShapeTokens.CardSmall)
+                    .background(color)
+                    .padding(end = 20.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                Text(
-                    text = amountText,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = amountColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "Delete",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // Sleek Delete button
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onDelete()
-                },
-                modifier = Modifier.size(30.dp)
+        }
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp)
+                .pressScale(0.98f)
+                .clip(VyxelShapeTokens.CardSmall)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showDeleteDialog = true
+                    }
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = scheme.surfaceContainerLowest
+            ),
+            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f)),
+            shape = VyxelShapeTokens.CardSmall
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Delete",
-                    tint = scheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(17.dp)
+                // Category Badge (40dp auto-layout container)
+                CategoryBadge(
+                    categoryName = item.categoryName ?: item.transaction.type.name,
+                    iconKey = item.categoryIcon,
+                    color = badgeColor,
+                    size = 40.dp
                 )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Auto-layout middle column: Title, Account tag, Note
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = scheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = VyxelShapeTokens.Pill,
+                            color = scheme.surfaceContainerHighest.copy(alpha = 0.65f),
+                            modifier = Modifier.height(18.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(horizontal = 6.dp)
+                            ) {
+                                Text(
+                                    text = item.accountName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = scheme.primary,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        if (item.transaction.note.isNotBlank()) {
+                            Text(
+                                text = item.transaction.note,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Auto-layout right column: Amount & Time
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = amountText,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = amountColor,
+                        maxLines = 1
+                    )
+
+                    Text(
+                        text = timeFormatted,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
