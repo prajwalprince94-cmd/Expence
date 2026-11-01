@@ -93,10 +93,21 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.knowspends.app.ui.components.VyxelExpressiveChip
+import com.knowspends.app.ui.components.bouncyClickable
+import com.knowspends.app.ui.theme.progressiveScrollBlur
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
     onEditTransaction: (Long) -> Unit = {},
+    onNavigateToInbox: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: TransactionsViewModel = hiltViewModel()
 ) {
@@ -104,6 +115,7 @@ fun TransactionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val scheme = MaterialTheme.colorScheme
+    var isSearchExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -119,10 +131,11 @@ fun TransactionsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(scheme.background)
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Header Row: Title + Live Summary Pill
+                // Header Row: Clean Title + Review Inbox Pill Button + Search Toggle
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -155,95 +168,143 @@ fun TransactionsScreen(
                         }
                     }
 
-                    // Cashflow indicator for active selection
-                    val summaryText = when (uiState.selectedType) {
-                        TransactionType.EXPENSE -> "Spent: ${uiState.formattedExpenseTotal}"
-                        TransactionType.INCOME -> "Income: ${uiState.formattedIncomeTotal}"
-                        TransactionType.TRANSFER -> "Transfers: ${uiState.totalTransactionsCount}"
-                        null -> "-${uiState.formattedExpenseTotal}"
-                    }
-                    val summaryColor = when (uiState.selectedType) {
-                        TransactionType.EXPENSE -> ExpenseColor
-                        TransactionType.INCOME -> IncomeColor
-                        TransactionType.TRANSFER -> TransferColor
-                        null -> scheme.primary
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(VyxelShapeTokens.Pill)
-                            .background(summaryColor.copy(alpha = 0.12f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = summaryText,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = summaryColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        // Review Inbox Pill Button (Direct Access)
+                        Surface(
+                            onClick = onNavigateToInbox,
+                            shape = VyxelShapeTokens.Pill,
+                            color = if (uiState.unreviewedSmsCount > 0) scheme.primaryContainer else scheme.surfaceContainerHighest,
+                            border = BorderStroke(1.dp, if (uiState.unreviewedSmsCount > 0) scheme.primary.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.4f)),
+                            modifier = Modifier.bouncyClickable(onClick = onNavigateToInbox)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ReceiptLong,
+                                    contentDescription = "Review Inbox",
+                                    tint = if (uiState.unreviewedSmsCount > 0) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = if (uiState.unreviewedSmsCount > 0) "Inbox (${uiState.unreviewedSmsCount})" else "Inbox",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (uiState.unreviewedSmsCount > 0) scheme.onPrimaryContainer else scheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Search Toggle Action
+                        Surface(
+                            onClick = {
+                                isSearchExpanded = !isSearchExpanded
+                                if (!isSearchExpanded && uiState.searchQuery.isNotBlank()) {
+                                    viewModel.onSearchQueryChanged("")
+                                }
+                            },
+                            shape = CircleShape,
+                            color = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) scheme.primaryContainer else scheme.surfaceContainerHighest,
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) Icons.Default.Close else Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Smart Minimal Search Bar (Compact 40.dp height)
-                VyxelSmartSearchBar(
-                    query = uiState.searchQuery,
-                    onQueryChange = viewModel::onSearchQueryChanged,
-                    resultCount = if (uiState.searchQuery.isNotBlank()) uiState.totalTransactionsCount else null
-                )
+                // Expandable Smart Search Bar
+                AnimatedVisibility(
+                    visible = isSearchExpanded || uiState.searchQuery.isNotBlank(),
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    VyxelSmartSearchBar(
+                        query = uiState.searchQuery,
+                        onQueryChange = viewModel::onSearchQueryChanged,
+                        resultCount = if (uiState.searchQuery.isNotBlank()) uiState.totalTransactionsCount else null
+                    )
+                }
 
-                // Transaction Type Segmented Pill Row
-                TransactionTypeSegmentedRow(
-                    selectedType = uiState.selectedType,
-                    onTypeSelected = viewModel::onTypeFilterChanged
-                )
+                // Unified Single-Row Expressive Filter Carousel
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    VyxelExpressiveChip(
+                        selected = uiState.selectedType == null,
+                        onClick = { viewModel.onTypeFilterChanged(null) },
+                        label = "All"
+                    )
+                    VyxelExpressiveChip(
+                        selected = uiState.selectedType == TransactionType.EXPENSE,
+                        onClick = { viewModel.onTypeFilterChanged(TransactionType.EXPENSE) },
+                        label = "Expenses",
+                        icon = Icons.Default.ArrowDownward
+                    )
+                    VyxelExpressiveChip(
+                        selected = uiState.selectedType == TransactionType.INCOME,
+                        onClick = { viewModel.onTypeFilterChanged(TransactionType.INCOME) },
+                        label = "Income",
+                        icon = Icons.Default.ArrowUpward
+                    )
+                    VyxelExpressiveChip(
+                        selected = uiState.selectedType == TransactionType.TRANSFER,
+                        onClick = { viewModel.onTypeFilterChanged(TransactionType.TRANSFER) },
+                        label = "Transfers",
+                        icon = Icons.Default.SwapHoriz
+                    )
 
-                // Cashflow Quick Overview Ribbon
-                TransactionsCashflowRibbon(
+                    if (uiState.accounts.size > 1) {
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 2.dp)
+                                .width(1.dp)
+                                .height(20.dp)
+                                .background(scheme.outlineVariant.copy(alpha = 0.5f))
+                        )
+
+                        VyxelExpressiveChip(
+                            selected = uiState.selectedAccountId == null,
+                            onClick = { viewModel.onAccountFilterChanged(null) },
+                            label = "All Accounts"
+                        )
+
+                        uiState.accounts.forEach { account ->
+                            val isSelected = uiState.selectedAccountId == account.id
+                            VyxelExpressiveChip(
+                                selected = isSelected,
+                                onClick = {
+                                    viewModel.onAccountFilterChanged(if (isSelected) null else account.id)
+                                },
+                                label = account.name,
+                                icon = Icons.Default.AccountBalance
+                            )
+                        }
+                    }
+                }
+
+                // Modern Slim Cashflow Pill
+                TransactionsCashflowPill(
                     incomeFormatted = uiState.formattedIncomeTotal,
                     expenseFormatted = uiState.formattedExpenseTotal,
                     netFormatted = uiState.formattedNetCashflow,
                     netMinor = uiState.netCashflowMinor
                 )
-
-                // Optional Account Filter Chips (if multiple accounts exist)
-                if (uiState.accounts.size > 1) {
-                    val scrollState = rememberScrollState()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(scrollState),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        FilterChip(
-                            selected = uiState.selectedAccountId == null,
-                            onClick = { viewModel.onAccountFilterChanged(null) },
-                            label = { Text("All Accounts") },
-                            shape = VyxelShapeTokens.Pill,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = scheme.primaryContainer,
-                                selectedLabelColor = scheme.onPrimaryContainer
-                            )
-                        )
-
-                        uiState.accounts.forEach { account ->
-                            val isSelected = uiState.selectedAccountId == account.id
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    viewModel.onAccountFilterChanged(if (isSelected) null else account.id)
-                                },
-                                label = { Text(account.name) },
-                                shape = VyxelShapeTokens.Pill,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = scheme.primaryContainer,
-                                    selectedLabelColor = scheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
-                }
             }
         }
     ) { innerPadding ->
@@ -319,7 +380,7 @@ fun TransactionsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .fadingEdges(topFade = 8.dp, bottomFade = 24.dp)
+                    .progressiveScrollBlur(topBlur = 12.dp, bottomBlur = 48.dp, scrimColor = scheme.background)
                     .padding(innerPadding),
                 contentPadding = PaddingValues(top = 4.dp, bottom = VyxelNavBarBottomClearance),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -436,10 +497,10 @@ fun TransactionsScreen(
 }
 
 /**
- * Cashflow overview ribbon displaying real-time Inflow, Outflow, and Net Margin.
+ * Ultra-clean, modern single-line cashflow pill summarizing inflow, outflow, and net balance.
  */
 @Composable
-fun TransactionsCashflowRibbon(
+fun TransactionsCashflowPill(
     incomeFormatted: String,
     expenseFormatted: String,
     netFormatted: String,
@@ -455,126 +516,77 @@ fun TransactionsCashflowRibbon(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = VyxelShapeTokens.CardSmall,
-        color = scheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f))
+        shape = VyxelShapeTokens.Pill,
+        color = scheme.surfaceContainerHighest.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Inflow item
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowUpward,
-                        contentDescription = null,
-                        tint = IncomeColor,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = "Inflow",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = incomeFormatted,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = IncomeColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = "Out:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant
                 )
-            }
-
-            // Divider
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(26.dp)
-                    .background(scheme.outlineVariant.copy(alpha = 0.6f))
-            )
-
-            // Outflow item
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDownward,
-                        contentDescription = null,
-                        tint = ExpenseColor,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = "Outflow",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
                 Text(
                     text = expenseFormatted,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = ExpenseColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = ExpenseColor
                 )
             }
 
-            // Divider
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(26.dp)
-                    .background(scheme.outlineVariant.copy(alpha = 0.6f))
+            Text(
+                text = "•",
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.outlineVariant
             )
 
-            // Net Margin item
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.End
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SwapHoriz,
-                        contentDescription = null,
-                        tint = netColor,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = "Net Margin",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "In:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant
+                )
+                Text(
+                    text = incomeFormatted,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = IncomeColor
+                )
+            }
+
+            Text(
+                text = "•",
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.outlineVariant
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Net:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant
+                )
                 Text(
                     text = netFormatted,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = netColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = netColor
                 )
             }
         }

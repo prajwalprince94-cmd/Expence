@@ -79,7 +79,11 @@ import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.LocalMotionIntensity
 import com.knowspends.app.ui.theme.VyxelShapeTokens
+import com.knowspends.app.util.VyxelHaptics
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * iOS Dynamic Island Quick-Spend Modal.
@@ -107,9 +111,20 @@ fun DynamicIslandQuickSpend(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val scheme = MaterialTheme.colorScheme
     val motionIntensity = LocalMotionIntensity.current
     val isExpanded = uiState.isExpanded
+
+    // Interactive tactile compression bounce when island is tapped
+    val islandTapScale = remember { Animatable(1f) }
+    fun triggerIslandTapBounce() {
+        coroutineScope.launch {
+            islandTapScale.animateTo(0.97f, animationSpec = tween(40))
+            islandTapScale.animateTo(1f, animationSpec = spring(dampingRatio = 0.52f, stiffness = 420f))
+        }
+    }
 
     // Auto-dismiss after success
     LaunchedEffect(uiState.isSuccess) {
@@ -135,7 +150,7 @@ fun DynamicIslandQuickSpend(
     }
 
     val fluidSpring = if (motionIntensity > 0f) {
-        spring<Float>(dampingRatio = 0.65f, stiffness = 320f)
+        spring<Float>(dampingRatio = 0.58f, stiffness = 280f)
     } else {
         spring(dampingRatio = 1.0f, stiffness = 1000f)
     }
@@ -159,7 +174,7 @@ fun DynamicIslandQuickSpend(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        VyxelHaptics.tick(context)
                         onCollapse()
                     }
             )
@@ -167,25 +182,25 @@ fun DynamicIslandQuickSpend(
             // 2. Fluid Dynamic Island Card
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn(animationSpec = tween(160)) +
+                enter = fadeIn(animationSpec = tween(140)) +
                         scaleIn(
-                            initialScale = 0.55f,
+                            initialScale = 0.35f,
                             transformOrigin = TransformOrigin(0.5f, 0f),
                             animationSpec = fluidSpring
                         ) +
                         slideInVertically(
-                            initialOffsetY = { -it / 2 },
-                            animationSpec = spring(dampingRatio = 0.65f, stiffness = 320f)
+                            initialOffsetY = { -it },
+                            animationSpec = fluidSpring
                         ),
                 exit = fadeOut(animationSpec = tween(120)) +
                         scaleOut(
-                            targetScale = 0.55f,
+                            targetScale = 0.35f,
                             transformOrigin = TransformOrigin(0.5f, 0f),
-                            animationSpec = spring<Float>(dampingRatio = 0.85f, stiffness = 400f)
+                            animationSpec = spring<Float>(dampingRatio = 0.85f, stiffness = 420f)
                         ) +
                         slideOutVertically(
-                            targetOffsetY = { -it / 2 },
-                            animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f)
+                            targetOffsetY = { -it },
+                            animationSpec = spring(dampingRatio = 0.85f, stiffness = 420f)
                         )
             ) {
                 val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -196,6 +211,10 @@ fun DynamicIslandQuickSpend(
                         .padding(horizontal = 16.dp)
                         .width(360.dp)
                         .wrapContentHeight()
+                        .graphicsLayer {
+                            scaleX = islandTapScale.value
+                            scaleY = islandTapScale.value
+                        }
                         .shadow(
                             elevation = 24.dp,
                             shape = RoundedCornerShape(28.dp),
@@ -203,12 +222,16 @@ fun DynamicIslandQuickSpend(
                             ambientColor = Color.Black.copy(alpha = 0.50f)
                         )
                         .clip(RoundedCornerShape(28.dp))
+                        .bouncyClickable(scaleDown = 0.99f) {
+                            triggerIslandTapBounce()
+                            VyxelHaptics.tick(context)
+                        }
                         .pointerInput(Unit) {
                             detectVerticalDragGestures { change, dragAmount ->
                                 change.consume()
                                 if (dragAmount < -12f) {
                                     // Swipe-up detected: collapse
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    VyxelHaptics.tick(context)
                                     onCollapse()
                                 }
                             }
@@ -326,7 +349,7 @@ fun DynamicIslandQuickSpend(
                             // Close Button
                             IconButton(
                                 onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    VyxelHaptics.tick(context)
                                     onCollapse()
                                 },
                                 modifier = Modifier.size(28.dp)
@@ -391,7 +414,8 @@ fun DynamicIslandQuickSpend(
                                     border = badgeBorder,
                                     modifier = Modifier
                                         .bouncyClickable {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            triggerIslandTapBounce()
+                                            VyxelHaptics.tick(context)
                                             onCategorySelected(cat.id)
                                         }
                                 ) {
@@ -412,6 +436,14 @@ fun DynamicIslandQuickSpend(
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                             color = if (isSelected) scheme.onPrimaryContainer else Color.White
                                         )
+                                        AnimatedVisibility(visible = isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = scheme.onPrimaryContainer,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -442,8 +474,14 @@ fun DynamicIslandQuickSpend(
                                                 .weight(1f)
                                                 .height(44.dp)
                                                 .bouncyClickable {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                    if (key == '⌫') onBackspace() else onDigit(key)
+                                                    triggerIslandTapBounce()
+                                                    if (key == '⌫') {
+                                                        VyxelHaptics.tick(context)
+                                                        onBackspace()
+                                                    } else {
+                                                        VyxelHaptics.click(context)
+                                                        onDigit(key)
+                                                    }
                                                 },
                                             shape = VyxelShapeTokens.Chip,
                                             color = scheme.surfaceContainerLowest
@@ -479,7 +517,7 @@ fun DynamicIslandQuickSpend(
                         // Save Expense CTA Button
                         Button(
                             onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                VyxelHaptics.success(context)
                                 onSaveExpense()
                             },
                             modifier = Modifier

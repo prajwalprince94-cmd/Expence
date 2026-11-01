@@ -76,6 +76,11 @@ class MainActivity : FragmentActivity() {
                     userPreferencesRepository.userPreferencesFlow.collectLatest { prefs ->
                         userPreferences = prefs
                         updateBackTapSensitivity()
+                        if (prefs.backTapEnabled) {
+                            com.knowspends.app.sensor.BackTapService.start(this@MainActivity)
+                        } else {
+                            com.knowspends.app.sensor.BackTapService.stop(this@MainActivity)
+                        }
                     }
                 }
             }

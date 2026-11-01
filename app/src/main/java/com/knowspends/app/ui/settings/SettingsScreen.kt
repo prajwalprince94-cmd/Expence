@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.FontDownload
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
@@ -123,11 +124,15 @@ import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.getFontFamily
 import com.knowspends.app.ui.theme.pressScale
 
+import com.knowspends.app.ui.components.VyxelExpressiveChip
+import com.knowspends.app.ui.theme.progressiveScrollBlur
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToInbox: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -241,7 +246,7 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .fadingEdges(topFade = 16.dp, bottomFade = 36.dp)
+                .progressiveScrollBlur(topBlur = 12.dp, bottomBlur = 48.dp, scrimColor = scheme.background)
                 .padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -413,75 +418,9 @@ fun SettingsScreen(
 
                         Spacer(Modifier.height(10.dp))
 
-                        // Customization Attributes Row (Currency, Target, FY)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(scheme.surfaceContainerHighest)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = prefs.currencySymbol,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.primary
-                                )
-                                Text(
-                                    text = "Currency",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onSurfaceVariant
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(scheme.surfaceContainerHighest)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "Goal:",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "${prefs.currencySymbol}${prefs.monthlySavingsGoal}/mo",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.secondary
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(scheme.surfaceContainerHighest)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "FY: ${prefs.financialYearStart}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
                         Spacer(Modifier.height(14.dp))
 
-                        // Ledger Stats Auto-Layout Row
+                        // Ledger Financial Health Stats Row (Clean 3-column pill cards)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -492,7 +431,7 @@ fun SettingsScreen(
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.CardSmall)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -526,7 +465,7 @@ fun SettingsScreen(
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.CardSmall)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -560,7 +499,7 @@ fun SettingsScreen(
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
                                     .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.6f), VyxelShapeTokens.CardSmall)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -584,61 +523,39 @@ fun SettingsScreen(
                                     )
                                 }
                                 Text(
-                                    text = "Savings Goal",
+                                    text = "Savings Target",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = scheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                        // Secondary Info Badges
+                        // Quick Preference Expressive Chips (Tap directly to edit)
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(VyxelShapeTokens.Pill)
-                                    .background(scheme.primaryContainer.copy(alpha = 0.5f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "Currency: ${prefs.currencySymbol}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(VyxelShapeTokens.Pill)
-                                    .background(scheme.secondaryContainer.copy(alpha = 0.5f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "FY: ${prefs.financialYearStart}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onSecondaryContainer,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(VyxelShapeTokens.Pill)
-                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.6f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "100% Offline",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                            VyxelExpressiveChip(
+                                selected = true,
+                                onClick = { viewModel.showCurrencyDialog(true) },
+                                label = "Currency: ${prefs.currencySymbol}"
+                            )
+                            VyxelExpressiveChip(
+                                selected = false,
+                                onClick = { viewModel.showProfileDialog(true) },
+                                label = "FY: ${prefs.financialYearStart}"
+                            )
+                            VyxelExpressiveChip(
+                                selected = false,
+                                onClick = {},
+                                label = "100% Offline Vault",
+                                icon = Icons.Default.Security
+                            )
                         }
                     }
                 }
@@ -727,23 +644,21 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            FilterChip(
+                            VyxelExpressiveChip(
                                 selected = !prefs.smsDirectAutoAdd,
                                 onClick = {
                                     com.knowspends.app.util.VyxelHaptics.tick(context)
                                     viewModel.setSmsSettings(true, false)
                                 },
-                                label = { Text("Smart Review Inbox") },
-                                shape = VyxelShapeTokens.Pill
+                                label = "Smart Review Inbox"
                             )
-                            FilterChip(
+                            VyxelExpressiveChip(
                                 selected = prefs.smsDirectAutoAdd,
                                 onClick = {
                                     com.knowspends.app.util.VyxelHaptics.tick(context)
                                     viewModel.setSmsSettings(true, true)
                                 },
-                                label = { Text("Direct Auto-Add") },
-                                shape = VyxelShapeTokens.Pill
+                                label = "Direct Auto-Add"
                             )
                         }
 
@@ -755,6 +670,14 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = scheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+                        VyxelActionRow(
+                            title = "Open Review Inbox",
+                            subtitle = "Inspect and approve detected bank & UPI transactions",
+                            icon = Icons.Default.Inbox,
+                            onClick = onNavigateToInbox
                         )
                     }
 
@@ -857,39 +780,6 @@ fun SettingsScreen(
                         },
                         icon = Icons.Default.Vibration
                     )
-
-                    if (prefs.hapticsEnabled) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "Test Haptic Feedback:",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = scheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterChip(
-                                selected = false,
-                                onClick = { com.knowspends.app.util.VyxelHaptics.tick(context) },
-                                label = { Text("Light Tick") },
-                                shape = VyxelShapeTokens.Pill
-                            )
-                            FilterChip(
-                                selected = false,
-                                onClick = { com.knowspends.app.util.VyxelHaptics.click(context) },
-                                label = { Text("Click Tap") },
-                                shape = VyxelShapeTokens.Pill
-                            )
-                            FilterChip(
-                                selected = false,
-                                onClick = { com.knowspends.app.util.VyxelHaptics.heavy(context) },
-                                label = { Text("Firm Pulse") },
-                                shape = VyxelShapeTokens.Pill
-                            )
-                        }
-                    }
                 }
             }
 
@@ -1106,7 +996,7 @@ fun SettingsScreen(
                 VyxelSettingsCard(title = "Tap to Add & Dynamic Island") {
                     VyxelToggleRow(
                         title = "Back-Tap Dynamic Island",
-                        subtitle = "Double-tap physical back of phone to trigger iOS Dynamic Island quick spend popup (90fps Framer Motion)",
+                        subtitle = "Double-tap back of phone to trigger iOS Dynamic Island quick spend popup (works anywhere, even when app is closed)",
                         checked = uiState.userPreferences.backTapEnabled,
                         onCheckedChange = { viewModel.setBackTapSettings(it, uiState.userPreferences.backTapSensitivity) },
                         icon = Icons.Default.TouchApp
@@ -1125,18 +1015,17 @@ fun SettingsScreen(
                                 color = scheme.onSurfaceVariant
                             )
                             listOf("high" to "High", "normal" to "Normal", "low" to "Low").forEach { (key, label) ->
-                                FilterChip(
+                                VyxelExpressiveChip(
                                     selected = uiState.userPreferences.backTapSensitivity == key,
                                     onClick = { viewModel.setBackTapSettings(true, key) },
-                                    label = { Text(label) },
-                                    shape = VyxelShapeTokens.Pill
+                                    label = label
                                 )
                             }
                         }
 
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Calibrated for real finger impacts on phone back plate. Tip: You can also add the 'Quick Spend' tile to your Android Quick Settings notification drawer.",
+                            text = "Calibrated for physical finger double-taps on the back of your device. Also works via the 'Quick Spend' Quick Settings tile in your Android notification drawer.",
                             style = MaterialTheme.typography.bodySmall,
                             color = scheme.onSurfaceVariant
                         )

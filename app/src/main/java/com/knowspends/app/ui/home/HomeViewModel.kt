@@ -8,6 +8,7 @@ import com.knowspends.app.domain.model.MonthlySummary
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.AccountRepository
+import com.knowspends.app.domain.repository.PendingTransactionRepository
 import com.knowspends.app.domain.repository.TransactionRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,6 +49,7 @@ data class HomeUiState(
     val selectedAnalyticsTab: Int = 0,
     val selectedAccountForAction: Account? = null,
     val activeEditField: AccountEditField? = null,
+    val pendingSmsCount: Int = 0,
     val isLoading: Boolean = false
 ) {
     val formattedTotalNetWorth: String
@@ -89,7 +91,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val pendingTransactionRepository: PendingTransactionRepository
 ) : ViewModel() {
 
     private val calendar = Calendar.getInstance()
@@ -133,8 +136,9 @@ class HomeViewModel @Inject constructor(
         transactionRepository.getMonthlySummary(monthStartMillis, monthEndMillis),
         accountRepository.getActiveAccountsWithBalances(),
         transactionRepository.getAllTransactionsWithDetails(),
-        _uiControlsFlow
-    ) { summary, accounts, transactions, (selectedTab, actionAccount, editField) ->
+        _uiControlsFlow,
+        pendingTransactionRepository.getPendingCount()
+    ) { summary, accounts, transactions, (selectedTab, actionAccount, editField), pendingCount ->
         val netWorth = accounts.sumOf { it.currentBalanceMinor }
         val recents = transactions.take(6)
 
@@ -202,6 +206,7 @@ class HomeViewModel @Inject constructor(
             selectedAnalyticsTab = selectedTab,
             selectedAccountForAction = actionAccount,
             activeEditField = editField,
+            pendingSmsCount = pendingCount,
             isLoading = false
         )
     }.stateIn(

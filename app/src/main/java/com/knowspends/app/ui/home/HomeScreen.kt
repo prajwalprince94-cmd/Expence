@@ -98,6 +98,16 @@ import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.TransferColor
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material3.Surface
+import com.knowspends.app.ui.components.bouncyClickable
+import com.knowspends.app.ui.theme.progressiveScrollBlur
+
 @Composable
 fun HomeScreen(
     onNavigateToTransactions: () -> Unit = {},
@@ -107,15 +117,16 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scheme = MaterialTheme.colorScheme
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .fadingEdges(topFade = 16.dp, bottomFade = 36.dp)
+            .progressiveScrollBlur(topBlur = 16.dp, bottomBlur = 48.dp, scrimColor = scheme.background)
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // App Header: Clean Title & Month Label
+        // App Header: Clean Title, Month Label & Review Inbox Shortcut
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -126,13 +137,116 @@ fun HomeScreen(
                     text = "KnowSpends",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = scheme.primary
                 )
                 Text(
                     text = uiState.currentMonthLabel,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = scheme.onSurfaceVariant
                 )
+            }
+
+            // Review SMS Inbox Action Pill Button
+            Surface(
+                onClick = onNavigateToInbox,
+                shape = VyxelShapeTokens.Pill,
+                color = if (uiState.pendingSmsCount > 0) scheme.primaryContainer else scheme.surfaceContainerHighest,
+                border = BorderStroke(1.dp, if (uiState.pendingSmsCount > 0) scheme.primary.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.4f)),
+                modifier = Modifier.bouncyClickable(onClick = onNavigateToInbox)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ReceiptLong,
+                        contentDescription = "Review Inbox",
+                        tint = if (uiState.pendingSmsCount > 0) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (uiState.pendingSmsCount > 0) "Inbox (${uiState.pendingSmsCount})" else "Inbox",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (uiState.pendingSmsCount > 0) scheme.onPrimaryContainer else scheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // Pending SMS Review Alert Banner (when new messages are ready to review)
+        AnimatedVisibility(
+            visible = uiState.pendingSmsCount > 0,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .bouncyClickable(onClick = onNavigateToInbox),
+                shape = VyxelShapeTokens.Card,
+                colors = CardDefaults.cardColors(
+                    containerColor = scheme.primaryContainer.copy(alpha = 0.85f)
+                ),
+                border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = scheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.ReceiptLong,
+                                    contentDescription = null,
+                                    tint = scheme.onPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "${uiState.pendingSmsCount} New SMS Transactions",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Tap to review & add to your accounts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = VyxelShapeTokens.Pill,
+                        color = scheme.primary,
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = "Review",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
             }
         }
 

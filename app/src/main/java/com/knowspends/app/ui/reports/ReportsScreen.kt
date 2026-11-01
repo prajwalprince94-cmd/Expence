@@ -22,8 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.components.VyxelExpressiveChip
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
+import com.knowspends.app.ui.theme.progressiveScrollBlur
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Store
@@ -101,10 +103,10 @@ fun ReportsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DateRangeType.values().forEach { range ->
-                    FilterChip(
+                    VyxelExpressiveChip(
                         selected = uiState.selectedRange == range,
                         onClick = { viewModel.onRangeSelected(range) },
-                        label = { Text(range.label) }
+                        label = range.label
                     )
                 }
             }
@@ -241,7 +243,7 @@ fun CategoryReportContent(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
+                .progressiveScrollBlur(topBlur = 8.dp, bottomBlur = 32.dp, scrimColor = MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -364,7 +366,7 @@ fun MonthlyTrendsContent(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
+                .progressiveScrollBlur(topBlur = 8.dp, bottomBlur = 32.dp, scrimColor = MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -475,7 +477,7 @@ fun TopPayeesContent(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .fadingEdges(topFade = 8.dp, bottomFade = 24.dp),
+                .progressiveScrollBlur(topBlur = 8.dp, bottomBlur = 32.dp, scrimColor = MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {

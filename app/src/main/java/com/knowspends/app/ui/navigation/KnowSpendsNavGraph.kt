@@ -138,6 +138,9 @@ fun KnowSpendsAppRoot(
                     TransactionsScreen(
                         onEditTransaction = { transactionId ->
                             navController.navigate(Screen.AddTransaction.createRoute(transactionId))
+                        },
+                        onNavigateToInbox = {
+                            navController.navigate(Screen.ReviewInbox.route)
                         }
                     )
                 }
@@ -148,7 +151,10 @@ fun KnowSpendsAppRoot(
                     ReportsScreen()
                 }
                 composable(Screen.Settings.route) {
-                    SettingsScreen(onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) })
+                    SettingsScreen(
+                        onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) },
+                        onNavigateToInbox = { navController.navigate(Screen.ReviewInbox.route) }
+                    )
                 }
                 composable(
                     route = Screen.ReviewInbox.route,

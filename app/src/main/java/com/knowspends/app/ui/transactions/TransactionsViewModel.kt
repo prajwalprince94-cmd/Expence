@@ -6,6 +6,7 @@ import com.knowspends.app.domain.model.Account
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.AccountRepository
+import com.knowspends.app.domain.repository.PendingTransactionRepository
 import com.knowspends.app.domain.repository.TransactionRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +33,12 @@ data class DayGroup(
     val count: Int = transactions.size
 )
 
+data class TransactionFilterParams(
+    val query: String = "",
+    val type: TransactionType? = null,
+    val accountId: Long? = null
+)
+
 data class TransactionsUiState(
     val searchQuery: String = "",
     val selectedType: TransactionType? = null,
@@ -45,26 +52,39 @@ data class TransactionsUiState(
     val formattedExpenseTotal: String = "₹0.00",
     val formattedIncomeTotal: String = "₹0.00",
     val formattedNetCashflow: String = "₹0.00",
+    val unreviewedSmsCount: Int = 0,
     val isLoading: Boolean = false
 )
 
 @HiltViewModel
 class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val pendingTransactionRepository: PendingTransactionRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedType = MutableStateFlow<TransactionType?>(null)
     private val _selectedAccountId = MutableStateFlow<Long?>(null)
 
-    val uiState: StateFlow<TransactionsUiState> = combine(
-        transactionRepository.getAllTransactionsWithDetails(),
-        accountRepository.getAllAccounts(),
+    private val _filterFlow = combine(
         _searchQuery,
         _selectedType,
         _selectedAccountId
-    ) { allTransactions, accounts, query, typeFilter, accountFilter ->
+    ) { query, type, accountId ->
+        TransactionFilterParams(query, type, accountId)
+    }
+
+    val uiState: StateFlow<TransactionsUiState> = combine(
+        transactionRepository.getAllTransactionsWithDetails(),
+        accountRepository.getAllAccounts(),
+        _filterFlow,
+        pendingTransactionRepository.getPendingCount()
+    ) { allTransactions, accounts, filters, pendingCount ->
+        val query = filters.query
+        val typeFilter = filters.type
+        val accountFilter = filters.accountId
+
         val filtered = allTransactions.filter { item ->
             val matchesQuery = query.isBlank() ||
                     item.transaction.note.contains(query, ignoreCase = true) ||
@@ -98,6 +118,7 @@ class TransactionsViewModel @Inject constructor(
             formattedExpenseTotal = MoneyFormatter.formatPaise(expenseSum, includeSymbol = true),
             formattedIncomeTotal = MoneyFormatter.formatPaise(incomeSum, includeSymbol = true),
             formattedNetCashflow = MoneyFormatter.formatPaise(netCashflow, includeSymbol = true),
+            unreviewedSmsCount = pendingCount,
             isLoading = false
         )
     }.stateIn(

@@ -66,16 +66,16 @@ class BackTapDetector(
         private const val STARTUP_IGNORE_WINDOW_MS = 350L
     }
 
-    fun start() {
+    fun start(delay: Int = SensorManager.SENSOR_DELAY_FASTEST) {
         if (isListening || sensor == null || sensorManager == null) return
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST)
+        sensorManager.registerListener(this, sensor, delay)
         isListening = true
         startTime = SystemClock.elapsedRealtime()
         lastX = 0f
         lastY = 0f
         lastZ = 0f
         lastTapTimestamp = 0L
-        Log.d(TAG, "BackTapDetector started. Sensor: ${sensor.name}, Linear: $isLinearSensor, Threshold: $sensitivityThreshold")
+        Log.d(TAG, "BackTapDetector started. Sensor: ${sensor.name}, Linear: $isLinearSensor, Threshold: $sensitivityThreshold, Delay: $delay")
     }
 
     fun stop() {
