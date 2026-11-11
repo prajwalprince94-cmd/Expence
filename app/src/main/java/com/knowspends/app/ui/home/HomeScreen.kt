@@ -252,7 +252,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Monthly Summary Card with Enriched Cashflow Analytics
+        // Monthly Summary Card with Copilot Money Benchmark Aesthetics
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -261,7 +261,7 @@ fun HomeScreen(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ) {
             Column(
                 modifier = Modifier
@@ -269,23 +269,50 @@ fun HomeScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header: Clean Label
-                Text(
-                    text = "NET MONTHLY SAVINGS",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = VyxelTypographyTokens.TrackingUppercase
-                )
+                // Header Row: Tracked Label + Copilot Pacing Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "MONTHLY CASHFLOW",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                        letterSpacing = VyxelTypographyTokens.TrackingUppercase
+                    )
 
-                // Main Metric: Formatted Net Savings
-                Text(
-                    text = uiState.formattedNetSavings,
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black),
-                    color = if (uiState.monthlySummary.netSavingsMinor >= 0) IncomeColor else ExpenseColor
-                )
+                    Surface(
+                        shape = VyxelShapeTokens.Pill,
+                        color = if (uiState.spendRatePercent <= 1.0f) IncomeColor.copy(alpha = 0.14f) else ExpenseColor.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, if (uiState.spendRatePercent <= 1.0f) IncomeColor.copy(alpha = 0.35f) else ExpenseColor.copy(alpha = 0.35f))
+                    ) {
+                        Text(
+                            text = if (uiState.spendRatePercent <= 1.0f) "ON TRACK • ${uiState.daysRemainingInMonth}D LEFT" else "PACING HIGH",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.spendRatePercent <= 1.0f) IncomeColor else ExpenseColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
 
-                // Visual Cashflow Bar
+                // Main Metric: Monumental Net Savings Display
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = uiState.formattedNetSavings,
+                        style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black),
+                        color = if (uiState.monthlySummary.netSavingsMinor >= 0) IncomeColor else ExpenseColor
+                    )
+                    Text(
+                        text = "Net Cashflow in ${uiState.currentMonthLabel}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                }
+
+                // Visual Cashflow Pace Bar
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         modifier = Modifier
@@ -322,7 +349,7 @@ fun HomeScreen(
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
 
                 // Balanced 3-Column Stats (Auto-Layout: Income, Spent, Daily Average)
                 Row(
@@ -1418,119 +1445,122 @@ fun RecentTransactionItem(
     val scheme = MaterialTheme.colorScheme
     val timeFormat = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
 
+    val badgeColor = item.categoryColour?.let { Color(it) }
+        ?: when (item.transaction.type) {
+            TransactionType.EXPENSE -> ExpenseColor
+            TransactionType.INCOME -> IncomeColor
+            TransactionType.TRANSFER -> TransferColor
+        }
+
+    val amountFormatted = MoneyFormatter.formatPaise(item.transaction.amountMinor)
+    val (amountText, amountColor) = when (item.transaction.type) {
+        TransactionType.INCOME -> "+ $amountFormatted" to IncomeColor
+        TransactionType.EXPENSE -> "- $amountFormatted" to ExpenseColor
+        TransactionType.TRANSFER -> amountFormatted to TransferColor
+    }
+
+    val title = when (item.transaction.type) {
+        TransactionType.TRANSFER -> "Transfer to ${item.transferAccountName ?: "Account"}"
+        else -> item.transaction.payee.ifBlank { item.categoryName ?: "Transaction" }
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .pressScale(0.98f)
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = VyxelShapeTokens.CardSmall,
         colors = CardDefaults.cardColors(
             containerColor = scheme.surfaceContainerLowest
         ),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.65f))
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val badgeColor = item.categoryColour?.let { Color(it) }
-                    ?: when (item.transaction.type) {
-                        TransactionType.EXPENSE -> ExpenseColor
-                        TransactionType.INCOME -> IncomeColor
-                        TransactionType.TRANSFER -> TransferColor
-                    }
+            // Category Badge (40dp auto-layout container)
+            CategoryBadge(
+                categoryName = item.categoryName ?: item.transaction.type.name,
+                iconKey = item.categoryIcon,
+                color = badgeColor,
+                size = 40.dp
+            )
 
-                CategoryBadge(
-                    categoryName = item.categoryName ?: item.transaction.type.name,
-                    iconKey = item.categoryIcon,
-                    color = badgeColor,
-                    size = 42.dp
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Auto-layout middle column: Title, Account tag, Note
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = scheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = VyxelShapeTokens.Pill,
+                        color = scheme.surfaceContainerHighest.copy(alpha = 0.65f),
+                        modifier = Modifier.height(18.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 6.dp)
+                        ) {
+                            Text(
+                                text = item.accountName,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = scheme.primary,
+                                maxLines = 1
+                            )
+                        }
+                    }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.transaction.payee.ifBlank {
-                            item.categoryName ?: "Transaction"
-                        },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                     if (item.transaction.note.isNotBlank()) {
                         Text(
                             text = item.transaction.note,
                             style = MaterialTheme.typography.bodySmall,
                             color = scheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                     }
                 }
+            }
 
-                val amountFormatted = MoneyFormatter.formatPaise(item.transaction.amountMinor)
-                val (amountText, amountColor) = when (item.transaction.type) {
-                    TransactionType.INCOME -> "+ $amountFormatted" to IncomeColor
-                    TransactionType.EXPENSE -> "- $amountFormatted" to ExpenseColor
-                    TransactionType.TRANSFER -> amountFormatted to TransferColor
-                }
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // Auto-layout right column: Amount & Time
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
                     text = amountText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = amountColor
+                    color = amountColor,
+                    maxLines = 1
                 )
-            }
-
-            // Bottom Badges Row: Date/Time Badge + Account Badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(scheme.surfaceContainerHigh)
-                        .padding(horizontal = 10.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = getAccountIcon(
-                            when {
-                                item.accountName.contains("bank", ignoreCase = true) -> AccountType.BANK
-                                item.accountName.contains("card", ignoreCase = true) -> AccountType.CARD
-                                item.accountName.contains("wallet", ignoreCase = true) -> AccountType.WALLET
-                                else -> AccountType.CASH
-                            }
-                        ),
-                        contentDescription = null,
-                        tint = scheme.primary,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = item.accountName,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = scheme.onSurface
-                    )
-                }
 
                 Text(
                     text = timeFormat.format(Date(item.transaction.date)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1
                 )
             }
         }
