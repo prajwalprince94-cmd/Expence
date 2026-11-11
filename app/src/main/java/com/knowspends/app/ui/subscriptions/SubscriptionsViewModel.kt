@@ -30,21 +30,33 @@ class SubscriptionsViewModel @Inject constructor(
     private val _showAddEditDialog = MutableStateFlow(false)
     private val _editingRule = MutableStateFlow<RecurringRule?>(null)
 
+    private data class DialogState(
+        val filter: String,
+        val showDialog: Boolean,
+        val editRule: RecurringRule?
+    )
+
+    private val _dialogState = combine(
+        _selectedFilter,
+        _showAddEditDialog,
+        _editingRule
+    ) { filter, showDialog, editRule ->
+        DialogState(filter, showDialog, editRule)
+    }
+
     val uiState: StateFlow<SubscriptionsUiState> = combine(
         recurringRuleRepository.getAllRules(),
         accountRepository.getAllAccounts(),
         categoryRepository.getActiveCategories(),
-        _selectedFilter,
-        _showAddEditDialog,
-        _editingRule
-    ) { rules, accounts, categories, filter, showDialog, editRule ->
+        _dialogState
+    ) { rules, accounts, categories, dialog ->
         SubscriptionsUiState(
             rules = rules,
             accounts = accounts,
             categories = categories,
-            selectedFilter = filter,
-            showAddEditDialog = showDialog,
-            editingRule = editRule,
+            selectedFilter = dialog.filter,
+            showAddEditDialog = dialog.showDialog,
+            editingRule = dialog.editRule,
             isLoading = false
         )
     }.stateIn(

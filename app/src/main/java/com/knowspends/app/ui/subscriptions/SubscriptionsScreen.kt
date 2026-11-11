@@ -383,6 +383,7 @@ fun SubscriptionItemCard(
             // Category/Monogram Badge
             CategoryBadge(
                 categoryName = rule.categoryName ?: rule.payee,
+                iconKey = null,
                 color = rule.categoryColour?.let { Color(it) } ?: scheme.primary,
                 size = 40.dp
             )
