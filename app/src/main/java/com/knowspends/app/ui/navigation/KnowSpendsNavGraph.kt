@@ -59,6 +59,8 @@ import com.knowspends.app.ui.island.DynamicIslandQuickSpend
 import com.knowspends.app.ui.island.DynamicIslandViewModel
 import com.knowspends.app.ui.reports.ReportsScreen
 import com.knowspends.app.ui.settings.SettingsScreen
+import com.knowspends.app.ui.rules.MerchantRulesScreen
+import com.knowspends.app.ui.subscriptions.SubscriptionsScreen
 import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.transactions.TransactionsScreen
 
@@ -153,7 +155,39 @@ fun KnowSpendsAppRoot(
                 composable(Screen.Settings.route) {
                     SettingsScreen(
                         onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) },
+                        onNavigateToSubscriptions = { navController.navigate(Screen.Subscriptions.route) },
+                        onNavigateToMerchantRules = { navController.navigate(Screen.MerchantRules.route) },
                         onNavigateToInbox = { navController.navigate(Screen.ReviewInbox.route) }
+                    )
+                }
+                composable(
+                    route = Screen.Subscriptions.route,
+                    enterTransition = {
+                        slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { it } +
+                            fadeIn(animationSpec = tween(160))
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(animationSpec = tween(180, easing = FastOutSlowInEasing)) { it } +
+                            fadeOut(animationSpec = tween(120))
+                    }
+                ) {
+                    SubscriptionsScreen(
+                        onNavigateUp = { navController.navigateUp() }
+                    )
+                }
+                composable(
+                    route = Screen.MerchantRules.route,
+                    enterTransition = {
+                        slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { it } +
+                            fadeIn(animationSpec = tween(160))
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(animationSpec = tween(180, easing = FastOutSlowInEasing)) { it } +
+                            fadeOut(animationSpec = tween(120))
+                    }
+                ) {
+                    MerchantRulesScreen(
+                        onNavigateUp = { navController.navigateUp() }
                     )
                 }
                 composable(

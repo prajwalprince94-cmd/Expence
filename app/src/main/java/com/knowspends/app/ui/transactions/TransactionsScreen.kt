@@ -1,5 +1,6 @@
 package com.knowspends.app.ui.transactions
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
@@ -33,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -129,113 +131,142 @@ fun TransactionsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(scheme.background)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Header Row: Clean Title + Review Inbox Pill Button + Search Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Transactions",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurface
-                        )
-
-                        // Count badge
-                        Surface(
-                            shape = VyxelShapeTokens.Pill,
-                            color = scheme.surfaceContainerHighest.copy(alpha = 0.8f)
+                // Animated Morph between Clean Title Row and Integrated Search Bar
+                AnimatedContent(
+                    targetState = isSearchExpanded || uiState.searchQuery.isNotBlank(),
+                    label = "TransactionsHeaderTransition"
+                ) { isSearching ->
+                    if (isSearching) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = "${uiState.totalTransactionsCount}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = scheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            Surface(
+                                onClick = {
+                                    isSearchExpanded = false
+                                    viewModel.onSearchQueryChanged("")
+                                },
+                                shape = CircleShape,
+                                color = scheme.surfaceContainerHighest,
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Exit Search",
+                                        tint = scheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            VyxelSmartSearchBar(
+                                query = uiState.searchQuery,
+                                onQueryChange = viewModel::onSearchQueryChanged,
+                                resultCount = if (uiState.searchQuery.isNotBlank()) uiState.totalTransactionsCount else null,
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Review Inbox Pill Button (Direct Access)
-                        Surface(
-                            onClick = onNavigateToInbox,
-                            shape = VyxelShapeTokens.Pill,
-                            color = if (uiState.unreviewedSmsCount > 0) scheme.primaryContainer else scheme.surfaceContainerHighest,
-                            border = BorderStroke(
-                                1.dp,
-                                if (uiState.unreviewedSmsCount > 0) scheme.primary.copy(alpha = 0.5f)
-                                else scheme.outlineVariant.copy(alpha = 0.4f)
-                            ),
-                            modifier = Modifier.bouncyClickable(onClick = onNavigateToInbox)
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.ReceiptLong,
-                                    contentDescription = "Review Inbox",
-                                    tint = if (uiState.unreviewedSmsCount > 0) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
-                                    modifier = Modifier.size(15.dp)
-                                )
                                 Text(
-                                    text = if (uiState.unreviewedSmsCount > 0) "Inbox (${uiState.unreviewedSmsCount})" else "Inbox",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = "Transactions",
+                                    style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (uiState.unreviewedSmsCount > 0) scheme.onPrimaryContainer else scheme.onSurfaceVariant
+                                    color = scheme.onSurface
                                 )
-                            }
-                        }
 
-                        // Search Toggle Action
-                        Surface(
-                            onClick = {
-                                isSearchExpanded = !isSearchExpanded
-                                if (!isSearchExpanded && uiState.searchQuery.isNotBlank()) {
-                                    viewModel.onSearchQueryChanged("")
+                                Surface(
+                                    shape = VyxelShapeTokens.Pill,
+                                    color = scheme.surfaceContainerHighest.copy(alpha = 0.8f)
+                                ) {
+                                    Text(
+                                        text = "${uiState.totalTransactionsCount}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
                                 }
-                            },
-                            shape = CircleShape,
-                            color = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) scheme.primaryContainer else scheme.surfaceContainerHighest,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) Icons.Default.Close else Icons.Default.Search,
-                                    contentDescription = "Search",
-                                    tint = if (isSearchExpanded || uiState.searchQuery.isNotBlank()) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Review Inbox Pill Button (Direct Access when new SMS arrives)
+                                if (uiState.unreviewedSmsCount > 0) {
+                                    Surface(
+                                        onClick = onNavigateToInbox,
+                                        shape = VyxelShapeTokens.Pill,
+                                        color = scheme.primaryContainer,
+                                        border = BorderStroke(
+                                            1.dp,
+                                            scheme.primary.copy(alpha = 0.5f)
+                                        ),
+                                        modifier = Modifier.bouncyClickable(onClick = onNavigateToInbox)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ReceiptLong,
+                                                contentDescription = "Review Inbox",
+                                                tint = scheme.onPrimaryContainer,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Text(
+                                                text = "Inbox (${uiState.unreviewedSmsCount})",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = scheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Search Toggle Button
+                                Surface(
+                                    onClick = { isSearchExpanded = true },
+                                    shape = CircleShape,
+                                    color = scheme.surfaceContainerHighest,
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = "Search",
+                                            tint = scheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                // Expandable Smart Search Bar
-                AnimatedVisibility(
-                    visible = isSearchExpanded || uiState.searchQuery.isNotBlank(),
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    VyxelSmartSearchBar(
-                        query = uiState.searchQuery,
-                        onQueryChange = viewModel::onSearchQueryChanged,
-                        resultCount = if (uiState.searchQuery.isNotBlank()) uiState.totalTransactionsCount else null
-                    )
-                }
+                // Balanced 3-Column Auto-Layout Cashflow Ribbon
+                TransactionsCashflowPill(
+                    incomeFormatted = uiState.formattedIncomeTotal,
+                    expenseFormatted = uiState.formattedExpenseTotal,
+                    netFormatted = uiState.formattedNetCashflow,
+                    netMinor = uiState.netCashflowMinor
+                )
 
                 // Unified Single-Row Expressive Filter Carousel
                 Row(
@@ -245,6 +276,36 @@ fun TransactionsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Reset Pill Button when any filter is active
+                    if (uiState.selectedType != null || uiState.selectedAccountId != null) {
+                        Surface(
+                            onClick = viewModel::clearAllFilters,
+                            shape = VyxelShapeTokens.Pill,
+                            color = scheme.errorContainer.copy(alpha = 0.65f),
+                            border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.4f)),
+                            modifier = Modifier.bouncyClickable(onClick = viewModel::clearAllFilters)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear Filters",
+                                    tint = scheme.onErrorContainer,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "Reset",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+
                     VyxelExpressiveChip(
                         selected = uiState.selectedType == null,
                         onClick = { viewModel.onTypeFilterChanged(null) },
@@ -297,14 +358,6 @@ fun TransactionsScreen(
                         }
                     }
                 }
-
-                // Balanced 3-Column Auto-Layout Cashflow Ribbon
-                TransactionsCashflowPill(
-                    incomeFormatted = uiState.formattedIncomeTotal,
-                    expenseFormatted = uiState.formattedExpenseTotal,
-                    netFormatted = uiState.formattedNetCashflow,
-                    netMinor = uiState.netCashflowMinor
-                )
             }
         }
     ) { innerPadding ->
@@ -513,27 +566,27 @@ fun TransactionsCashflowPill(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = VyxelShapeTokens.CardSmall,
-        color = scheme.surfaceContainerLow,
+        color = scheme.surfaceContainerLowest,
         border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 12.dp),
+                .padding(vertical = 7.dp, horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Outflow / Spent
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 Text(
                     text = "SPENT",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.6.sp
                 )
                 Text(
                     text = expenseFormatted,
@@ -549,7 +602,7 @@ fun TransactionsCashflowPill(
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(24.dp)
+                    .height(20.dp)
                     .background(scheme.outlineVariant.copy(alpha = 0.45f))
             )
 
@@ -557,14 +610,14 @@ fun TransactionsCashflowPill(
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 Text(
                     text = "RECEIVED",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.6.sp
                 )
                 Text(
                     text = incomeFormatted,
@@ -580,7 +633,7 @@ fun TransactionsCashflowPill(
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(24.dp)
+                    .height(20.dp)
                     .background(scheme.outlineVariant.copy(alpha = 0.45f))
             )
 
@@ -588,14 +641,14 @@ fun TransactionsCashflowPill(
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 Text(
                     text = "NET",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.6.sp
                 )
                 Text(
                     text = netFormatted,

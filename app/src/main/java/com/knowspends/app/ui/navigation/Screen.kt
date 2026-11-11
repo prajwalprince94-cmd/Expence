@@ -27,6 +27,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
         }
     }
     object ReviewInbox : Screen("review_inbox", "Review Inbox")
+    object Subscriptions : Screen("subscriptions", "Subscriptions & Bills", Icons.Default.AccountBalanceWallet)
+    object MerchantRules : Screen("merchant_rules", "Merchant Rules")
 
     companion object {
         val bottomNavItems = listOf(

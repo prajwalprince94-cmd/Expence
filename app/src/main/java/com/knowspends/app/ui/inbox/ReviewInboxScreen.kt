@@ -37,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -383,8 +384,9 @@ fun ReviewInboxScreen(
                             pending = pending,
                             accounts = uiState.accounts,
                             categories = uiState.categories,
-                            onApprove = { accId, catId ->
-                                viewModel.approveTransaction(pending.id, accId, catId)
+                            onMatchCategory = { payee -> viewModel.matchCategoryForPayee(payee) },
+                            onApprove = { accId, catId, rememberRule ->
+                                viewModel.approveTransaction(pending.id, accId, catId, rememberRule, pending.suggestedPayee)
                             },
                             onDismiss = {
                                 viewModel.dismissTransaction(pending.id)
@@ -403,7 +405,8 @@ fun PendingTransactionCard(
     pending: PendingTransactionEntity,
     accounts: List<Account>,
     categories: List<Category>,
-    onApprove: (accountId: Long, categoryId: Long?) -> Unit,
+    onMatchCategory: suspend (String) -> Long? = { null },
+    onApprove: (accountId: Long, categoryId: Long?, rememberRule: Boolean) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -432,6 +435,16 @@ fun PendingTransactionCard(
         } ?: categories.find { it.kind.name == pending.type }
         mutableStateOf<Long?>(matchedCat?.id)
     }
+
+    // Dynamic Category Memory check: if user has a custom rule or past history for this payee, auto-select it!
+    LaunchedEffect(pending.suggestedPayee) {
+        val rememberedId = onMatchCategory(pending.suggestedPayee)
+        if (rememberedId != null && categories.any { it.id == rememberedId }) {
+            selectedCategoryId = rememberedId
+        }
+    }
+
+    var rememberRule by remember { mutableStateOf(true) }
 
     var accountExpanded by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
@@ -640,7 +653,26 @@ fun PendingTransactionCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            // Remember category rule checkbox
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Checkbox(
+                    checked = rememberRule,
+                    onCheckedChange = { rememberRule = it }
+                )
+                Text(
+                    text = "Always remember for \"${pending.suggestedPayee}\"",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Action Buttons: Dismiss vs Approve & Log
             Row(
@@ -666,7 +698,7 @@ fun PendingTransactionCard(
                 Button(
                     onClick = {
                         if (selectedAccountId > 0) {
-                            onApprove(selectedAccountId, selectedCategoryId)
+                            onApprove(selectedAccountId, selectedCategoryId, rememberRule)
                         }
                     },
                     shape = VyxelShapeTokens.Pill,

@@ -34,6 +34,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun transactionRepository(): TransactionRepository
         fun accountRepository(): AccountRepository
         fun categoryRepository(): CategoryRepository
+        fun merchantRuleRepository(): com.knowspends.app.domain.repository.MerchantRuleRepository
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -71,9 +72,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     } ?: accounts.find { it.type.name == "BANK" || it.type.name == "WALLET" } ?: accounts.firstOrNull()
 
                     val categories = entryPoint.categoryRepository().getActiveCategories().first()
-                    val matchingCategory = categories.find { cat ->
-                        parsed.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
-                    } ?: categories.find { it.kind == parsed.type }
+                    val customRule = entryPoint.merchantRuleRepository().matchCategory(parsed.merchantOrPayee)
+                    val matchingCategory = if (customRule != null) {
+                        categories.find { it.id == customRule.categoryId }
+                    } else {
+                        categories.find { cat ->
+                            parsed.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
+                        } ?: categories.find { it.kind == parsed.type }
+                    }
 
                     val accountId = matchingAccount?.id ?: 1L
                     val categoryId = matchingCategory?.id

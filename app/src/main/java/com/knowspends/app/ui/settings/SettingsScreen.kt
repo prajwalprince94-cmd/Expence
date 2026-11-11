@@ -9,6 +9,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -60,7 +61,9 @@ import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Rule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Star
@@ -125,6 +128,8 @@ import com.knowspends.app.ui.theme.getFontFamily
 import com.knowspends.app.ui.theme.pressScale
 
 import com.knowspends.app.ui.components.VyxelExpressiveChip
+import com.knowspends.app.ui.components.bouncyClickable
+import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.progressiveScrollBlur
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,6 +137,8 @@ import com.knowspends.app.ui.theme.progressiveScrollBlur
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToMerchantRules: () -> Unit = {},
     onNavigateToInbox: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -315,59 +322,37 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 1. Integrated Profile Card (Vyxel Expressive Style) ───────────
+            // ── 1. Modern Financial Profile Card (Copilot & Open-Source Style) ──
             item(key = "profile_card") {
-                Box(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(6.dp, shape = VyxelShapeTokens.Card)
-                        .clip(VyxelShapeTokens.Card)
-                        .wrapContentHeight()
+                        .pressScale(0.99f),
+                    shape = VyxelShapeTokens.Card,
+                    colors = CardDefaults.cardColors(
+                        containerColor = scheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
                 ) {
-                    val coverBrush = when (prefs.profileCoverUri) {
-                        "gradient:ocean" -> GradientPresets.Ocean
-                        "gradient:sunset" -> GradientPresets.Sunset
-                        "gradient:amethyst" -> GradientPresets.Amethyst
-                        "gradient:midnight" -> GradientPresets.Midnight
-                        else -> Brush.linearGradient(
-                            listOf(
-                                scheme.primary.copy(alpha = 0.85f),
-                                scheme.secondary.copy(alpha = 0.70f),
-                                scheme.tertiary.copy(alpha = 0.65f)
-                            )
-                        )
-                    }
-
-                    // Cover Banner Background (Expressive gradient)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(128.dp)
-                            .background(coverBrush)
-                    )
-
-                    // Profile Content Card
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 70.dp)
-                            .clip(VyxelShapeTokens.Card)
-                            .background(scheme.surfaceContainerLow)
-                            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.7f), VyxelShapeTokens.Card)
-                            .padding(16.dp)
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // User Profile Header: Avatar + Identity + Edit Action
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            // Circular Avatar
+                            // Circular Avatar with Tap to Pick Image
                             Box(
                                 modifier = Modifier
-                                    .size(76.dp)
+                                    .size(64.dp)
                                     .clip(CircleShape)
-                                    .background(scheme.surfaceContainerHighest)
-                                    .border(3.dp, scheme.surfaceContainerLow, CircleShape)
+                                    .background(scheme.primaryContainer)
+                                    .border(1.5.dp, scheme.primary.copy(alpha = 0.45f), CircleShape)
                                     .clickable {
                                         avatarPicker.launch(
                                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -378,49 +363,77 @@ fun SettingsScreen(
                                 if (prefs.profileAvatarUri.isNotBlank()) {
                                     AsyncImage(
                                         model = prefs.profileAvatarUri,
-                                        contentDescription = "Avatar",
+                                        contentDescription = "Profile Avatar",
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(CircleShape),
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = scheme.primary,
-                                        modifier = Modifier.size(40.dp)
+                                    val initials = prefs.profileName.trim().take(1).uppercase().ifBlank { "P" }
+                                    Text(
+                                        text = initials,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onPrimaryContainer
                                     )
                                 }
                             }
 
-                            // Edit Button
-                            VyxelActionPill(
-                                text = "Edit Profile",
-                                icon = Icons.Default.Edit,
-                                onClick = { viewModel.showProfileDialog(true) }
-                            )
+                            // Identity details
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = prefs.profileName.ifBlank { "Personal Ledger" },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = prefs.profileTagline.ifBlank { "Offline Vault • Financial Privacy First" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // Edit Action Button
+                            Surface(
+                                onClick = { viewModel.showProfileDialog(true) },
+                                shape = VyxelShapeTokens.Pill,
+                                color = scheme.surfaceContainerHighest,
+                                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.bouncyClickable { viewModel.showProfileDialog(true) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Profile",
+                                        tint = scheme.primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "Edit",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.primary
+                                    )
+                                }
+                            }
                         }
 
-                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.35f))
 
-                        Text(
-                            text = prefs.profileName.ifBlank { "Personal Ledger" },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurface
-                        )
-                        Text(
-                            text = prefs.profileTagline.ifBlank { "100% Offline Vault • Financial Privacy First" },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant
-                        )
-
-                        Spacer(Modifier.height(10.dp))
-
-                        Spacer(Modifier.height(14.dp))
-
-                        // Ledger Financial Health Stats Row (Clean 3-column pill cards)
+                        // Ledger Financial Health Stats Ribbon (Auto-Layout 3 Columns)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -430,28 +443,18 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
-                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.CardSmall)
+                                    .background(scheme.surfaceContainerLowest)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.35f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountBalanceWallet,
-                                        contentDescription = null,
-                                        tint = scheme.primary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = "${uiState.accountCount}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = scheme.onSurface
-                                    )
-                                }
+                                Text(
+                                    text = "${uiState.accountCount}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onSurface
+                                )
                                 Text(
                                     text = "Accounts",
                                     style = MaterialTheme.typography.labelSmall,
@@ -464,28 +467,18 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
-                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.CardSmall)
+                                    .background(scheme.surfaceContainerLowest)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.35f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ReceiptLong,
-                                        contentDescription = null,
-                                        tint = scheme.secondary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = "${uiState.transactionCount}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = scheme.onSurface
-                                    )
-                                }
+                                Text(
+                                    text = "${uiState.transactionCount}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onSurface
+                                )
                                 Text(
                                     text = "Records",
                                     style = MaterialTheme.typography.labelSmall,
@@ -493,82 +486,66 @@ fun SettingsScreen(
                                 )
                             }
 
-                            // Stat 3: Monthly Goal
+                            // Stat 3: Monthly Savings Target
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(VyxelShapeTokens.CardSmall)
-                                    .background(scheme.surfaceContainerHighest.copy(alpha = 0.5f))
-                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.CardSmall)
+                                    .background(scheme.surfaceContainerLowest)
+                                    .border(1.dp, scheme.outlineVariant.copy(alpha = 0.35f), VyxelShapeTokens.CardSmall)
                                     .padding(vertical = 10.dp, horizontal = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.TrendingUp,
-                                        contentDescription = null,
-                                        tint = scheme.tertiary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = "${prefs.currencySymbol}${prefs.monthlySavingsGoal}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = scheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
                                 Text(
-                                    text = "Savings Target",
+                                    text = "${prefs.currencySymbol}${prefs.monthlySavingsGoal}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = IncomeColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Target Goal",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = scheme.onSurfaceVariant
                                 )
                             }
                         }
-
-                        Spacer(Modifier.height(12.dp))
-
-                        // Quick Preference Expressive Chips (Tap directly to edit)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            VyxelExpressiveChip(
-                                selected = true,
-                                onClick = { viewModel.showCurrencyDialog(true) },
-                                label = "Currency: ${prefs.currencySymbol}"
-                            )
-                            VyxelExpressiveChip(
-                                selected = false,
-                                onClick = { viewModel.showProfileDialog(true) },
-                                label = "FY: ${prefs.financialYearStart}"
-                            )
-                            VyxelExpressiveChip(
-                                selected = false,
-                                onClick = {},
-                                label = "100% Offline Vault",
-                                icon = Icons.Default.Security
-                            )
-                        }
                     }
                 }
             }
 
-            // ── 1.5 Budgets & Limits (Moved from bottom navigation) ───────────
+            // ── 1.5 Budgets, Bills & Subscriptions ───────────────────────────
             item(key = "budgets_limits") {
-                VyxelSettingsCard(title = "Budgets & Limits") {
+                VyxelSettingsCard(title = "Budgets, Bills & Subscriptions") {
+                    VyxelActionRow(
+                        title = "Recurring Bills & Subscriptions",
+                        subtitle = "Track Netflix, Spotify, SIP investments, rent, and monthly commitments",
+                        icon = Icons.Default.Repeat,
+                        onClick = onNavigateToSubscriptions
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
                     VyxelActionRow(
                         title = "Monthly Budgets & Category Limits",
                         subtitle = "Track envelope spending, monitor budget health, and rollover unspent savings",
                         icon = Icons.Default.AccountBalanceWallet,
                         onClick = onNavigateToBudgets
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    VyxelActionRow(
+                        title = "Merchant Rules & Category Memory",
+                        subtitle = "Auto-assign categories based on payee patterns & past transaction memory",
+                        icon = Icons.Default.Rule,
+                        onClick = onNavigateToMerchantRules
                     )
                 }
             }
@@ -1296,30 +1273,7 @@ fun SettingsScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 1. Cover Theme Presets
-                    Text(
-                        text = "Cover Gradient Theme",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = scheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        gradientThemes.forEach { (key, label) ->
-                            FilterChip(
-                                selected = editCoverUri == key,
-                                onClick = { editCoverUri = key },
-                                label = { Text(label) },
-                                shape = VyxelShapeTokens.Pill
-                            )
-                        }
-                    }
-
-                    // 2. Name & Tagline
+                    // 1. Name & Tagline
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },

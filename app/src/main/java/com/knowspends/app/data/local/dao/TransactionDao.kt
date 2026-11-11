@@ -178,6 +178,13 @@ interface TransactionDao {
         endDate: Long
     ): Flow<List<MonthlyAggregateEntity>>
 
+    @Query("""
+        SELECT categoryId FROM transactions 
+        WHERE TRIM(LOWER(payee)) = TRIM(LOWER(:payee)) AND categoryId IS NOT NULL AND deletedAt IS NULL 
+        ORDER BY date DESC LIMIT 1
+    """)
+    suspend fun getRecentCategoryIdForPayee(payee: String): Long?
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionByIdOnce(id: Long): TransactionEntity?
 

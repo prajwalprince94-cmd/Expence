@@ -9,6 +9,7 @@ import com.knowspends.app.domain.model.Transaction
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.CategoryRepository
+import com.knowspends.app.domain.repository.MerchantRuleRepository
 import com.knowspends.app.domain.repository.TransactionRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -67,6 +68,7 @@ class AddTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
+    private val merchantRuleRepository: MerchantRuleRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -152,7 +154,22 @@ class AddTransactionViewModel @Inject constructor(
             is AddTransactionEvent.OnCategorySelected -> _uiState.update { it.copy(selectedCategoryId = event.categoryId) }
             is AddTransactionEvent.OnDateSelected -> _uiState.update { it.copy(dateMillis = event.dateMillis) }
             is AddTransactionEvent.OnNoteChanged -> _uiState.update { it.copy(note = event.note) }
-            is AddTransactionEvent.OnPayeeChanged -> _uiState.update { it.copy(payee = event.payee) }
+            is AddTransactionEvent.OnPayeeChanged -> {
+                _uiState.update { it.copy(payee = event.payee) }
+                if (event.payee.isNotBlank() && _uiState.value.type != TransactionType.TRANSFER) {
+                    viewModelScope.launch {
+                        val customRule = merchantRuleRepository.matchCategory(event.payee)
+                        val rememberedCatId = if (customRule == null) transactionRepository.getRecentCategoryIdForPayee(event.payee) else null
+                        val targetCatId = customRule?.categoryId ?: rememberedCatId
+                        if (targetCatId != null) {
+                            val availableCats = _uiState.value.categories
+                            if (availableCats.any { it.id == targetCatId }) {
+                                _uiState.update { it.copy(selectedCategoryId = targetCatId) }
+                            }
+                        }
+                    }
+                }
+            }
             AddTransactionEvent.OnSave -> saveTransaction(andAddAnother = false)
             AddTransactionEvent.OnSaveAndAddAnother -> saveTransaction(andAddAnother = true)
         }
@@ -235,6 +252,18 @@ class AddTransactionViewModel @Inject constructor(
                     payee = state.payee.trim()
                 )
                 transactionRepository.saveTransaction(transaction)
+
+                // Category Memory: automatically memorize category for this payee
+                if (state.type != TransactionType.TRANSFER && state.payee.isNotBlank() && state.selectedCategoryId != null) {
+                    val catName = state.categories.firstOrNull { it.id == state.selectedCategoryId }?.name ?: "Category"
+                    merchantRuleRepository.saveRule(
+                        pattern = state.payee.trim(),
+                        categoryId = state.selectedCategoryId,
+                        categoryName = catName,
+                        isExactMatch = false
+                    )
+                }
+
                 if (andAddAnother) {
                     _uiState.update {
                         it.copy(

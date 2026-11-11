@@ -312,6 +312,69 @@ fun HomeScreen(
                     )
                 }
 
+                // "Safe-to-Spend Today" Dynamic Allowance Ribbon (Copilot / Simplifi Benchmark)
+                Surface(
+                    shape = VyxelShapeTokens.CardSmall,
+                    color = if (uiState.isSafeToSpendPositive) IncomeColor.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    border = BorderStroke(
+                        1.dp,
+                        if (uiState.isSafeToSpendPositive) IncomeColor.copy(alpha = 0.35f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (uiState.isSafeToSpendPositive) IncomeColor.copy(alpha = 0.2f)
+                                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalanceWallet,
+                                    contentDescription = null,
+                                    tint = if (uiState.isSafeToSpendPositive) IncomeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Text(
+                                    text = "SAFE TO SPEND TODAY",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Text(
+                                    text = "${uiState.daysRemainingInMonth} days left in month",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = if (uiState.isSafeToSpendPositive) "${uiState.formattedSafeToSpendToday} / day" else "₹0 / day",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.isSafeToSpendPositive) IncomeColor else ExpenseColor
+                        )
+                    }
+                }
+
                 // Visual Cashflow Pace Bar
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(

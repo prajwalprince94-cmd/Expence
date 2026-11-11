@@ -17,4 +17,5 @@ interface TransactionRepository {
     suspend fun saveTransaction(transaction: Transaction): Long
     suspend fun softDeleteTransaction(id: Long)
     suspend fun restoreTransaction(id: Long)
+    suspend fun getRecentCategoryIdForPayee(payee: String): Long?
 }

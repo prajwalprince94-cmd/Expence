@@ -59,4 +59,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserPreferencesRepository(impl: com.knowspends.app.data.repository.UserPreferencesRepositoryImpl): com.knowspends.app.domain.repository.UserPreferencesRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMerchantRuleRepository(impl: com.knowspends.app.data.repository.MerchantRuleRepositoryImpl): com.knowspends.app.domain.repository.MerchantRuleRepository
 }

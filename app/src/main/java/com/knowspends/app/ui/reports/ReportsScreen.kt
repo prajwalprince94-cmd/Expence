@@ -27,9 +27,16 @@ import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
 import com.knowspends.app.ui.theme.progressiveScrollBlur
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Warning
+import com.knowspends.app.domain.model.InsightType
+import com.knowspends.app.domain.model.NarrativeInsight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -195,12 +202,43 @@ fun ReportsScreen(
                             )
                         }
                     }
+
+                    // Headline Narrative Insight Ribbon
+                    val headlineInsight = uiState.narrativeInsights.firstOrNull { it.id != "no_data" }
+                    if (headlineInsight != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = headlineInsight.narrative,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Sub-tabs: Categories, Monthly Trends, Payees
+            // Sub-tabs: Insights, Categories, Monthly Trends, Payees
             PrimaryTabRow(
                 selectedTabIndex = uiState.selectedTab.ordinal,
                 modifier = Modifier.fillMaxWidth()
@@ -216,6 +254,9 @@ fun ReportsScreen(
 
             // Tab Content
             when (uiState.selectedTab) {
+                ReportTab.INSIGHTS -> NarrativeInsightsContent(
+                    insights = uiState.narrativeInsights
+                )
                 ReportTab.CATEGORIES -> CategoryReportContent(
                     categories = uiState.categories,
                     totalExpenseMinor = uiState.totalExpenseMinor
@@ -573,6 +614,148 @@ fun EmptyReportView(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+fun NarrativeInsightsContent(
+    insights: List<NarrativeInsight>,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    if (insights.isEmpty()) {
+        EmptyReportView(message = "No insights available for this period yet")
+    } else {
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .progressiveScrollBlur(topBlur = 8.dp, bottomBlur = 32.dp, scrimColor = MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "ON-DEVICE FINTECH INTELLIGENCE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+
+            items(insights, key = { it.id }) { insight ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pressScale(0.98f),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                val (iconBg, iconTint, vector) = when (insight.iconKey) {
+                                    "savings" -> Triple(IncomeColor.copy(alpha = 0.15f), IncomeColor, Icons.Default.Savings)
+                                    "star" -> Triple(scheme.primaryContainer, scheme.primary, Icons.Default.Star)
+                                    "calendar" -> Triple(scheme.secondaryContainer, scheme.secondary, Icons.Default.CalendarToday)
+                                    "trending_up" -> Triple(scheme.tertiaryContainer, scheme.tertiary, Icons.Default.TrendingUp)
+                                    "pie" -> Triple(scheme.primaryContainer, scheme.primary, Icons.Default.PieChart)
+                                    "store" -> Triple(scheme.surfaceContainerHighest, scheme.onSurfaceVariant, Icons.Default.Store)
+                                    "warning" -> Triple(ExpenseColor.copy(alpha = 0.15f), ExpenseColor, Icons.Default.Warning)
+                                    else -> Triple(scheme.primaryContainer, scheme.primary, Icons.Default.AutoAwesome)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(iconBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = vector,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = iconTint
+                                    )
+                                }
+
+                                Text(
+                                    text = insight.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = scheme.onSurface
+                                )
+                            }
+
+                            if (insight.metricHighlight != null) {
+                                val metricColor = when (insight.type) {
+                                    InsightType.POSITIVE -> IncomeColor
+                                    InsightType.CAUTION -> ExpenseColor
+                                    InsightType.HIGHLIGHT -> scheme.primary
+                                    InsightType.NEUTRAL -> scheme.onSurface
+                                }
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = when (insight.type) {
+                                        InsightType.POSITIVE -> IncomeColor.copy(alpha = 0.12f)
+                                        InsightType.CAUTION -> ExpenseColor.copy(alpha = 0.12f)
+                                        else -> scheme.surfaceContainerHighest
+                                    }
+                                ) {
+                                    Text(
+                                        text = insight.metricHighlight,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = metricColor,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = insight.narrative,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.onSurfaceVariant,
+                            lineHeight = 20.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }

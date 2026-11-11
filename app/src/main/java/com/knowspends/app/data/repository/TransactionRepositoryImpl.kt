@@ -161,6 +161,11 @@ class TransactionRepositoryImpl @Inject constructor(
         transactionDao.restoreTransaction(id)
     }
 
+    override suspend fun getRecentCategoryIdForPayee(payee: String): Long? = withContext(ioDispatcher) {
+        if (payee.isBlank()) return@withContext null
+        transactionDao.getRecentCategoryIdForPayee(payee)
+    }
+
     private fun TransactionWithDetailsEntity.toDomain() = TransactionWithDetails(
         transaction = Transaction(
             id = transaction.id,

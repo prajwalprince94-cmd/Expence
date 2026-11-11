@@ -8,6 +8,8 @@ import com.knowspends.app.domain.model.Category
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.CategoryRepository
 import com.knowspends.app.domain.repository.PendingTransactionRepository
+import com.knowspends.app.domain.repository.MerchantRuleRepository
+import com.knowspends.app.domain.repository.TransactionRepository
 import com.knowspends.app.domain.util.BankMessageParser
 import com.knowspends.app.sms.SmsScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +36,8 @@ class ReviewInboxViewModel @Inject constructor(
     private val pendingRepository: PendingTransactionRepository,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
+    private val merchantRuleRepository: MerchantRuleRepository,
+    private val transactionRepository: TransactionRepository,
     private val smsScanner: SmsScanner
 ) : ViewModel() {
 
@@ -108,9 +112,30 @@ class ReviewInboxViewModel @Inject constructor(
         }
     }
 
-    fun approveTransaction(pendingId: Long, accountId: Long, categoryId: Long?) {
+    suspend fun matchCategoryForPayee(payee: String): Long? {
+        val rule = merchantRuleRepository.matchCategory(payee)
+        if (rule != null) return rule.categoryId
+        return transactionRepository.getRecentCategoryIdForPayee(payee)
+    }
+
+    fun approveTransaction(
+        pendingId: Long,
+        accountId: Long,
+        categoryId: Long?,
+        rememberRule: Boolean = false,
+        payee: String = ""
+    ) {
         viewModelScope.launch {
             pendingRepository.approveTransaction(pendingId, accountId, categoryId)
+            if (rememberRule && categoryId != null && payee.isNotBlank()) {
+                val catName = uiState.value.categories.firstOrNull { it.id == categoryId }?.name ?: "Category"
+                merchantRuleRepository.saveRule(
+                    pattern = payee,
+                    categoryId = categoryId,
+                    categoryName = catName,
+                    isExactMatch = false
+                )
+            }
             _statusMessage.value = "Transaction approved and logged to ledger!"
         }
     }
@@ -134,10 +159,21 @@ class ReviewInboxViewModel @Inject constructor(
                 } ?: accounts.firstOrNull { it.type.name == "BANK" || it.type.name == "WALLET" }
                 val targetAccountId = matchingAccount?.id ?: defaultAccountId
 
-                val matchingCategory = categories.find { cat ->
-                    parsed?.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
+                // 1. Check custom merchant rules
+                val customRule = merchantRuleRepository.matchCategory(p.suggestedPayee)
+                // 2. Check past category memory from recent transactions
+                val rememberedCatId = if (customRule == null) transactionRepository.getRecentCategoryIdForPayee(p.suggestedPayee) else null
+
+                val targetCategoryId = when {
+                    customRule != null -> customRule.categoryId
+                    rememberedCatId != null -> rememberedCatId
+                    else -> {
+                        val matchingCategory = categories.find { cat ->
+                            parsed?.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
+                        } ?: categories.find { it.kind.name == p.type }
+                        matchingCategory?.id
+                    }
                 }
-                val targetCategoryId = matchingCategory?.id
 
                 pendingRepository.approveTransaction(p.id, targetAccountId, targetCategoryId)
                 approvedCount++

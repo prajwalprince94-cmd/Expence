@@ -86,6 +86,22 @@ data class HomeUiState(
             val cal = Calendar.getInstance()
             return maxOf(0, cal.getActualMaximum(Calendar.DAY_OF_MONTH) - cal.get(Calendar.DAY_OF_MONTH))
         }
+
+    val safeToSpendTodayMinor: Long
+        get() {
+            val daysLeft = maxOf(1, daysRemainingInMonth + 1)
+            return if (monthlySummary.netSavingsMinor > 0) {
+                monthlySummary.netSavingsMinor / daysLeft
+            } else {
+                0L
+            }
+        }
+
+    val formattedSafeToSpendToday: String
+        get() = MoneyFormatter.formatPaise(safeToSpendTodayMinor, includeSymbol = true)
+
+    val isSafeToSpendPositive: Boolean
+        get() = safeToSpendTodayMinor > 0
 }
 
 @HiltViewModel
