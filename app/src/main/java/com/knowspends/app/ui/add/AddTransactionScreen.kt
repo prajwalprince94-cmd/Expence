@@ -1,6 +1,5 @@
 package com.knowspends.app.ui.add
 
-import android.app.DatePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,28 +14,41 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -45,17 +57,21 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +79,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.knowspends.app.domain.model.Account
+import com.knowspends.app.domain.model.AccountType
 import com.knowspends.app.domain.model.TransactionType
+import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.components.VyxelSegmentedRow
 import com.knowspends.app.ui.theme.ExpenseColor
@@ -71,10 +90,13 @@ import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.TransferColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.pressScale
+import com.knowspends.app.util.VyxelHaptics
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +110,10 @@ fun AddTransactionScreen(
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
 
-    var showNoteDialog by remember { mutableStateOf(false) }
-    var showAccountDialog by remember { mutableStateOf(false) }
-    var showTransferAccountDialog by remember { mutableStateOf(false) }
+    var showDatePickerDialog by remember { mutableStateOf(false) }
+    var showAccountSheet by remember { mutableStateOf(false) }
+    var showTransferAccountSheet by remember { mutableStateOf(false) }
+    var showDetailsSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.navigateUp) {
         if (uiState.navigateUp) {
@@ -129,11 +152,32 @@ fun AddTransactionScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
+                    IconButton(
+                        onClick = {
+                            VyxelHaptics.click(context)
+                            onNavigateUp()
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
+                    }
+                },
+                actions = {
+                    if (uiState.amountInput != "0") {
+                        IconButton(
+                            onClick = {
+                                VyxelHaptics.heavy(context)
+                                viewModel.onEvent(AddTransactionEvent.OnClear)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear",
+                                tint = scheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             )
@@ -157,6 +201,7 @@ fun AddTransactionScreen(
                     items = types,
                     selectedIndex = selectedTypeIndex,
                     onSelectIndex = { index ->
+                        VyxelHaptics.tick(context)
                         viewModel.onEvent(AddTransactionEvent.OnTypeSelected(types[index]))
                     },
                     activeColor = typeColor,
@@ -165,7 +210,7 @@ fun AddTransactionScreen(
                 )
             }
 
-            // ── 2. Hero Amount Display ────────────────────────────────────────
+            // ── 2. Hero Monospace Tabular Amount Display ──────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -174,18 +219,20 @@ fun AddTransactionScreen(
             ) {
                 Text(
                     text = uiState.formattedAmount,
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-1.0).sp
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        fontFeatureSettings = "tnum"
                     ),
-                    color = typeColor,
+                    color = if (uiState.amountInput == "0") scheme.onSurfaceVariant.copy(alpha = 0.5f) else typeColor,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // ── 3. Context Pills Row (Account, Date, Note) ────────────────────
+            // ── 3. Context Pills Row (Account, Transfer, Date, Note/Payee) ────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -196,17 +243,26 @@ fun AddTransactionScreen(
             ) {
                 // Account Pill
                 ContextPill(
-                    icon = Icons.Default.AccountBalanceWallet,
-                    text = selectedAccount?.name ?: "Account",
-                    onClick = { showAccountDialog = true }
+                    icon = getAccountIcon(selectedAccount?.type),
+                    text = selectedAccount?.name ?: "Select Account",
+                    badge = selectedAccount?.let {
+                        MoneyFormatter.formatPaise(it.currentBalanceMinor, includeSymbol = true)
+                    },
+                    onClick = {
+                        VyxelHaptics.tick(context)
+                        showAccountSheet = true
+                    }
                 )
 
                 // Transfer Target Account Pill (if transfer)
                 if (uiState.type == TransactionType.TRANSFER) {
                     ContextPill(
                         icon = Icons.Default.SwapHoriz,
-                        text = "To: ${selectedTransferAccount?.name ?: "Select Target"}",
-                        onClick = { showTransferAccountDialog = true }
+                        text = "To: ${selectedTransferAccount?.name ?: "Target A/c"}",
+                        onClick = {
+                            VyxelHaptics.tick(context)
+                            showTransferAccountSheet = true
+                        }
                     )
                 }
 
@@ -215,27 +271,25 @@ fun AddTransactionScreen(
                     icon = Icons.Default.CalendarToday,
                     text = dateFormatter.format(Date(uiState.dateMillis)),
                     onClick = {
-                        val cal = Calendar.getInstance().apply { timeInMillis = uiState.dateMillis }
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                val newCal = Calendar.getInstance().apply {
-                                    set(year, month, dayOfMonth)
-                                }
-                                viewModel.onEvent(AddTransactionEvent.OnDateSelected(newCal.timeInMillis))
-                            },
-                            cal.get(Calendar.YEAR),
-                            cal.get(Calendar.MONTH),
-                            cal.get(Calendar.DAY_OF_MONTH)
-                        ).show()
+                        VyxelHaptics.tick(context)
+                        showDatePickerDialog = true
                     }
                 )
 
-                // Note Pill
+                // Details (Payee / Note) Pill
+                val detailsLabel = when {
+                    uiState.payee.isNotBlank() && uiState.note.isNotBlank() -> "${uiState.payee} • ${uiState.note}"
+                    uiState.payee.isNotBlank() -> uiState.payee
+                    uiState.note.isNotBlank() -> uiState.note
+                    else -> "Note / Payee"
+                }
                 ContextPill(
                     icon = Icons.Default.Description,
-                    text = if (uiState.note.isNotBlank()) uiState.note else "Note",
-                    onClick = { showNoteDialog = true }
+                    text = detailsLabel,
+                    onClick = {
+                        VyxelHaptics.tick(context)
+                        showDetailsSheet = true
+                    }
                 )
             }
 
@@ -270,6 +324,7 @@ fun AddTransactionScreen(
                                 .background(categoryBg)
                                 .border(categoryBorder, VyxelShapeTokens.Pill)
                                 .clickable {
+                                    VyxelHaptics.tick(context)
                                     viewModel.onEvent(AddTransactionEvent.OnCategorySelected(category.id))
                                 }
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -297,189 +352,113 @@ fun AddTransactionScreen(
 
             // ── 5. Tactile Numeric Keypad ──────────────────────────────────────
             VyxelNumericKeypad(
-                onKeyPress = { viewModel.onEvent(AddTransactionEvent.OnKeypadPress(it)) },
-                onBackspace = { viewModel.onEvent(AddTransactionEvent.OnBackspace) },
-                onSave = { viewModel.onEvent(AddTransactionEvent.OnSave) },
-                onSaveAndAddAnother = { viewModel.onEvent(AddTransactionEvent.OnSaveAndAddAnother) },
-                isSaving = uiState.isSaving
+                onKeyPress = { char ->
+                    viewModel.onEvent(AddTransactionEvent.OnKeypadPress(char))
+                },
+                onBackspace = {
+                    viewModel.onEvent(AddTransactionEvent.OnBackspace)
+                },
+                onSave = {
+                    viewModel.onEvent(AddTransactionEvent.OnSave)
+                },
+                onSaveAndAddAnother = {
+                    viewModel.onEvent(AddTransactionEvent.OnSaveAndAddAnother)
+                },
+                isSaving = uiState.isSaving,
+                isEditing = uiState.transactionId != null
             )
         }
     }
 
-    // ── Note Modal Dialog ──────────────────────────────────────────────────────
-    if (showNoteDialog) {
-        var noteDraft by remember { mutableStateOf(uiState.note) }
-        AlertDialog(
-            onDismissRequest = { showNoteDialog = false },
-            title = {
-                Text(
-                    text = "Transaction Note",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    value = noteDraft,
-                    onValueChange = { noteDraft = it },
-                    placeholder = { Text("e.g. Lunch with friends, groceries...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            },
+    // ── Modern Compose DatePickerDialog ───────────────────────────────────────
+    if (showDatePickerDialog) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = uiState.dateMillis
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePickerDialog = false },
             confirmButton = {
-                Button(
+                TextButton(
                     onClick = {
-                        viewModel.onEvent(AddTransactionEvent.OnNoteChanged(noteDraft))
-                        showNoteDialog = false
-                    },
-                    shape = VyxelShapeTokens.Pill
+                        datePickerState.selectedDateMillis?.let { utcMillis ->
+                            // Preserve local calendar date correctly
+                            val calUtc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                                timeInMillis = utcMillis
+                            }
+                            val localCal = Calendar.getInstance().apply {
+                                set(
+                                    calUtc.get(Calendar.YEAR),
+                                    calUtc.get(Calendar.MONTH),
+                                    calUtc.get(Calendar.DAY_OF_MONTH)
+                                )
+                            }
+                            viewModel.onEvent(AddTransactionEvent.OnDateSelected(localCal.timeInMillis))
+                            VyxelHaptics.click(context)
+                        }
+                        showDatePickerDialog = false
+                    }
                 ) {
-                    Text("Done")
+                    Text("Select", fontWeight = FontWeight.Bold, color = scheme.primary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showNoteDialog = false }) {
+                TextButton(onClick = { showDatePickerDialog = false }) {
                     Text("Cancel")
                 }
             },
             shape = VyxelShapeTokens.Card
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false
+            )
+        }
+    }
+
+    // ── Account Selection BottomSheet ──────────────────────────────────────────
+    if (showAccountSheet) {
+        AccountSelectionSheet(
+            title = "Select Source Account",
+            subtitle = "Choose the account used for this transaction",
+            accounts = uiState.accounts,
+            selectedAccountId = uiState.selectedAccountId,
+            onSelectAccount = { accountId ->
+                VyxelHaptics.click(context)
+                viewModel.onEvent(AddTransactionEvent.OnAccountSelected(accountId))
+                showAccountSheet = false
+            },
+            onDismiss = { showAccountSheet = false }
         )
     }
 
-    // ── Account Selector Dialog ────────────────────────────────────────────────
-    if (showAccountDialog) {
-        AlertDialog(
-            onDismissRequest = { showAccountDialog = false },
-            title = {
-                Text(
-                    text = "Select Account",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+    // ── Transfer Destination Account BottomSheet ───────────────────────────────
+    if (showTransferAccountSheet) {
+        AccountSelectionSheet(
+            title = "Select Destination Account",
+            subtitle = "Choose where the funds are transferred to",
+            accounts = uiState.accounts.filter { it.id != uiState.selectedAccountId },
+            selectedAccountId = uiState.selectedTransferAccountId,
+            onSelectAccount = { accountId ->
+                VyxelHaptics.click(context)
+                viewModel.onEvent(AddTransactionEvent.OnTransferAccountSelected(accountId))
+                showTransferAccountSheet = false
             },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    uiState.accounts.forEach { account ->
-                        val isSelected = account.id == uiState.selectedAccountId
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .pressScale(0.96f)
-                                .clip(VyxelShapeTokens.Card)
-                                .background(if (isSelected) scheme.primaryContainer else scheme.surfaceContainerHigh)
-                                .clickable {
-                                    viewModel.onEvent(AddTransactionEvent.OnAccountSelected(account.id))
-                                    showAccountDialog = false
-                                }
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccountBalanceWallet,
-                                contentDescription = null,
-                                tint = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = account.name,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = scheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showAccountDialog = false }) {
-                    Text("Close")
-                }
-            },
-            shape = VyxelShapeTokens.Card
+            onDismiss = { showTransferAccountSheet = false }
         )
     }
 
-    // ── Transfer Target Account Selector Dialog ────────────────────────────────
-    if (showTransferAccountDialog) {
-        AlertDialog(
-            onDismissRequest = { showTransferAccountDialog = false },
-            title = {
-                Text(
-                    text = "Select Destination Account",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+    // ── Details (Payee / Note) BottomSheet ─────────────────────────────────────
+    if (showDetailsSheet) {
+        DetailsInputSheet(
+            initialPayee = uiState.payee,
+            initialNote = uiState.note,
+            onDone = { newPayee, newNote ->
+                VyxelHaptics.click(context)
+                viewModel.onEvent(AddTransactionEvent.OnPayeeChanged(newPayee))
+                viewModel.onEvent(AddTransactionEvent.OnNoteChanged(newNote))
+                showDetailsSheet = false
             },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    uiState.accounts
-                        .filter { it.id != uiState.selectedAccountId }
-                        .forEach { account ->
-                            val isSelected = account.id == uiState.selectedTransferAccountId
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .pressScale(0.96f)
-                                    .clip(VyxelShapeTokens.Card)
-                                    .background(if (isSelected) scheme.primaryContainer else scheme.surfaceContainerHigh)
-                                    .clickable {
-                                        viewModel.onEvent(AddTransactionEvent.OnTransferAccountSelected(account.id))
-                                        showTransferAccountDialog = false
-                                    }
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountBalanceWallet,
-                                    contentDescription = null,
-                                    tint = if (isSelected) scheme.primary else scheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Text(
-                                    text = account.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = scheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showTransferAccountDialog = false }) {
-                    Text("Close")
-                }
-            },
-            shape = VyxelShapeTokens.Card
+            onDismiss = { showDetailsSheet = false }
         )
     }
 }
@@ -489,15 +468,16 @@ private fun ContextPill(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    badge: String? = null
 ) {
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier = modifier
             .pressScale(0.96f)
             .clip(VyxelShapeTokens.Pill)
-            .background(scheme.surfaceContainerHigh)
-            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.Pill)
+            .background(scheme.surfaceContainerHigh.copy(alpha = 0.65f))
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.45f), VyxelShapeTokens.Pill)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -517,6 +497,269 @@ private fun ContextPill(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        if (badge != null) {
+            Surface(
+                shape = VyxelShapeTokens.Pill,
+                color = scheme.surfaceContainerHighest.copy(alpha = 0.7f)
+            ) {
+                Text(
+                    text = badge,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontFeatureSettings = "tnum",
+                        fontSize = 10.sp
+                    ),
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AccountSelectionSheet(
+    title: String,
+    subtitle: String,
+    accounts: List<Account>,
+    selectedAccountId: Long?,
+    onSelectAccount: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scheme = MaterialTheme.colorScheme
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = scheme.surfaceContainerLowest,
+        shape = VyxelShapeTokens.CardLarge
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(accounts, key = { it.id }) { account ->
+                    val isSelected = account.id == selectedAccountId
+                    val bg = if (isSelected) scheme.primaryContainer.copy(alpha = 0.45f) else scheme.surfaceContainerHigh.copy(alpha = 0.45f)
+                    val border = if (isSelected) BorderStroke(1.5.dp, scheme.primary) else BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .pressScale(0.97f)
+                            .clip(VyxelShapeTokens.Card)
+                            .background(bg)
+                            .border(border, VyxelShapeTokens.Card)
+                            .clickable { onSelectAccount(account.id) }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) scheme.primary else scheme.surfaceContainerHighest),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = getAccountIcon(account.type),
+                                contentDescription = null,
+                                tint = if (isSelected) scheme.onPrimary else scheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = account.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = scheme.onSurface
+                            )
+                            Text(
+                                text = MoneyFormatter.formatPaise(account.currentBalanceMinor, includeSymbol = true),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontFeatureSettings = "tnum"
+                                ),
+                                color = scheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = scheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailsInputSheet(
+    initialPayee: String,
+    initialNote: String,
+    onDone: (payee: String, note: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scheme = MaterialTheme.colorScheme
+    var payeeDraft by remember { mutableStateOf(initialPayee) }
+    var noteDraft by remember { mutableStateOf(initialNote) }
+
+    val quickTags = listOf("Groceries", "Coffee", "Dining", "Fuel", "Bills", "Shopping", "Entertainment", "Transit")
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = scheme.surfaceContainerLowest,
+        shape = VyxelShapeTokens.CardLarge
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "Transaction Details",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface
+            )
+
+            OutlinedTextField(
+                value = payeeDraft,
+                onValueChange = { payeeDraft = it },
+                label = { Text("Payee / Merchant") },
+                placeholder = { Text("e.g. Starbucks, Uber, Swiggy") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Store,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = VyxelShapeTokens.Card
+            )
+
+            OutlinedTextField(
+                value = noteDraft,
+                onValueChange = { noteDraft = it },
+                label = { Text("Note / Description") },
+                placeholder = { Text("e.g. Lunch with team, monthly subscription") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = VyxelShapeTokens.Card
+            )
+
+            // Quick suggestion tags
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Quick Suggestion",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    quickTags.forEach { tag ->
+                        Surface(
+                            shape = VyxelShapeTokens.Pill,
+                            color = scheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .pressScale(0.96f)
+                                .clickable {
+                                    if (noteDraft.isBlank()) {
+                                        noteDraft = tag
+                                    } else {
+                                        noteDraft = "$noteDraft, $tag"
+                                    }
+                                }
+                        ) {
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Button(
+                onClick = { onDone(payeeDraft.trim(), noteDraft.trim()) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 50.dp)
+                    .pressScale(0.96f),
+                shape = VyxelShapeTokens.Pill,
+                colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
+            ) {
+                Text(
+                    text = "Apply Details",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
     }
 }
 
@@ -527,9 +770,11 @@ private fun VyxelNumericKeypad(
     onSave: () -> Unit,
     onSaveAndAddAnother: () -> Unit,
     isSaving: Boolean,
+    isEditing: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -564,7 +809,13 @@ private fun VyxelNumericKeypad(
                                 .background(scheme.surfaceContainerHigh.copy(alpha = 0.65f))
                                 .border(1.dp, scheme.outlineVariant.copy(alpha = 0.5f), VyxelShapeTokens.Card)
                                 .clickable {
-                                    if (char == '⌫') onBackspace() else onKeyPress(char)
+                                    if (char == '⌫') {
+                                        VyxelHaptics.heavy(context)
+                                        onBackspace()
+                                    } else {
+                                        VyxelHaptics.click(context)
+                                        onKeyPress(char)
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -578,7 +829,10 @@ private fun VyxelNumericKeypad(
                             } else {
                                 Text(
                                     text = char.toString(),
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontFeatureSettings = "tnum"
+                                    ),
                                     fontWeight = FontWeight.SemiBold,
                                     color = scheme.onSurface
                                 )
@@ -596,7 +850,10 @@ private fun VyxelNumericKeypad(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = onSave,
+                    onClick = {
+                        VyxelHaptics.success(context)
+                        onSave()
+                    },
                     enabled = !isSaving,
                     modifier = Modifier
                         .weight(1f)
@@ -612,34 +869,50 @@ private fun VyxelNumericKeypad(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Save",
+                        text = if (isEditing) "Update Transaction" else "Save Transaction",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                OutlinedButton(
-                    onClick = onSaveAndAddAnother,
-                    enabled = !isSaving,
-                    modifier = Modifier
-                        .defaultMinSize(minHeight = 50.dp)
-                        .pressScale(0.96f),
-                    shape = VyxelShapeTokens.Pill,
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.7f))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Add Another",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                if (!isEditing) {
+                    OutlinedButton(
+                        onClick = {
+                            VyxelHaptics.success(context)
+                            onSaveAndAddAnother()
+                        },
+                        enabled = !isSaving,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 50.dp)
+                            .pressScale(0.96f),
+                        shape = VyxelShapeTokens.Pill,
+                        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.7f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Add Another",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+private fun getAccountIcon(type: AccountType?): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (type) {
+        AccountType.CASH -> Icons.Default.Payments
+        AccountType.BANK -> Icons.Default.AccountBalance
+        AccountType.WALLET -> Icons.Default.AccountBalanceWallet
+        AccountType.CARD -> Icons.Default.CreditCard
+        AccountType.LOAN -> Icons.Default.TrendingDown
+        null -> Icons.Default.AccountBalanceWallet
     }
 }
