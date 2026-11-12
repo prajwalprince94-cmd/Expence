@@ -14,6 +14,34 @@ interface UserPreferencesRepository {
         savingsGoal: String,
         financialYearStart: String
     )
+    suspend fun setRegionalPreferences(
+        currency: String,
+        numberFormat: String,
+        dateFormat: String,
+        firstDayOfWeek: String,
+        monthStartDay: Int
+    )
+    suspend fun setBudgetPreferences(
+        budgetPeriod: String,
+        rollover: Boolean,
+        alertThreshold: Int,
+        savingsGoal: String
+    )
+    suspend fun setNotificationsPreferences(
+        dailyReminder: Boolean,
+        reminderTime: String,
+        budgetAlerts: Boolean,
+        billReminders: Boolean,
+        summaryReports: Boolean
+    )
+    suspend fun setSecurityPrivacyPreferences(
+        hideBalances: Boolean,
+        blockScreenshots: Boolean
+    )
+    suspend fun setDataManagementPreferences(
+        autoBackupFrequency: String,
+        syncWifiOnly: Boolean
+    )
     suspend fun setThemeMode(themeMode: String)
     suspend fun setDynamicColor(enabled: Boolean)
     suspend fun setFontId(fontId: String)

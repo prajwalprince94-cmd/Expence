@@ -444,6 +444,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun importCsv(uri: Uri) {
+        importCsv(uri, context.contentResolver)
+    }
+
     fun importCsv(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, statusMessage = null) }
@@ -592,6 +596,69 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update { it.copy(statusMessage = "Error clearing cache: ${e.localizedMessage}") }
             }
+        }
+    }
+
+    fun setRegionalPreferences(
+        currency: String,
+        numberFormat: String,
+        dateFormat: String,
+        firstDayOfWeek: String,
+        monthStartDay: Int
+    ) {
+        viewModelScope.launch {
+            userPreferencesRepository.setRegionalPreferences(
+                currency, numberFormat, dateFormat, firstDayOfWeek, monthStartDay
+            )
+        }
+    }
+
+    fun setBudgetPreferences(
+        budgetPeriod: String,
+        rollover: Boolean,
+        alertThreshold: Int,
+        savingsGoal: String
+    ) {
+        viewModelScope.launch {
+            userPreferencesRepository.setBudgetPreferences(
+                budgetPeriod, rollover, alertThreshold, savingsGoal
+            )
+        }
+    }
+
+    fun setNotificationsPreferences(
+        dailyReminder: Boolean,
+        reminderTime: String,
+        budgetAlerts: Boolean,
+        billReminders: Boolean,
+        summaryReports: Boolean
+    ) {
+        viewModelScope.launch {
+            userPreferencesRepository.setNotificationsPreferences(
+                dailyReminder, reminderTime, budgetAlerts, billReminders, summaryReports
+            )
+        }
+    }
+
+    fun setSecurityPrivacyPreferences(
+        hideBalances: Boolean,
+        blockScreenshots: Boolean
+    ) {
+        viewModelScope.launch {
+            userPreferencesRepository.setSecurityPrivacyPreferences(
+                hideBalances, blockScreenshots
+            )
+        }
+    }
+
+    fun setDataManagementPreferences(
+        autoBackupFrequency: String,
+        syncWifiOnly: Boolean
+    ) {
+        viewModelScope.launch {
+            userPreferencesRepository.setDataManagementPreferences(
+                autoBackupFrequency, syncWifiOnly
+            )
         }
     }
 }
