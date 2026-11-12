@@ -190,7 +190,10 @@ fun SubscriptionsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 text = uiState.formattedMonthlyBurn,
-                                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black),
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.5).sp
+                                ),
                                 color = ExpenseColor
                             )
                             Text(

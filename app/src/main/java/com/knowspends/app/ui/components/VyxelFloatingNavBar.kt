@@ -57,7 +57,7 @@ import com.knowspends.app.ui.navigation.Screen
  */
 @Composable
 fun Modifier.bouncyClickable(
-    scaleDown: Float = 0.88f,
+    scaleDown: Float = 0.95f,
     enabled: Boolean = true,
     onClick: () -> Unit
 ): Modifier {
@@ -76,8 +76,8 @@ fun Modifier.bouncyClickable(
     val scale by animateFloatAsState(
         targetValue = if (pressed) scaleDown else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = 0.82f,
+            stiffness = Spring.StiffnessMediumLow
         ),
         label = "bouncyPress"
     )
@@ -163,12 +163,12 @@ fun VyxelFloatingNavBar(
                     val pop = remember { Animatable(1f) }
                     LaunchedEffect(selected) {
                         if (selected) {
-                            pop.snapTo(0.65f)
+                            pop.snapTo(0.90f)
                             pop.animateTo(
                                 1f,
                                 spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMedium
+                                    dampingRatio = 0.82f,
+                                    stiffness = Spring.StiffnessMediumLow
                                 )
                             )
                         }
@@ -179,11 +179,11 @@ fun VyxelFloatingNavBar(
                         color = if (selected) scheme.primary
                         else Color.Transparent,
                         modifier = Modifier
-                            .bouncyClickable(scaleDown = 0.88f) { onItemClick(dest) }
+                            .bouncyClickable(scaleDown = 0.95f) { onItemClick(dest) }
                             .clip(CircleShape)
                             .animateContentSize(
                                 animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    dampingRatio = 0.82f,
                                     stiffness = Spring.StiffnessMediumLow
                                 )
                             )

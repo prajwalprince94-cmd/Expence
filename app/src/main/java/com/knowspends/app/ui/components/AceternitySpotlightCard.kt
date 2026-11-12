@@ -83,11 +83,11 @@ fun AceternitySpotlightCard(
                     onPress = { offset ->
                         touchOffset = offset
                         scope.launch {
-                            spotlightAlpha.animateTo(1f, tween(100))
+                            spotlightAlpha.animateTo(1f, tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                         }
                         tryAwaitRelease()
                         scope.launch {
-                            spotlightAlpha.animateTo(0f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow))
+                            spotlightAlpha.animateTo(0f, spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow))
                         }
                     }
                 )
@@ -98,7 +98,7 @@ fun AceternitySpotlightCard(
                     onDragStart = { offset ->
                         touchOffset = offset
                         scope.launch {
-                            spotlightAlpha.animateTo(1f, tween(100))
+                            spotlightAlpha.animateTo(1f, tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                         }
                     },
                     onDrag = { change, _ ->
@@ -106,12 +106,12 @@ fun AceternitySpotlightCard(
                     },
                     onDragEnd = {
                         scope.launch {
-                            spotlightAlpha.animateTo(0f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow))
+                            spotlightAlpha.animateTo(0f, spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow))
                         }
                     },
                     onDragCancel = {
                         scope.launch {
-                            spotlightAlpha.animateTo(0f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow))
+                            spotlightAlpha.animateTo(0f, spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow))
                         }
                     }
                 )

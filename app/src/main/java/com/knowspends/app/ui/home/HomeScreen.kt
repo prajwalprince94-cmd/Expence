@@ -138,8 +138,10 @@ fun HomeScreen(
             Column {
                 Text(
                     text = "KnowSpends",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp
+                    ),
                     color = scheme.primary
                 )
                 Text(
@@ -303,7 +305,10 @@ fun HomeScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = uiState.formattedNetSavings,
-                        style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
+                        ),
                         color = if (uiState.monthlySummary.netSavingsMinor >= 0) IncomeColor else ExpenseColor
                     )
                     Text(
@@ -564,22 +569,26 @@ fun HomeScreen(
 
         // ── BoardUI Bento KPI Matrix ──────────────────────────────────────────
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Bento Tile 1: 7-Day Spending Velocity & Sparkline Bars
             Card(
                 modifier = Modifier
-                    .weight(1.15f)
-                    .pressScale(0.98f),
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .pressScale(0.97f),
                 shape = VyxelShapeTokens.Card,
                 colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
                 border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp)
+                        .fillMaxSize()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -590,7 +599,7 @@ fun HomeScreen(
                             text = "7-DAY OUTFLOW",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.8f),
                             letterSpacing = 0.5.sp
                         )
                         Icon(
@@ -601,12 +610,23 @@ fun HomeScreen(
                         )
                     }
 
+                    val sevenDayTotalMinor = uiState.dailyExpenses7Days.sumOf { it.amountMinor }
+                    Text(
+                        text = MoneyFormatter.formatPaise(sevenDayTotalMinor),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = scheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
                     val maxDay = uiState.dailyExpenses7Days.maxOfOrNull { it.amountMinor }?.coerceAtLeast(1L) ?: 1L
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp)
-                            .padding(top = 10.dp),
+                            .height(44.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
@@ -614,11 +634,11 @@ fun HomeScreen(
                             val ratio = (day.amountMinor.toFloat() / maxDay.toFloat()).coerceIn(0.12f, 1f)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                verticalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .width(9.dp)
+                                        .width(8.dp)
                                         .fillMaxHeight(ratio)
                                         .clip(VyxelShapeTokens.Pill)
                                         .background(
@@ -642,49 +662,71 @@ fun HomeScreen(
             // Bento Tile 2: Cashflow Preservation Buffer & Rate
             Card(
                 modifier = Modifier
-                    .weight(0.95f)
-                    .pressScale(0.98f),
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .pressScale(0.97f),
                 shape = VyxelShapeTokens.Card,
                 colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
                 border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
                         .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "SAVED BUFFER",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurfaceVariant,
-                        letterSpacing = 0.5.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "SAVED BUFFER",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            letterSpacing = 0.5.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Payments,
+                            contentDescription = null,
+                            tint = IncomeColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
 
                     Text(
                         text = "${uiState.savingsRatePercent}%",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
+                        ),
                         color = if (uiState.savingsRatePercent >= 20) IncomeColor else scheme.onSurface
                     )
 
-                    LinearProgressIndicator(
-                        progress = { (uiState.savingsRatePercent.coerceAtLeast(0) / 100f).coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(5.dp)
-                            .clip(VyxelShapeTokens.Pill),
-                        color = IncomeColor,
-                        trackColor = scheme.surfaceContainerHighest
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { (uiState.savingsRatePercent.coerceAtLeast(0) / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(5.dp)
+                                .clip(VyxelShapeTokens.Pill),
+                            color = IncomeColor,
+                            trackColor = scheme.surfaceContainerHighest
+                        )
 
-                    Text(
-                        text = "Preserved from inflow",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                        Text(
+                            text = "Preserved from inflow",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
+                            color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
