@@ -391,9 +391,9 @@ fun TransactionsScreen(
             ) {
                 ExpressiveNoSearchResults(
                     query = uiState.searchQuery,
-                    onClearSearch = { viewModel.setSearchQuery("") },
+                    onClearSearch = { viewModel.onSearchQueryChanged("") },
                     suggestedQueries = listOf("UPI", "Swiggy", "Zomato", "Amazon", "Salary"),
-                    onSuggestionClick = { viewModel.setSearchQuery(it) }
+                    onSuggestionClick = { viewModel.onSearchQueryChanged(it) }
                 )
             }
         } else if (uiState.dayGroups.isEmpty()) {
@@ -419,7 +419,7 @@ fun TransactionsScreen(
                         if (uiState.selectedType != null || uiState.selectedAccountId != null) {
                             viewModel.clearAllFilters()
                         } else {
-                            onTransactionClick(0L)
+                            onEditTransaction(0L)
                         }
                     }
                 )

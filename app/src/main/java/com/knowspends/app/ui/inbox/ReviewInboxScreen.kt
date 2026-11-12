@@ -332,7 +332,7 @@ fun ReviewInboxScreen(
                         onRequestPermission = { requestAndScanSms() }
                     )
                 }
-            } else if (uiState.isLoading) {
+            } else if (uiState.isScanningSms) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

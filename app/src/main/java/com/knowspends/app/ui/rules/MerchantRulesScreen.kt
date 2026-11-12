@@ -260,9 +260,9 @@ fun MerchantRulesScreen(
                 ) {
                     ExpressiveNoSearchResults(
                         query = uiState.searchQuery,
-                        onClearSearch = { viewModel.setSearchQuery("") },
+                        onClearSearch = { viewModel.onSearchQueryChanged("") },
                         suggestedQueries = listOf("Swiggy", "Amazon", "Uber", "Zomato", "Electricity"),
-                        onSuggestionClick = { viewModel.setSearchQuery(it) }
+                        onSuggestionClick = { viewModel.onSearchQueryChanged(it) }
                     )
                 }
             } else if (uiState.filteredRules.isEmpty()) {

@@ -101,4 +101,23 @@ object VyxelHaptics {
             }
         } catch (_: Exception) {}
     }
+
+    /**
+     * Staccato triple pulse on validation failure or error trigger.
+     */
+    fun error(context: Context) {
+        try {
+            val vibrator = getVibrator(context) ?: return
+            if (!vibrator.hasVibrator()) return
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val timings = longArrayOf(0, 30, 40, 30, 40, 30)
+                val amplitudes = intArrayOf(0, 200, 0, 200, 0, 200)
+                vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(longArrayOf(0, 30, 40, 30, 40, 30), -1)
+            }
+        } catch (_: Exception) {}
+    }
 }
