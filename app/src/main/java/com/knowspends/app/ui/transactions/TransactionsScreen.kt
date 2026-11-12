@@ -3,6 +3,10 @@ package com.knowspends.app.ui.transactions
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -41,6 +45,7 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -74,6 +79,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -183,8 +189,10 @@ fun TransactionsScreen(
                             ) {
                                 Text(
                                     text = "Transactions",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.3).sp
+                                    ),
                                     color = scheme.onSurface
                                 )
 
@@ -443,8 +451,8 @@ fun TransactionsScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(scheme.background.copy(alpha = 0.94f))
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .background(scheme.background.copy(alpha = 0.95f))
+                                .padding(horizontal = 16.dp, vertical = 7.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -456,22 +464,23 @@ fun TransactionsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = dayGroup.dateLabel,
-                                        style = MaterialTheme.typography.titleSmall,
+                                        text = dayGroup.dateLabel.uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = scheme.onSurface
+                                        letterSpacing = 0.8.sp,
+                                        color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
                                     )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(VyxelShapeTokens.Pill)
-                                            .background(scheme.surfaceContainerHighest.copy(alpha = 0.8f))
-                                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                                    Surface(
+                                        shape = VyxelShapeTokens.Pill,
+                                        color = scheme.surfaceContainerHighest.copy(alpha = 0.7f)
                                     ) {
                                         Text(
                                             text = "${dayGroup.count}",
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = scheme.onSurfaceVariant
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = scheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
                                         )
                                     }
                                 }
@@ -481,33 +490,35 @@ fun TransactionsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     if (dayGroup.dayIncomeMinor > 0) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(VyxelShapeTokens.Pill)
-                                                .background(IncomeColor.copy(alpha = 0.12f))
-                                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                        Surface(
+                                            shape = VyxelShapeTokens.Pill,
+                                            color = IncomeColor.copy(alpha = 0.12f),
+                                            border = BorderStroke(1.dp, IncomeColor.copy(alpha = 0.25f))
                                         ) {
                                             Text(
                                                 text = "+ ${dayGroup.formattedDayIncome}",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = IncomeColor
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = IncomeColor,
+                                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
 
                                     if (dayGroup.dayTotalMinor > 0) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(VyxelShapeTokens.Pill)
-                                                .background(ExpenseColor.copy(alpha = 0.12f))
-                                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                        Surface(
+                                            shape = VyxelShapeTokens.Pill,
+                                            color = ExpenseColor.copy(alpha = 0.12f),
+                                            border = BorderStroke(1.dp, ExpenseColor.copy(alpha = 0.25f))
                                         ) {
                                             Text(
                                                 text = "- ${dayGroup.formattedDayTotal}",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = ExpenseColor
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ExpenseColor,
+                                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
@@ -850,40 +861,94 @@ fun TransactionListItem(
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onDelete()
-                true
-            } else {
-                false
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onDelete()
+                    true
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                    false
+                }
+                SwipeToDismissBoxValue.Settled -> false
             }
         }
     )
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         modifier = modifier,
         backgroundContent = {
-            val color by animateColorAsState(
-                when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.EndToStart -> ExpenseColor
-                    else -> Color.Transparent
-                },
-                label = "dismissColor"
+            val direction = dismissState.dismissDirection
+            val isSwipingEdit = direction == SwipeToDismissBoxValue.StartToEnd || dismissState.targetValue == SwipeToDismissBoxValue.StartToEnd
+            val isSwipingDelete = direction == SwipeToDismissBoxValue.EndToStart || dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+
+            val targetColor = when {
+                isSwipingEdit -> scheme.primary
+                isSwipingDelete -> ExpenseColor
+                else -> Color.Transparent
+            }
+
+            val animatedBgColor by animateColorAsState(
+                targetValue = targetColor,
+                animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
+                label = "swipeBgColor"
             )
+
+            val isTriggered = dismissState.targetValue != SwipeToDismissBoxValue.Settled
+            val iconScale by animateFloatAsState(
+                targetValue = if (isTriggered) 1.12f else 0.95f,
+                animationSpec = spring(
+                    dampingRatio = 0.75f,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                label = "swipeIconScale"
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 2.dp)
                     .clip(VyxelShapeTokens.CardSmall)
-                    .background(color)
-                    .padding(end = 20.dp),
-                contentAlignment = Alignment.CenterEnd
+                    .background(animatedBgColor),
+                contentAlignment = if (isSwipingEdit) Alignment.CenterStart else Alignment.CenterEnd
             ) {
-                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                if (isSwipingEdit) {
                     Row(
+                        modifier = Modifier
+                            .padding(start = 20.dp)
+                            .graphicsLayer {
+                                scaleX = iconScale
+                                scaleY = iconScale
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Transaction",
+                            tint = scheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Edit",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onPrimary
+                        )
+                    }
+                } else if (isSwipingDelete) {
+                    Row(
+                        modifier = Modifier
+                            .padding(end = 20.dp)
+                            .graphicsLayer {
+                                scaleX = iconScale
+                                scaleY = iconScale
+                            },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -895,7 +960,7 @@ fun TransactionListItem(
                         )
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete",
+                            contentDescription = "Delete Transaction",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
