@@ -194,7 +194,7 @@ fun SettingsScreen(
                             onSaveProfile = { name, tagline, avatarUri ->
                                 viewModel.updateProfile(name, tagline, avatarUri, "", uiState.userPreferences.currencySymbol, uiState.userPreferences.monthlySavingsGoal, uiState.userPreferences.financialYearStart)
                             },
-                            onExportData = { viewModel.exportCsv() },
+                            onExportData = { uri -> viewModel.exportCsv(uri) },
                             onClearAllData = { viewModel.resetAllLedgerData() }
                         )
                     }
@@ -254,9 +254,9 @@ fun SettingsScreen(
                         SecurityPrivacySection(
                             userPreferences = uiState.userPreferences,
                             securityConfig = uiState.securityConfig,
-                            onSetBiometric = { viewModel.setBiometricEnabled(it) },
-                            onSetSecureScreen = { viewModel.setSecureScreenEnabled(it) },
-                            onSetLockTimeout = { viewModel.setLockTimeoutMinutes(it) },
+                            onSetBiometric = { viewModel.toggleBiometric(it) },
+                            onSetSecureScreen = { viewModel.toggleSecureScreen(it) },
+                            onSetLockTimeout = { viewModel.setLockTimeout(it) },
                             onSavePrivacy = { hide, block ->
                                 viewModel.setSecurityPrivacyPreferences(hide, block)
                             }
@@ -276,10 +276,9 @@ fun SettingsScreen(
                         DataManagementSection(
                             userPreferences = uiState.userPreferences,
                             isLoading = uiState.isLoading,
-                            onCreateBackup = { viewModel.createBackup() },
-                            onRestoreBackup = { uri -> viewModel.restoreBackup(uri) },
-                            onExportCsv = { viewModel.exportCsv() },
-                            onExportPdf = { viewModel.exportPdf() },
+                            onCreateBackup = { uri -> viewModel.exportBackup(uri) },
+                            onRestoreBackup = { uri -> viewModel.requestRestore(uri) },
+                            onExportCsv = { uri -> viewModel.exportCsv(uri) },
                             onImportCsv = { uri -> viewModel.importCsv(uri) },
                             onClearCache = { viewModel.clearAppCache(context) },
                             onResetAllData = { viewModel.resetAllLedgerData() },

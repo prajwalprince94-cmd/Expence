@@ -62,7 +62,7 @@ import com.knowspends.app.util.VyxelHaptics
 fun AccountProfileSection(
     userPreferences: UserPreferences,
     onSaveProfile: (name: String, tagline: String, avatarUri: String) -> Unit,
-    onExportData: () -> Unit,
+    onExportData: (Uri) -> Unit,
     onClearAllData: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -72,6 +72,12 @@ fun AccountProfileSection(
     var nameDraft by remember(userPreferences.profileName) { mutableStateOf(userPreferences.profileName) }
     var taglineDraft by remember(userPreferences.profileTagline) { mutableStateOf(userPreferences.profileTagline) }
     var avatarUriDraft by remember(userPreferences.profileAvatarUri) { mutableStateOf(userPreferences.profileAvatarUri) }
+
+    val csvExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let { onExportData(it) }
+    }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -270,7 +276,10 @@ fun AccountProfileSection(
                 }
 
                 OutlinedButton(
-                    onClick = onExportData,
+                    onClick = {
+                        VyxelHaptics.tick(context)
+                        csvExportLauncher.launch("knowspends_vault_${System.currentTimeMillis()}.csv")
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .pressScale(0.97f),

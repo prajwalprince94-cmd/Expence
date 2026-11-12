@@ -62,10 +62,9 @@ import com.knowspends.app.util.VyxelHaptics
 fun DataManagementSection(
     userPreferences: UserPreferences,
     isLoading: Boolean,
-    onCreateBackup: () -> Unit,
+    onCreateBackup: (Uri) -> Unit,
     onRestoreBackup: (Uri) -> Unit,
-    onExportCsv: () -> Unit,
-    onExportPdf: () -> Unit,
+    onExportCsv: (Uri) -> Unit,
     onImportCsv: (Uri) -> Unit,
     onClearCache: () -> Unit,
     onResetAllData: () -> Unit,
@@ -76,6 +75,18 @@ fun DataManagementSection(
     val scheme = MaterialTheme.colorScheme
 
     var showResetConfirmDialog by remember { mutableStateOf(false) }
+
+    val backupCreatePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let { onCreateBackup(it) }
+    }
+
+    val csvExportPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let { onExportCsv(it) }
+    }
 
     val restoreFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -129,7 +140,7 @@ fun DataManagementSection(
                     Button(
                         onClick = {
                             VyxelHaptics.tick(context)
-                            onCreateBackup()
+                            backupCreatePicker.launch("knowspends_backup_${System.currentTimeMillis()}.json")
                         },
                         enabled = !isLoading,
                         modifier = Modifier
@@ -213,31 +224,16 @@ fun DataManagementSection(
                     OutlinedButton(
                         onClick = {
                             VyxelHaptics.tick(context)
-                            onExportCsv()
+                            csvExportPicker.launch("knowspends_transactions_${System.currentTimeMillis()}.csv")
                         },
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .pressScale(0.97f),
                         shape = VyxelShapeTokens.Pill
                     ) {
                         Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Export CSV")
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            VyxelHaptics.tick(context)
-                            onExportPdf()
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .pressScale(0.97f),
-                        shape = VyxelShapeTokens.Pill
-                    ) {
-                        Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Export PDF")
+                        Text("Export All Transactions (CSV)")
                     }
                 }
 

@@ -388,6 +388,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     // Backup & Restore
+    fun exportBackup(uri: Uri) {
+        exportBackup(uri, context.contentResolver)
+    }
+
     fun exportBackup(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, statusMessage = null) }
@@ -410,6 +414,10 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(showRestoreConfirmDialog = false, pendingRestoreUri = null) }
     }
 
+    fun confirmRestore() {
+        confirmRestore(context.contentResolver)
+    }
+
     fun confirmRestore(contentResolver: ContentResolver) {
         val uri = _uiState.value.pendingRestoreUri ?: return
         viewModelScope.launch {
@@ -428,6 +436,10 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = false, statusMessage = "Restore failed: ${e.localizedMessage}") }
             }
         }
+    }
+
+    fun exportCsv(uri: Uri) {
+        exportCsv(uri, context.contentResolver)
     }
 
     fun exportCsv(uri: Uri, contentResolver: ContentResolver) {
