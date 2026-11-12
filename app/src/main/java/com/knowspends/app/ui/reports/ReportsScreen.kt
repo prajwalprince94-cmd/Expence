@@ -204,7 +204,7 @@ fun ReportsScreen(
                         }
                     }
 
-                    items(uiState.topPayees.take(6), key = { it.payee }) { payee ->
+                    items(uiState.topPayees.take(6), key = { it.payeeName }) { payee ->
                         PayeeRowCard(
                             payee = payee,
                             totalExpenseMinor = uiState.totalExpenseMinor
@@ -661,7 +661,7 @@ private fun PayeeRowCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = payee.payee,
+                    text = payee.payeeName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = scheme.onSurface,
