@@ -27,11 +27,20 @@ data class SubscriptionsUiState(
             }
         }
 
+    val totalYearlyProjectionMinor: Long
+        get() = totalMonthlyBurnMinor * 12
+
     val formattedMonthlyBurn: String
         get() = MoneyFormatter.formatPaise(totalMonthlyBurnMinor, includeSymbol = true)
 
+    val formattedYearlyProjection: String
+        get() = MoneyFormatter.formatPaise(totalYearlyProjectionMinor, includeSymbol = true)
+
     val activeSubscriptionsCount: Int
         get() = activeRules.size
+
+    val upcomingRenewals: List<RecurringRule>
+        get() = activeRules.sortedBy { it.nextDueDate }
 
     val nextDueSubscription: RecurringRule?
         get() = activeRules.minByOrNull { it.nextDueDate }
@@ -47,6 +56,7 @@ data class SubscriptionsUiState(
             "Monthly" -> rules.filter { it.frequency == com.knowspends.app.domain.model.RecurrenceFrequency.MONTHLY }
             "Yearly" -> rules.filter { it.frequency == com.knowspends.app.domain.model.RecurrenceFrequency.YEARLY }
             "Active" -> rules.filter { it.isActive }
+            "Paused" -> rules.filter { !it.isActive }
             else -> rules
-        }
+        }.sortedWith(compareByDescending<RecurringRule> { it.isActive }.thenBy { it.nextDueDate })
 }
