@@ -4,9 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,16 +23,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,14 +43,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
 import com.knowspends.app.ui.theme.ExpenseColor
+import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.pressScale
 import com.knowspends.app.util.VyxelHaptics
@@ -84,6 +85,7 @@ fun AccountProfileSection(
     ) { uri: Uri? ->
         uri?.let {
             avatarUriDraft = it.toString()
+            onSaveProfile(nameDraft.trim(), taglineDraft.trim(), it.toString())
             VyxelHaptics.success(context)
         }
     }
@@ -92,101 +94,89 @@ fun AccountProfileSection(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // ── 1. Avatar Card ────────────────────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
-        ) {
+        // ── 1. Vault Identity Group ───────────────────────────────────────────
+        ExpressiveSettingsGroup(title = "Profile & Vault Identity") {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clip(CircleShape)
-                        .background(scheme.surfaceContainerHigh)
-                        .clickable {
-                            VyxelHaptics.tick(context)
-                            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    if (avatarUriDraft.isNotBlank()) {
-                        AsyncImage(
-                            model = avatarUriDraft,
-                            contentDescription = "Profile Avatar",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = scheme.primary,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-
-                    // Camera Badge
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(28.dp)
+                            .size(58.dp)
                             .clip(CircleShape)
-                            .background(scheme.primary),
+                            .background(scheme.surfaceContainerHigh)
+                            .clickable {
+                                VyxelHaptics.tick(context)
+                                photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Change Photo",
-                            tint = scheme.onPrimary,
-                            modifier = Modifier.size(16.dp)
+                        if (avatarUriDraft.isNotBlank()) {
+                            AsyncImage(
+                                model = avatarUriDraft,
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = scheme.primary,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(scheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Update photo",
+                                tint = scheme.onPrimary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (nameDraft.isNotBlank()) nameDraft else "Personal Vault",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onSurface
+                        )
+                        Text(
+                            text = "Tap photo to change avatar",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
                         )
                     }
                 }
 
-                Text(
-                    text = "Tap to update profile avatar",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // ── 2. Profile Details Fields ─────────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "LEDGER IDENTITY",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.primary
-                )
-
                 OutlinedTextField(
                     value = nameDraft,
-                    onValueChange = { nameDraft = it },
+                    onValueChange = {
+                        nameDraft = it
+                        onSaveProfile(it.trim(), taglineDraft.trim(), avatarUriDraft)
+                    },
                     label = { Text("Vault / Account Name") },
-                    placeholder = { Text("e.g. Personal Ledger, Prajwal's Vault") },
+                    placeholder = { Text("e.g. Prajwal's Vault") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = VyxelShapeTokens.CardSmall,
                     singleLine = true
@@ -194,77 +184,30 @@ fun AccountProfileSection(
 
                 OutlinedTextField(
                     value = taglineDraft,
-                    onValueChange = { taglineDraft = it },
-                    label = { Text("Subtitle / Email / Tagline") },
-                    placeholder = { Text("e.g. Daily Spending & Investments") },
+                    onValueChange = {
+                        taglineDraft = it
+                        onSaveProfile(nameDraft.trim(), it.trim(), avatarUriDraft)
+                    },
+                    label = { Text("Tagline / Subtitle") },
+                    placeholder = { Text("e.g. Personal Expenses & Investments") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = VyxelShapeTokens.CardSmall,
                     singleLine = true
                 )
-
-                Button(
-                    onClick = {
-                        VyxelHaptics.success(context)
-                        onSaveProfile(nameDraft.trim(), taglineDraft.trim(), avatarUriDraft)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pressScale(0.96f),
-                    shape = VyxelShapeTokens.Pill,
-                    colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
-                ) {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Save Identity", fontWeight = FontWeight.Bold)
-                }
             }
         }
 
-        // ── 3. Profile Switching & Export ─────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "VAULT ACCOUNTS",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.primary
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pressScale(0.97f)
-                        .clip(VyxelShapeTokens.CardSmall)
-                        .background(scheme.surfaceContainerHigh.copy(alpha = 0.5f))
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Local Vault: Primary Ledger",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurface
-                        )
-                        Text(
-                            text = "100% offline database stored locally",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant
-                        )
-                    }
-
-                    Surface(shape = VyxelShapeTokens.Pill, color = scheme.primaryContainer) {
+        // ── 2. Vault Architecture ─────────────────────────────────────────────
+        ExpressiveSettingsGroup(title = "Local Vault Storage") {
+            ExpressiveSettingsItem(
+                title = "Primary Ledger Database",
+                subtitle = "100% offline SQLite database stored safely on device",
+                icon = Icons.Default.Security,
+                trailingContent = {
+                    Surface(
+                        shape = VyxelShapeTokens.Pill,
+                        color = scheme.primaryContainer
+                    ) {
                         Text(
                             text = "Active",
                             style = MaterialTheme.typography.labelSmall,
@@ -274,20 +217,18 @@ fun AccountProfileSection(
                         )
                     }
                 }
+            )
 
-                OutlinedButton(
-                    onClick = {
-                        VyxelHaptics.tick(context)
-                        csvExportLauncher.launch("knowspends_vault_${System.currentTimeMillis()}.csv")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pressScale(0.97f),
-                    shape = VyxelShapeTokens.Pill
-                ) {
-                    Text("Export All Vault Data")
+            ExpressiveItemDivider()
+
+            ExpressiveSettingsItem(
+                title = "Export Vault CSV",
+                subtitle = "Save a complete tabular record of all transactions",
+                icon = Icons.Default.FileDownload,
+                onClick = {
+                    csvExportLauncher.launch("knowspends_vault_${System.currentTimeMillis()}.csv")
                 }
-            }
+            )
         }
     }
 }

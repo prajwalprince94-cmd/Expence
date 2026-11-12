@@ -336,30 +336,30 @@ private fun SettingsHubView(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // ── 1. Hero Profile Card ──────────────────────────────────────────────
+        // ── 1. Hero Profile Header Card ───────────────────────────────────────
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .pressScale(0.98f)
-                .clip(VyxelShapeTokens.Card)
+                .clip(VyxelShapeTokens.CardSmall)
                 .clickable { onSelectSection(SettingsSection.ACCOUNT_PROFILE) },
-            shape = VyxelShapeTokens.Card,
+            shape = VyxelShapeTokens.CardSmall,
             colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(46.dp)
                         .clip(CircleShape)
                         .background(scheme.primaryContainer),
                     contentAlignment = Alignment.Center
@@ -376,20 +376,20 @@ private fun SettingsHubView(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             tint = scheme.onPrimaryContainer,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = userPreferences.profileName,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = if (userPreferences.profileName.isNotBlank()) userPreferences.profileName else "Personal Vault",
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface
                     )
                     Text(
-                        text = userPreferences.profileTagline,
+                        text = if (userPreferences.profileTagline.isNotBlank()) userPreferences.profileTagline else "Offline Ledger • Tap to edit profile",
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant,
                         maxLines = 1,
@@ -400,8 +400,8 @@ private fun SettingsHubView(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    tint = scheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -410,19 +410,19 @@ private fun SettingsHubView(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            placeholder = { Text("Search settings, currency, budgets...") },
+            placeholder = { Text("Search settings, currency, backup...") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
                     tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             },
             trailingIcon = {
                 if (searchQuery.isNotBlank()) {
                     IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(16.dp))
                     }
                 }
             },
@@ -437,19 +437,20 @@ private fun SettingsHubView(
                 text = "SEARCH RESULTS (${filteredSections.size})",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
                 color = scheme.primary,
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier.padding(start = 6.dp)
             )
 
             if (filteredSections.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp),
+                        .padding(28.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No matching settings found for \"$searchQuery\"",
+                        text = "No settings found for \"$searchQuery\"",
                         style = MaterialTheme.typography.bodyMedium,
                         color = scheme.onSurfaceVariant
                     )
@@ -457,9 +458,9 @@ private fun SettingsHubView(
             } else {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = VyxelShapeTokens.Card,
+                    shape = VyxelShapeTokens.CardSmall,
                     colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         filteredSections.forEachIndexed { index, section ->
@@ -469,7 +470,8 @@ private fun SettingsHubView(
                             )
                             if (index < filteredSections.size - 1) {
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    modifier = Modifier.padding(start = 56.dp, end = 14.dp),
+                                    thickness = 0.5.dp,
                                     color = scheme.outlineVariant.copy(alpha = 0.25f)
                                 )
                             }
@@ -478,7 +480,7 @@ private fun SettingsHubView(
                 }
             }
         } else {
-            // Grouped Cupertino-style Cards
+            // Grouped Material 3 Expressive Containers
             SettingsGroup.entries.forEach { group ->
                 val groupSections = SettingsSection.entries.filter { it.group == group }
                 if (groupSections.isNotEmpty()) {
@@ -487,15 +489,16 @@ private fun SettingsHubView(
                             text = group.title.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
                             color = scheme.primary,
-                            modifier = Modifier.padding(start = 6.dp)
+                            modifier = Modifier.padding(start = 8.dp)
                         )
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = VyxelShapeTokens.Card,
+                            shape = VyxelShapeTokens.CardSmall,
                             colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 groupSections.forEachIndexed { index, section ->
@@ -505,7 +508,8 @@ private fun SettingsHubView(
                                     )
                                     if (index < groupSections.size - 1) {
                                         HorizontalDivider(
-                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                            modifier = Modifier.padding(start = 56.dp, end = 14.dp),
+                                            thickness = 0.5.dp,
                                             color = scheme.outlineVariant.copy(alpha = 0.25f)
                                         )
                                     }
@@ -521,7 +525,7 @@ private fun SettingsHubView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 48.dp),
+                .padding(top = 8.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -557,14 +561,14 @@ private fun SettingsSectionRow(
             .fillMaxWidth()
             .pressScale(0.98f)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .clip(VyxelShapeTokens.CardSmall)
+                .size(34.dp)
+                .clip(VyxelShapeTokens.IconSmall)
                 .background(scheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
@@ -579,7 +583,7 @@ private fun SettingsSectionRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = section.title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = scheme.onSurface
             )
@@ -595,8 +599,9 @@ private fun SettingsSectionRow(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+            tint = scheme.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(18.dp)
         )
     }
+}
 }

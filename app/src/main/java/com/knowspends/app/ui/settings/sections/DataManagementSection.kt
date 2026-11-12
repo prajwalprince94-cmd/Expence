@@ -4,38 +4,29 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CleaningServices
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -48,14 +39,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.ui.components.expressive.ExpressiveConnectedButtonGroup
+import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
-import com.knowspends.app.ui.theme.pressScale
 import com.knowspends.app.util.VyxelHaptics
 
 @Composable
@@ -104,229 +97,110 @@ fun DataManagementSection(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // ── 1. Backup & Restore (JSON) ─────────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "VAULT DATABASE BACKUP & RESTORE",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.primary
-                )
+        // ── 1. Backup & Restore ───────────────────────────────────────────────
+        ExpressiveSettingsGroup(title = "Backup & Snapshot") {
+            ExpressiveSettingsItem(
+                title = "Create Full Backup (JSON)",
+                subtitle = "Complete encrypted snapshot of accounts, budgets, and transactions",
+                icon = Icons.Default.FileDownload,
+                onClick = {
+                    backupCreatePicker.launch("knowspends_backup_${System.currentTimeMillis()}.json")
+                }
+            )
 
+            ExpressiveItemDivider()
+
+            ExpressiveSettingsItem(
+                title = "Restore Ledger from File",
+                subtitle = "Load and restore data from a previous JSON backup file",
+                icon = Icons.Default.Restore,
+                onClick = {
+                    restoreFilePicker.launch(arrayOf("application/json", "*/*"))
+                }
+            )
+
+            ExpressiveItemDivider()
+
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Create an encrypted full-fidelity JSON snapshot of your accounts, transactions, budgets, and subscriptions.",
+                    text = "Scheduled Auto-Backup",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = scheme.onSurface
+                )
+                Text(
+                    text = "Automatically saves local snapshots to app internal storage",
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            VyxelHaptics.tick(context)
-                            backupCreatePicker.launch("knowspends_backup_${System.currentTimeMillis()}.json")
-                        },
-                        enabled = !isLoading,
-                        modifier = Modifier
-                            .weight(1f)
-                            .pressScale(0.96f),
-                        shape = VyxelShapeTokens.Pill,
-                        colors = ButtonDefaults.buttonColors(containerColor = scheme.primary)
-                    ) {
-                        Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Create Backup", fontWeight = FontWeight.Bold)
-                    }
+                val frequencies = listOf("off" to "Off", "daily" to "Daily", "weekly" to "Weekly")
+                val freqIdx = frequencies.indexOfFirst { it.first == userPreferences.autoBackupFrequency }.coerceAtLeast(0)
 
-                    OutlinedButton(
-                        onClick = {
-                            VyxelHaptics.tick(context)
-                            restoreFilePicker.launch(arrayOf("application/json", "*/*"))
-                        },
-                        enabled = !isLoading,
-                        modifier = Modifier
-                            .weight(1f)
-                            .pressScale(0.96f),
-                        shape = VyxelShapeTokens.Pill
-                    ) {
-                        Icon(imageVector = Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Restore JSON")
-                    }
-                }
-
-                Text(text = "SCHEDULED BACKUP FREQUENCY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = scheme.primary)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf("off" to "Off", "daily" to "Daily", "weekly" to "Weekly").forEach { (freq, label) ->
-                        val isSelected = userPreferences.autoBackupFrequency == freq
-                        Button(
-                            onClick = {
-                                VyxelHaptics.tick(context)
-                                onSetAutoBackupFrequency(freq)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .pressScale(0.96f),
-                            shape = VyxelShapeTokens.Pill,
-                            colors = if (isSelected) ButtonDefaults.buttonColors(containerColor = scheme.primary)
-                            else ButtonDefaults.buttonColors(containerColor = scheme.surfaceContainerHigh)
-                        ) {
-                            Text(text = label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) scheme.onPrimary else scheme.onSurface)
-                        }
-                    }
-                }
+                ExpressiveConnectedButtonGroup(
+                    options = frequencies,
+                    selectedIndex = freqIdx,
+                    onSelectIndex = { idx ->
+                        onSetAutoBackupFrequency(frequencies[idx].first)
+                    },
+                    labelProvider = { it.second },
+                    iconProvider = { Icons.Default.Schedule }
+                )
             }
         }
 
-        // ── 2. Export & Import Reports ─────────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "REPORTS & STATEMENTS EXPORT",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.primary
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            VyxelHaptics.tick(context)
-                            csvExportPicker.launch("knowspends_transactions_${System.currentTimeMillis()}.csv")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .pressScale(0.97f),
-                        shape = VyxelShapeTokens.Pill
-                    ) {
-                        Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Export All Transactions (CSV)")
-                    }
+        // ── 2. CSV Import & Export ────────────────────────────────────────────
+        ExpressiveSettingsGroup(title = "Statements & Spreadsheets") {
+            ExpressiveSettingsItem(
+                title = "Export All Transactions (CSV)",
+                subtitle = "Save a comma-separated table compatible with Excel and Google Sheets",
+                icon = Icons.Default.FileDownload,
+                onClick = {
+                    csvExportPicker.launch("knowspends_transactions_${System.currentTimeMillis()}.csv")
                 }
+            )
 
-                OutlinedButton(
-                    onClick = {
-                        VyxelHaptics.tick(context)
-                        csvImportPicker.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*"))
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pressScale(0.97f),
-                    shape = VyxelShapeTokens.Pill
-                ) {
-                    Icon(imageVector = Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Import Transactions from CSV / Bank")
+            ExpressiveItemDivider()
+
+            ExpressiveSettingsItem(
+                title = "Import Transactions from CSV",
+                subtitle = "Import bank statements or exports from other budget apps",
+                icon = Icons.Default.FileUpload,
+                onClick = {
+                    csvImportPicker.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*"))
                 }
-            }
+            )
         }
 
         // ── 3. Cache Maintenance ──────────────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Clear App Cache", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = scheme.onSurface)
-                    Text(text = "Cleans temporary files and release downloads without altering ledger data.", style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.width(12.dp))
-                OutlinedButton(
-                    onClick = {
-                        VyxelHaptics.click(context)
-                        onClearCache()
-                    },
-                    shape = VyxelShapeTokens.Pill
-                ) {
-                    Icon(imageVector = Icons.Default.CleaningServices, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Clean")
-                }
-            }
+        ExpressiveSettingsGroup(title = "Maintenance") {
+            ExpressiveSettingsItem(
+                title = "Clear Application Cache",
+                subtitle = "Cleans temporary release downloads without touching ledger data",
+                icon = Icons.Default.CleaningServices,
+                onClick = onClearCache
+            )
         }
 
-        // ── 4. Danger Zone: Reset All Data ────────────────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = VyxelShapeTokens.Card,
-            colors = CardDefaults.cardColors(containerColor = ExpenseColor.copy(alpha = 0.08f)),
-            border = BorderStroke(1.dp, ExpenseColor.copy(alpha = 0.4f))
+        // ── 4. Danger Zone ────────────────────────────────────────────────────
+        ExpressiveSettingsGroup(
+            title = "Danger Zone",
+            containerColor = ExpenseColor.copy(alpha = 0.08f),
+            borderColor = ExpenseColor.copy(alpha = 0.35f)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = ExpenseColor)
-                    Text(text = "DANGER ZONE", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = ExpenseColor)
+            ExpressiveSettingsItem(
+                title = "Erase All Ledger Data",
+                subtitle = "Irreversibly wipe all accounts, transactions, and preferences",
+                icon = Icons.Default.DeleteForever,
+                iconTint = ExpenseColor,
+                onClick = {
+                    VyxelHaptics.heavy(context)
+                    showResetConfirmDialog = true
                 }
-
-                Text(
-                    text = "Irreversibly delete all accounts, transactions, recurring subscriptions, and custom rules. This action cannot be undone.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurface
-                )
-
-                Button(
-                    onClick = {
-                        VyxelHaptics.heavy(context)
-                        showResetConfirmDialog = true
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pressScale(0.97f),
-                    shape = VyxelShapeTokens.Pill,
-                    colors = ButtonDefaults.buttonColors(containerColor = ExpenseColor)
-                ) {
-                    Icon(imageVector = Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Erase All Ledger Data", fontWeight = FontWeight.Bold)
-                }
-            }
+            )
         }
     }
 
@@ -335,7 +209,7 @@ fun DataManagementSection(
             onDismissRequest = { showResetConfirmDialog = false },
             icon = { Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = ExpenseColor) },
             title = { Text("Erase All Ledger Data?", fontWeight = FontWeight.Bold) },
-            text = { Text("This will permanently wipe all local transactions, budgets, subscriptions, and custom accounts. Are you sure you want to proceed?") },
+            text = { Text("This will permanently delete all local transactions, budgets, subscriptions, and custom accounts. This cannot be undone.") },
             confirmButton = {
                 Button(
                     onClick = {

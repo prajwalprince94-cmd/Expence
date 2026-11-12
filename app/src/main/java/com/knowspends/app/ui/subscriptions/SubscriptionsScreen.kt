@@ -102,7 +102,12 @@ import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.pressScale
-import com.knowspends.app.ui.theme.progressiveScrollBlur
+import com.knowspends.app.ui.components.expressive.ExpressiveConnectedButtonGroup
+import com.knowspends.app.ui.components.expressive.ExpressiveInlineStepper
+import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsSwitch
 import com.knowspends.app.util.VyxelHaptics
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -857,7 +862,6 @@ fun AddEditSubscriptionSheet(
         mutableStateOf(editingRule?.autoPost ?: true)
     }
 
-    // Curated high-utility presets for fast 1-tap commitment creation
     data class Preset(val name: String, val category: String, val defaultAmt: String)
     val presets = remember {
         listOf(
@@ -865,8 +869,7 @@ fun AddEditSubscriptionSheet(
             Preset("Spotify", "Entertainment", "119"),
             Preset("YouTube Premium", "Entertainment", "149"),
             Preset("Amazon Prime", "Entertainment", "299"),
-            Preset("iCloud Storage", "Bills & Utilities", "75"),
-            Preset("Wi-Fi Broadband", "Bills & Utilities", "999"),
+            Preset("Broadband", "Bills & Utilities", "999"),
             Preset("Gym Membership", "Health & Fitness", "1500"),
             Preset("House Rent", "Housing", "15000"),
             Preset("Mutual Fund SIP", "Investments", "5000"),
@@ -896,7 +899,7 @@ fun AddEditSubscriptionSheet(
             ) {
                 Text(
                     text = if (editingRule != null) "Edit Commitment" else "New Recurring Commitment",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = scheme.onSurface
                 )
@@ -913,35 +916,35 @@ fun AddEditSubscriptionSheet(
                 }
             }
 
-            HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.25f))
+            HorizontalDivider(thickness = 0.5.dp, color = scheme.outlineVariant.copy(alpha = 0.25f))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // ── Hero Amount Input ─────────────────────────────────────────
+                // ── 1. Hero Amount Input Container ────────────────────────────
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = scheme.surfaceContainerHighest.copy(alpha = 0.45f),
+                    shape = VyxelShapeTokens.CardSmall,
+                    color = scheme.surfaceContainerHigh.copy(alpha = 0.45f),
                     border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             text = "COMMITMENT AMOUNT",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
-                            letterSpacing = VyxelTypographyTokens.TrackingUppercase
+                            color = scheme.onSurfaceVariant,
+                            letterSpacing = 0.8.sp
                         )
 
                         Row(
@@ -968,7 +971,7 @@ fun AddEditSubscriptionSheet(
                                             fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.Bold
                                         ),
-                                        color = scheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        color = scheme.onSurfaceVariant.copy(alpha = 0.35f)
                                     )
                                 },
                                 textStyle = MaterialTheme.typography.headlineLarge.copy(
@@ -989,15 +992,16 @@ fun AddEditSubscriptionSheet(
                     }
                 }
 
-                // ── Quick Presets (New Only) ──────────────────────────────────
+                // ── 2. Quick Presets (New Only) ───────────────────────────────
                 if (editingRule == null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "POPULAR PRESETS",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
-                            letterSpacing = VyxelTypographyTokens.TrackingUppercase
+                            color = scheme.primary,
+                            letterSpacing = 0.8.sp,
+                            modifier = Modifier.padding(start = 4.dp)
                         )
 
                         Row(
@@ -1019,16 +1023,17 @@ fun AddEditSubscriptionSheet(
                                             selectedCategoryId = it.id
                                         }
                                     },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) scheme.primaryContainer else scheme.surfaceContainer,
-                                    border = BorderStroke(1.dp, if (isSelected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.35f))
+                                    shape = VyxelShapeTokens.Pill,
+                                    color = if (isSelected) scheme.primaryContainer else scheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                    border = BorderStroke(1.dp, if (isSelected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.3f)),
+                                    modifier = Modifier.pressScale(0.96f)
                                 ) {
                                     Text(
                                         text = preset.name,
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                     )
                                 }
                             }
@@ -1036,167 +1041,92 @@ fun AddEditSubscriptionSheet(
                     }
                 }
 
-                // ── Service Name & Recurrence ─────────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "DETAILS",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
-                        letterSpacing = VyxelTypographyTokens.TrackingUppercase
-                    )
-
-                    OutlinedTextField(
-                        value = payee,
-                        onValueChange = { payee = it },
-                        label = { Text("Service or Bill Name") },
-                        placeholder = { Text("e.g. Netflix, Spotify, Rent") },
-                        leadingIcon = {
-                            Icon(Icons.Default.CreditCard, contentDescription = null, tint = scheme.primary)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-
-                    // Frequency Segmented Tabs
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // ── 3. Core Commitment Details ────────────────────────────────
+                ExpressiveSettingsGroup(title = "Commitment Details") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        listOf(
+                        OutlinedTextField(
+                            value = payee,
+                            onValueChange = { payee = it },
+                            label = { Text("Service or Bill Name") },
+                            placeholder = { Text("e.g. Netflix, Spotify, Rent") },
+                            leadingIcon = {
+                                Icon(Icons.Default.CreditCard, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
+                            },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = VyxelShapeTokens.CardSmall
+                        )
+
+                        Text(
+                            text = "Billing Cadence",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
+
+                        val frequencies = listOf(
                             RecurrenceFrequency.MONTHLY to "Monthly",
                             RecurrenceFrequency.YEARLY to "Yearly",
                             RecurrenceFrequency.WEEKLY to "Weekly"
-                        ).forEach { (freq, label) ->
-                            val selected = selectedFrequency == freq
-                            Surface(
-                                onClick = {
-                                    VyxelHaptics.tick(context)
-                                    selectedFrequency = freq
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (selected) scheme.primaryContainer else scheme.surfaceContainerHighest,
-                                border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.35f)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 10.dp)
-                                ) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Day of Month Interactive Stepper (1..31 Full Range) ────────
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "BILLING DAY OF MONTH",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
-                            letterSpacing = VyxelTypographyTokens.TrackingUppercase
                         )
+                        val freqIdx = frequencies.indexOfFirst { it.first == selectedFrequency }.coerceAtLeast(0)
 
-                        Text(
-                            text = "Renews on the ${formatDayOrdinal(dayOfMonth)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = scheme.primary
+                        ExpressiveConnectedButtonGroup(
+                            options = frequencies,
+                            selectedIndex = freqIdx,
+                            onSelectIndex = { idx ->
+                                selectedFrequency = frequencies[idx].first
+                            },
+                            labelProvider = { it.second }
                         )
                     }
 
-                    // Stepper Row: [-] Day Number Display [+]
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = scheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    VyxelHaptics.tick(context)
-                                    dayOfMonth = if (dayOfMonth <= 1) 31 else dayOfMonth - 1
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(Icons.Default.Remove, contentDescription = "Decrement Day", tint = scheme.primary)
-                            }
+                    ExpressiveItemDivider()
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = "$dayOfMonth",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = scheme.onSurface
-                                )
-                                Text(
-                                    text = "of each month",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = scheme.onSurfaceVariant
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    VyxelHaptics.tick(context)
-                                    dayOfMonth = if (dayOfMonth >= 31) 1 else dayOfMonth + 1
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Increment Day", tint = scheme.primary)
-                            }
+                    // Renewal Day of Month with Inline Stepper
+                    ExpressiveSettingsItem(
+                        title = "Renewal Day of Month",
+                        subtitle = "Renews on the ${formatDayOrdinal(dayOfMonth)}",
+                        icon = Icons.Default.CalendarMonth,
+                        trailingContent = {
+                            ExpressiveInlineStepper(
+                                value = dayOfMonth,
+                                onValueChange = { dayOfMonth = it },
+                                range = 1..31,
+                                valueFormatter = { formatDayOrdinal(it) }
+                            )
                         }
-                    }
+                    )
 
                     // Quick Day Shortcut Pills
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf(1, 5, 10, 15, 20, 25, 28, 31).forEach { d ->
+                        listOf(1, 5, 10, 15, 20, 25, 31).forEach { d ->
                             val isSelected = dayOfMonth == d
                             Surface(
                                 onClick = {
                                     VyxelHaptics.tick(context)
                                     dayOfMonth = d
                                 },
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (isSelected) scheme.primary else scheme.surfaceContainer,
-                                border = BorderStroke(0.5.dp, if (isSelected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.3f))
+                                shape = VyxelShapeTokens.Pill,
+                                color = if (isSelected) scheme.primaryContainer else scheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                border = BorderStroke(0.8.dp, if (isSelected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.3f)),
+                                modifier = Modifier.pressScale(0.96f)
                             ) {
                                 Text(
                                     text = formatDayOrdinal(d),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) scheme.onPrimary else scheme.onSurface,
+                                    color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -1204,51 +1134,106 @@ fun AddEditSubscriptionSheet(
                     }
                 }
 
-                // ── Account Selector ──────────────────────────────────────────
-                if (accounts.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "CHARGE FROM ACCOUNT",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
-                            letterSpacing = VyxelTypographyTokens.TrackingUppercase
-                        )
+                // ── 4. Account & Category Routing ─────────────────────────────
+                if (accounts.isNotEmpty() || categories.isNotEmpty()) {
+                    ExpressiveSettingsGroup(title = "Account & Envelope Routing") {
+                        if (accounts.isNotEmpty()) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "Charge from Account",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant
+                                )
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            accounts.forEach { acc ->
-                                val selected = selectedAccountId == acc.id
-                                Surface(
-                                    onClick = {
-                                        VyxelHaptics.tick(context)
-                                        selectedAccountId = acc.id
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (selected) scheme.primaryContainer else scheme.surfaceContainer,
-                                    border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.35f))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AccountBalance,
-                                            contentDescription = null,
-                                            tint = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Text(
-                                            text = acc.name,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (selected) scheme.onPrimaryContainer else scheme.onSurface
-                                        )
+                                    accounts.forEach { acc ->
+                                        val selected = selectedAccountId == acc.id
+                                        Surface(
+                                            onClick = {
+                                                VyxelHaptics.tick(context)
+                                                selectedAccountId = acc.id
+                                            },
+                                            shape = VyxelShapeTokens.Pill,
+                                            color = if (selected) scheme.primaryContainer else scheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                            border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.3f)),
+                                            modifier = Modifier.pressScale(0.96f)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.AccountBalance,
+                                                    contentDescription = null,
+                                                    tint = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                                Text(
+                                                    text = acc.name,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (selected) scheme.onPrimaryContainer else scheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (categories.isNotEmpty()) {
+                            ExpressiveItemDivider()
+
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "Assign Category",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    categories.forEach { cat ->
+                                        val selected = selectedCategoryId == cat.id
+                                        Surface(
+                                            onClick = {
+                                                VyxelHaptics.tick(context)
+                                                selectedCategoryId = cat.id
+                                            },
+                                            shape = VyxelShapeTokens.Pill,
+                                            color = if (selected) scheme.primaryContainer else scheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                            border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.3f)),
+                                            modifier = Modifier.pressScale(0.96f)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(9.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(cat.colour))
+                                                )
+                                                Text(
+                                                    text = cat.name,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (selected) scheme.onPrimaryContainer else scheme.onSurface
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1256,96 +1241,18 @@ fun AddEditSubscriptionSheet(
                     }
                 }
 
-                // ── Category Selector ─────────────────────────────────────────
-                if (categories.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "CATEGORY",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
-                            letterSpacing = VyxelTypographyTokens.TrackingUppercase
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            categories.forEach { cat ->
-                                val selected = selectedCategoryId == cat.id
-                                Surface(
-                                    onClick = {
-                                        VyxelHaptics.tick(context)
-                                        selectedCategoryId = cat.id
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (selected) scheme.primaryContainer else scheme.surfaceContainer,
-                                    border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.35f))
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(cat.colour))
-                                        )
-                                        Text(
-                                            text = cat.name,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (selected) scheme.onPrimaryContainer else scheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                // ── 5. Auto-Post Toggle ───────────────────────────────────────
+                ExpressiveSettingsGroup {
+                    ExpressiveSettingsSwitch(
+                        title = "Auto-Record to Ledger",
+                        subtitle = "Creates an expense transaction automatically on renewal date",
+                        icon = Icons.Default.Check,
+                        checked = autoPost,
+                        onCheckedChange = { autoPost = it }
+                    )
                 }
 
-                // ── Auto-Post Setting ─────────────────────────────────────────
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = scheme.surfaceContainerHighest.copy(alpha = 0.35f),
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.25f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Auto-record to ledger",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = scheme.onSurface
-                            )
-                            Text(
-                                text = "Creates an expense transaction automatically on renewal date",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = autoPost,
-                            onCheckedChange = {
-                                VyxelHaptics.tick(context)
-                                autoPost = it
-                            }
-                        )
-                    }
-                }
-
-                // ── Sticky Primary Action Button ──────────────────────────────
+                // ── 6. Primary Action Button ──────────────────────────────────
                 val isFormValid = payee.isNotBlank() && (amountStr.toDoubleOrNull() ?: 0.0) > 0.0
                 Button(
                     onClick = {
@@ -1365,15 +1272,18 @@ fun AddEditSubscriptionSheet(
                         }
                     },
                     enabled = isFormValid,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = VyxelShapeTokens.Pill,
+                    colors = ButtonDefaults.buttonColors(containerColor = scheme.primary),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .height(48.dp)
+                        .pressScale(0.97f)
                 ) {
                     Text(
                         text = if (editingRule != null) "Save Changes" else "Add Commitment • ₹${amountStr.ifBlank { "0" }}",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onPrimary
                     )
                 }
             }
