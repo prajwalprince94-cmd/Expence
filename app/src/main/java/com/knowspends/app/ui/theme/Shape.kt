@@ -18,6 +18,7 @@ val Shapes = Shapes(
 
 object VyxelShapeTokens {
     val Pill = RoundedCornerShape(percent = 50)
+    val CardLarge = RoundedCornerShape(28.dp)
     val Card = RoundedCornerShape(24.dp)
     val CardSmall = RoundedCornerShape(16.dp)
     val Chip = RoundedCornerShape(12.dp)
