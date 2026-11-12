@@ -143,10 +143,11 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.getBooleanExtra("TRIGGER_DYNAMIC_ISLAND", false) == true ||
+        val isIslandTrigger = intent?.getBooleanExtra("TRIGGER_DYNAMIC_ISLAND", false) == true ||
             intent?.getStringExtra("TRIGGER_DYNAMIC_ISLAND") == "true" ||
             intent?.data?.host == "dynamic-island"
-        ) {
+
+        if (isIslandTrigger && userPreferences.backTapEnabled) {
             triggerDynamicIsland = true
         }
     }

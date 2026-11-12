@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.knowspends.app.MainActivity
@@ -22,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -62,9 +64,14 @@ class BackTapService : Service() {
             val intent = Intent(context, BackTapService::class.java).apply {
                 action = ACTION_STOP
             }
+            try {
+                context.startService(intent)
+            } catch (_: Exception) {}
             context.stopService(intent)
         }
     }
+
+    private var isBackTapActive = false
 
     override fun onCreate() {
         super.onCreate()
@@ -76,22 +83,46 @@ class BackTapService : Service() {
         }
 
         serviceScope.launch {
-            val prefs = userPreferencesRepository.userPreferencesFlow.first()
-            updateDetectorSensitivity(prefs.backTapSensitivity)
-            backTapDetector?.start(SensorManager.SENSOR_DELAY_NORMAL)
+            userPreferencesRepository.userPreferencesFlow.collectLatest { prefs ->
+                isBackTapActive = prefs.backTapEnabled
+                if (!prefs.backTapEnabled) {
+                    Log.d(TAG, "BackTap disabled in user preferences, stopping detector and service")
+                    backTapDetector?.stop()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        stopForeground(true)
+                    }
+                    stopSelf()
+                } else {
+                    updateDetectorSensitivity(prefs.backTapSensitivity)
+                    backTapDetector?.start(SensorManager.SENSOR_DELAY_NORMAL)
+                }
+            }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                isBackTapActive = false
+                backTapDetector?.stop()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
                 stopSelf()
                 return START_NOT_STICKY
             }
             else -> {
                 serviceScope.launch {
                     val prefs = userPreferencesRepository.userPreferencesFlow.first()
+                    isBackTapActive = prefs.backTapEnabled
                     if (!prefs.backTapEnabled) {
+                        backTapDetector?.stop()
                         stopSelf()
                     } else {
                         updateDetectorSensitivity(prefs.backTapSensitivity)
@@ -104,6 +135,10 @@ class BackTapService : Service() {
     }
 
     private fun onTapDetected() {
+        if (!isBackTapActive) {
+            Log.d(TAG, "Ignoring tap event because BackTap is currently disabled")
+            return
+        }
         Log.d(TAG, "Hardware Back-Tap detected in BackTapService!")
         VyxelHaptics.heavy(this)
 
@@ -114,7 +149,7 @@ class BackTapService : Service() {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
 
-        // 1. Attempt to launch MainActivity directly
+        // 1. Attempt to launch MainActivity directly (permitted when SYSTEM_ALERT_WINDOW is granted)
         try {
             startActivity(openIslandIntent)
         } catch (e: Exception) {
