@@ -5,6 +5,7 @@
 > read **[`DESIGN.md`](./DESIGN.md)** in full. It is the single source of truth for all UI decisions:
 > color tokens, typography, spacing, motion rules, anti-slop gates, and per-screen contracts.
 > Do not use inline `Color(0xFF...)`, do not apply gradient fills, do not enable dynamic color.
+> For all design inspiration, installed skills, and library references see **[`RESOURCES.md`](./RESOURCES.md)**.
 
 ## 1. Project Identity & Architecture
 - **App**: KnowSpends (`com.knowspends.app`)
