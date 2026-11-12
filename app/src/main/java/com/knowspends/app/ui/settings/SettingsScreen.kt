@@ -604,4 +604,3 @@ private fun SettingsSectionRow(
         )
     }
 }
-}
