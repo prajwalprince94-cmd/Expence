@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -102,6 +103,7 @@ import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.pressScale
+import com.knowspends.app.ui.theme.progressiveScrollBlur
 import com.knowspends.app.ui.components.expressive.ExpressiveConnectedButtonGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveInlineStepper
 import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
