@@ -129,7 +129,15 @@ fun VyxelFloatingNavBar(
     val isDark = scheme.surface.luminance() < 0.5f
 
     val solidColor = if (isDark) scheme.surfaceContainerHigh else scheme.surfaceContainerLowest
-    val solidBorder = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.7f))
+    val luminousBorderBrush = Brush.horizontalGradient(
+        colors = listOf(
+            scheme.outlineVariant.copy(alpha = if (isDark) 0.45f else 0.55f),
+            scheme.primary.copy(alpha = if (isDark) 0.50f else 0.40f),
+            scheme.tertiary.copy(alpha = if (isDark) 0.35f else 0.25f),
+            scheme.outlineVariant.copy(alpha = if (isDark) 0.45f else 0.55f)
+        )
+    )
+    val solidBorder = BorderStroke(1.dp, luminousBorderBrush)
 
     Surface(
         modifier = modifier
@@ -173,7 +181,12 @@ fun VyxelFloatingNavBar(
                         modifier = Modifier
                             .bouncyClickable(scaleDown = 0.88f) { onItemClick(dest) }
                             .clip(CircleShape)
-                            .animateContentSize()
+                            .animateContentSize(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
                     ) {
                         Row(
                             modifier = Modifier.padding(

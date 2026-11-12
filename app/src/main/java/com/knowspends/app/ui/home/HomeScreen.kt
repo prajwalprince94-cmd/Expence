@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.knowspends.app.ui.components.AceternitySpotlightCard
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.theme.VyxelShapeTokens
@@ -50,6 +51,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -252,16 +254,14 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Monthly Summary Card with Copilot Money Benchmark Aesthetics
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .auroraGlow(alpha = 0.16f),
+        // Aceternity Spotlight Hero Card: Monumental Cashflow & Safe-to-Spend
+        AceternitySpotlightCard(
+            modifier = Modifier.fillMaxWidth(),
+            spotlightColor = scheme.primary,
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            )
         ) {
             Column(
                 modifier = Modifier
@@ -555,6 +555,135 @@ fun HomeScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // ── BoardUI Bento KPI Matrix ──────────────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Bento Tile 1: 7-Day Spending Velocity & Sparkline Bars
+            Card(
+                modifier = Modifier
+                    .weight(1.15f)
+                    .pressScale(0.98f),
+                shape = VyxelShapeTokens.Card,
+                colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "7-DAY OUTFLOW",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = scheme.onSurfaceVariant,
+                            letterSpacing = 0.5.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Default.TrendingUp,
+                            contentDescription = null,
+                            tint = scheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    val maxDay = uiState.dailyExpenses7Days.maxOfOrNull { it.amountMinor }?.coerceAtLeast(1L) ?: 1L
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        uiState.dailyExpenses7Days.takeLast(7).forEach { day ->
+                            val ratio = (day.amountMinor.toFloat() / maxDay.toFloat()).coerceIn(0.12f, 1f)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(9.dp)
+                                        .fillMaxHeight(ratio)
+                                        .clip(VyxelShapeTokens.Pill)
+                                        .background(
+                                            if (day.isToday) scheme.primary
+                                            else scheme.outlineVariant.copy(alpha = 0.55f)
+                                        )
+                                )
+                                Text(
+                                    text = day.dayLabel.take(1),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
+                                    fontWeight = if (day.isToday) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (day.isToday) scheme.primary else scheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Bento Tile 2: Cashflow Preservation Buffer & Rate
+            Card(
+                modifier = Modifier
+                    .weight(0.95f)
+                    .pressScale(0.98f),
+                shape = VyxelShapeTokens.Card,
+                colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
+                border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "SAVED BUFFER",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurfaceVariant,
+                        letterSpacing = 0.5.sp
+                    )
+
+                    Text(
+                        text = "${uiState.savingsRatePercent}%",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (uiState.savingsRatePercent >= 20) IncomeColor else scheme.onSurface
+                    )
+
+                    LinearProgressIndicator(
+                        progress = { (uiState.savingsRatePercent.coerceAtLeast(0) / 100f).coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .clip(VyxelShapeTokens.Pill),
+                        color = IncomeColor,
+                        trackColor = scheme.surfaceContainerHighest
+                    )
+
+                    Text(
+                        text = "Preserved from inflow",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
