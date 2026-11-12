@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -517,46 +519,15 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 1.5 Budgets, Bills & Subscriptions ───────────────────────────
-            item(key = "budgets_limits") {
-                VyxelSettingsCard(title = "Budgets, Bills & Subscriptions") {
-                    VyxelActionRow(
-                        title = "Recurring Bills & Subscriptions",
-                        subtitle = "Track Netflix, Spotify, SIP investments, rent, and monthly commitments",
-                        icon = Icons.Default.Repeat,
-                        onClick = onNavigateToSubscriptions
-                    )
+            // ── 1. Automation & Quick Capture ────────────────────────────────
+            item(key = "automation_capture") {
+                val canDrawOverlays = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
 
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(10.dp))
-
-                    VyxelActionRow(
-                        title = "Monthly Budgets & Category Limits",
-                        subtitle = "Track envelope spending, monitor budget health, and rollover unspent savings",
-                        icon = Icons.Default.AccountBalanceWallet,
-                        onClick = onNavigateToBudgets
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(10.dp))
-
-                    VyxelActionRow(
-                        title = "Merchant Rules & Category Memory",
-                        subtitle = "Auto-assign categories based on payee patterns & past transaction memory",
-                        icon = Icons.Default.Rule,
-                        onClick = onNavigateToMerchantRules
-                    )
-                }
-            }
-
-            // ── 1.8 SMS Bank & UPI Auto-Tracking ─────────────────────────────
-            item(key = "sms_auto_tracking") {
-                VyxelSettingsCard(title = "SMS Bank & UPI Auto-Tracking") {
+                VyxelSettingsCard(title = "Automation & Quick Capture") {
+                    // SMS Auto-Capture
                     VyxelToggleRow(
                         title = "Auto-Capture Incoming SMS",
-                        subtitle = "Parse debit, credit, UPI, and wallet transactions in real-time from bank alerts",
+                        subtitle = "Parse debit, credit, UPI, and bank alerts in real-time",
                         checked = prefs.smsAutoCaptureEnabled,
                         onCheckedChange = { isChecked ->
                             com.knowspends.app.util.VyxelHaptics.tick(context)
@@ -570,142 +541,223 @@ fun SettingsScreen(
                         icon = Icons.Default.Sms
                     )
 
-                    if (!hasSmsPermission) {
-                        Spacer(Modifier.height(10.dp))
+                    if (!hasSmsPermission && prefs.smsAutoCaptureEnabled) {
+                        Spacer(Modifier.height(8.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
                                 containerColor = scheme.errorContainer.copy(alpha = 0.35f)
                             ),
-                            shape = VyxelShapeTokens.Card
+                            shape = VyxelShapeTokens.CardSmall
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = "SMS Permission Needed",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.error
-                                )
-                                Text(
-                                    text = "Grant SMS permissions so KnowSpends can read incoming alerts and fetch past transactions.",
+                                    text = "SMS Permission Required",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = scheme.onSurfaceVariant
+                                    color = scheme.error,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
                                 )
-                                Spacer(Modifier.height(8.dp))
                                 VyxelActionPill(
-                                    text = "Grant SMS Permission",
+                                    text = "Grant",
                                     icon = Icons.Default.Security,
                                     onClick = {
-                                        com.knowspends.app.util.VyxelHaptics.click(context)
                                         smsPermissionLauncher.launch(
                                             arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
                                         )
                                     },
-                                    isPrimary = true,
-                                    modifier = Modifier.fillMaxWidth()
+                                    isPrimary = true
                                 )
                             }
                         }
                     }
 
                     if (prefs.smsAutoCaptureEnabled) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            text = "Capture Mode:",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.primary
-                        )
-                        Spacer(Modifier.height(6.dp))
-
+                        Spacer(Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Text(
+                                text = "Mode:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant
+                            )
                             VyxelExpressiveChip(
                                 selected = !prefs.smsDirectAutoAdd,
-                                onClick = {
-                                    com.knowspends.app.util.VyxelHaptics.tick(context)
-                                    viewModel.setSmsSettings(true, false)
-                                },
-                                label = "Smart Review Inbox"
+                                onClick = { viewModel.setSmsSettings(true, false) },
+                                label = "Review Inbox"
                             )
                             VyxelExpressiveChip(
                                 selected = prefs.smsDirectAutoAdd,
-                                onClick = {
-                                    com.knowspends.app.util.VyxelHaptics.tick(context)
-                                    viewModel.setSmsSettings(true, true)
-                                },
+                                onClick = { viewModel.setSmsSettings(true, true) },
                                 label = "Direct Auto-Add"
                             )
                         }
 
-                        Text(
-                            text = if (prefs.smsDirectAutoAdd)
-                                "Transactions are recorded directly to ledger accounts immediately."
-                            else
-                                "Transactions arrive in the Review Inbox where you can verify payee and category before approving.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-
                         Spacer(Modifier.height(8.dp))
                         VyxelActionRow(
-                            title = "Open Review Inbox",
-                            subtitle = "Inspect and approve detected bank & UPI transactions",
+                            title = "Review Inbox",
+                            subtitle = "Verify and approve detected transactions",
                             icon = Icons.Default.Inbox,
                             onClick = onNavigateToInbox
                         )
+
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Sync Past 30 Days SMS",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = scheme.onSurface
+                            )
+                            if (uiState.isScanningSms) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            } else {
+                                VyxelActionPill(
+                                    text = "Scan Now",
+                                    icon = Icons.Default.Sync,
+                                    onClick = {
+                                        if (hasSmsPermission) {
+                                            viewModel.scanPastSms(30)
+                                        } else {
+                                            smsPermissionLauncher.launch(
+                                                arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(10.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
                     Spacer(Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                    // Dynamic Island & Back-Tap Quick Add
+                    VyxelToggleRow(
+                        title = "Back-Tap Dynamic Island",
+                        subtitle = "Double-tap device back to summon quick spend popup",
+                        checked = prefs.backTapEnabled,
+                        onCheckedChange = { viewModel.setBackTapSettings(it, prefs.backTapSensitivity) },
+                        icon = Icons.Default.TouchApp
+                    )
+
+                    if (prefs.backTapEnabled) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "Sync & Scan Past SMS",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Import and parse bank and UPI transactions from the past 30 days of messages",
+                                text = "Sensitivity:",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = scheme.onSurfaceVariant
                             )
+                            listOf("high" to "High", "normal" to "Normal", "low" to "Low").forEach { (key, label) ->
+                                VyxelExpressiveChip(
+                                    selected = prefs.backTapSensitivity == key,
+                                    onClick = { viewModel.setBackTapSettings(true, key) },
+                                    label = label
+                                )
+                            }
                         }
-                        Spacer(Modifier.width(8.dp))
-                        if (uiState.isScanningSms) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        } else {
-                            VyxelActionPill(
-                                text = "Scan 30 Days",
-                                icon = Icons.Default.Sync,
+
+                        if (!canDrawOverlays) {
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
                                 onClick = {
-                                    com.knowspends.app.util.VyxelHaptics.click(context)
-                                    if (hasSmsPermission) {
-                                        viewModel.scanPastSms(30)
-                                    } else {
-                                        smsPermissionLauncher.launch(
-                                            arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
-                                        )
-                                    }
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                },
+                                shape = VyxelShapeTokens.CardSmall,
+                                color = scheme.primaryContainer.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.5f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = null,
+                                        tint = scheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Enable 'Appear on top' permission to popup over other apps",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = scheme.onPrimaryContainer,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = scheme.primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    // Merchant Rules & Memory
+                    VyxelActionRow(
+                        title = "Merchant Rules & Category Memory",
+                        subtitle = "Auto-assign categories from payee history",
+                        icon = Icons.Default.Rule,
+                        onClick = onNavigateToMerchantRules
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    // Recurring Bills & Subscriptions
+                    VyxelActionRow(
+                        title = "Recurring Bills & Subscriptions",
+                        subtitle = "Manage streaming, utilities, and renewals",
+                        icon = Icons.Default.Repeat,
+                        onClick = onNavigateToSubscriptions
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    // Monthly Budgets
+                    VyxelActionRow(
+                        title = "Budgets & Category Limits",
+                        subtitle = "Envelope tracking and spending caps",
+                        icon = Icons.Default.AccountBalanceWallet,
+                        onClick = onNavigateToBudgets
+                    )
                 }
             }
 
-            // ── 2. Appearance & Dynamic Color ─────────────────────────────────
-            item(key = "appearance") {
-                VyxelSettingsCard(title = "Appearance & Theme") {
+            // ── 2. Preferences ────────────────────────────────────────────────
+            item(key = "preferences") {
+                VyxelSettingsCard(title = "Preferences") {
                     Text(
                         text = "Theme Mode",
                         style = MaterialTheme.typography.labelMedium,
@@ -719,13 +771,13 @@ fun SettingsScreen(
                         onThemeSelected = { viewModel.setThemeMode(it) }
                     )
 
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(12.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
                     Spacer(Modifier.height(10.dp))
 
                     VyxelToggleRow(
                         title = "Material You Dynamic Colors",
-                        subtitle = "Harmonize palette with your Android system wallpaper",
+                        subtitle = "Harmonize palette with device wallpaper",
                         checked = prefs.dynamicColor,
                         onCheckedChange = { viewModel.setDynamicColor(it) },
                         icon = Icons.Default.Palette
@@ -736,8 +788,8 @@ fun SettingsScreen(
                     Spacer(Modifier.height(10.dp))
 
                     VyxelActionRow(
-                        title = "Default Ledger Currency",
-                        subtitle = "Active: ${prefs.currencySymbol} • Tap to switch between INR (₹), USD ($), EUR (€), GBP (£), and more",
+                        title = "Default Currency",
+                        subtitle = "Active: ${prefs.currencySymbol} • Tap to switch currency symbol",
                         icon = Icons.Default.CurrencyExchange,
                         onClick = { viewModel.showCurrencyDialog(true) }
                     )
@@ -748,104 +800,22 @@ fun SettingsScreen(
 
                     VyxelToggleRow(
                         title = "Tactile Haptic Feedback",
-                        subtitle = "Subtle vibration sensations when tapping buttons, keypad inputs, and transactions",
+                        subtitle = "Subtle vibration sensations when interacting",
                         checked = prefs.hapticsEnabled,
                         onCheckedChange = { enabled ->
                             viewModel.setHapticsEnabled(enabled)
-                            if (enabled) {
-                                com.knowspends.app.util.VyxelHaptics.success(context)
-                            }
+                            if (enabled) com.knowspends.app.util.VyxelHaptics.success(context)
                         },
                         icon = Icons.Default.Vibration
                     )
-                }
-            }
 
-            // ── 3. Multiple Fonts & Typography ────────────────────────────────
-            item(key = "typography") {
-                var fontsExpanded by remember { mutableStateOf(false) }
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
 
-                VyxelSettingsCard(title = "Typography & Fonts") {
-                    VyxelActionRow(
-                        title = "Active Typeface",
-                        subtitle = AppFont.entries.firstOrNull { it.id == prefs.fontId }?.displayName
-                            ?: "Plus Jakarta Sans",
-                        icon = Icons.Default.FontDownload,
-                        onClick = { fontsExpanded = !fontsExpanded },
-                        trailingContent = {
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = scheme.onSurfaceVariant
-                            )
-                        }
-                    )
-
-                    AnimatedVisibility(visible = fontsExpanded) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            AppFont.entries.forEach { font ->
-                                val isSelected = prefs.fontId == font.id
-                                val customFontFamily = getFontFamily(font.id)
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(VyxelShapeTokens.CardSmall)
-                                        .background(
-                                            if (isSelected) scheme.primaryContainer.copy(alpha = 0.6f)
-                                            else Color.Transparent
-                                        )
-                                        .clickable {
-                                            viewModel.setFontId(font.id)
-                                            fontsExpanded = false
-                                        }
-                                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = font.displayName,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontFamily = customFontFamily,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface
-                                        )
-                                        Text(
-                                            text = "₹12,450.00 • Groceries & Dining",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontFamily = customFontFamily,
-                                            color = scheme.onSurfaceVariant
-                                        )
-                                    }
-
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = scheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            // ── 5. Notifications & Budget Alerts ────────────────────────────
-            item(key = "notifications") {
-                VyxelSettingsCard(title = "Notifications & Budget Alerts") {
                     VyxelToggleRow(
                         title = "Budget Threshold Alerts",
-                        subtitle = "Warn when category spending approaches 80% or 100% of defined limits",
+                        subtitle = "Warn when spending approaches 80% or 100% of limits",
                         checked = prefs.budgetAlertEnabled,
                         onCheckedChange = { viewModel.setBudgetAlert(it) },
                         icon = Icons.Default.Notifications
@@ -853,81 +823,12 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 6. Backup & Restore (Vyxel Style) ─────────────────────────────
-            item(key = "backup_restore") {
-                VyxelSettingsCard(title = "Backup & Data Safety") {
-                    Text(
-                        text = "Safeguard your entire offline ledger to local files or spreadsheets.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        VyxelActionPill(
-                            text = "Create Backup",
-                            icon = Icons.Default.Backup,
-                            onClick = {
-                                val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                                exportBackupLauncher.launch("knowspends-backup-$date.json")
-                            },
-                            isPrimary = true,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        VyxelActionPill(
-                            text = "Restore Data",
-                            icon = Icons.Default.Restore,
-                            onClick = {
-                                restoreBackupLauncher.launch(
-                                    arrayOf("application/json", "application/octet-stream", "*/*")
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        VyxelActionPill(
-                            text = "Export CSV",
-                            icon = Icons.Default.FileDownload,
-                            onClick = {
-                                val date = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())
-                                exportCsvLauncher.launch("knowspends_transactions_$date.csv")
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        VyxelActionPill(
-                            text = "Import CSV",
-                            icon = Icons.Default.FileUpload,
-                            onClick = {
-                                importCsvLauncher.launch(
-                                    arrayOf("text/csv", "text/comma-separated-values", "text/*", "*/*")
-                                )
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // ── 7. Security & App Lock ────────────────────────────────────────
-            item(key = "security") {
-                VyxelSettingsCard(title = "Security & Privacy") {
+            // ── 3. Data & Security ────────────────────────────────────────────
+            item(key = "data_security") {
+                VyxelSettingsCard(title = "Data & Security") {
                     VyxelToggleRow(
                         title = "Biometric / Device PIN Lock",
-                        subtitle = "Require fingerprint, face, or system PIN to access ledger",
+                        subtitle = "Require fingerprint or system PIN to access ledger",
                         checked = uiState.securityConfig.isBiometricEnabled,
                         onCheckedChange = { viewModel.toggleBiometric(it) },
                         icon = Icons.Default.Security
@@ -956,64 +857,107 @@ fun SettingsScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
 
                     VyxelToggleRow(
                         title = "Hide in Recent Apps",
-                        subtitle = "Prevent screenshots and mask screen in recent apps switcher (FLAG_SECURE)",
+                        subtitle = "Mask ledger preview in task switcher (FLAG_SECURE)",
                         checked = uiState.securityConfig.isSecureScreenEnabled,
                         onCheckedChange = { viewModel.toggleSecureScreen(it) }
                     )
-                }
-            }
 
-            // ── Tap to Add & Dynamic Island ──────────────────────────
-            item(key = "dynamic_island") {
-                VyxelSettingsCard(title = "Tap to Add & Dynamic Island") {
-                    VyxelToggleRow(
-                        title = "Back-Tap Dynamic Island",
-                        subtitle = "Double-tap back of phone to trigger iOS Dynamic Island quick spend popup (works anywhere, even when app is closed)",
-                        checked = uiState.userPreferences.backTapEnabled,
-                        onCheckedChange = { viewModel.setBackTapSettings(it, uiState.userPreferences.backTapSensitivity) },
-                        icon = Icons.Default.TouchApp
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    Text(
+                        text = "Backup & Export",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.primary
                     )
+                    Spacer(Modifier.height(8.dp))
 
-                    if (uiState.userPreferences.backTapEnabled) {
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Sensitivity:",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant
-                            )
-                            listOf("high" to "High", "normal" to "Normal", "low" to "Low").forEach { (key, label) ->
-                                VyxelExpressiveChip(
-                                    selected = uiState.userPreferences.backTapSensitivity == key,
-                                    onClick = { viewModel.setBackTapSettings(true, key) },
-                                    label = label
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        VyxelActionPill(
+                            text = "Backup JSON",
+                            icon = Icons.Default.Backup,
+                            onClick = {
+                                val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                                exportBackupLauncher.launch("knowspends-backup-$date.json")
+                            },
+                            isPrimary = true,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        VyxelActionPill(
+                            text = "Restore JSON",
+                            icon = Icons.Default.Restore,
+                            onClick = {
+                                restoreBackupLauncher.launch(
+                                    arrayOf("application/json", "application/octet-stream", "*/*")
                                 )
-                            }
-                        }
-
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "Calibrated for physical finger double-taps on the back of your device. Also works via the 'Quick Spend' Quick Settings tile in your Android notification drawer.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        VyxelActionPill(
+                            text = "Export CSV",
+                            icon = Icons.Default.FileDownload,
+                            onClick = {
+                                val date = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())
+                                exportCsvLauncher.launch("knowspends_transactions_$date.csv")
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        VyxelActionPill(
+                            text = "Import CSV",
+                            icon = Icons.Default.FileUpload,
+                            onClick = {
+                                importCsvLauncher.launch(
+                                    arrayOf("text/csv", "text/comma-separated-values", "text/*", "*/*")
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
+                    Spacer(Modifier.height(10.dp))
+
+                    VyxelActionRow(
+                        title = "Reset All Ledger Data",
+                        subtitle = "Permanently wipe all records and restore factory defaults",
+                        icon = Icons.Default.DeleteForever,
+                        onClick = { viewModel.showResetConfirmDialog(true) },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = scheme.error
+                            )
+                        }
+                    )
                 }
             }
 
-            // ── 8. Updates & Maintenance ──────────────────────────────────────
-            item(key = "updates") {
-                VyxelSettingsCard(title = "Updates & Version") {
+            // ── 4. About & Updates ────────────────────────────────────────────
+            item(key = "about_updates") {
+                VyxelSettingsCard(title = "About & Updates") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1024,13 +968,13 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = "KnowSpends Version",
+                                text = "KnowSpends v${BuildConfig.VERSION_NAME}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = scheme.onSurface
                             )
                             Text(
-                                text = "Installed: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                                text = "Build ${BuildConfig.VERSION_CODE} • Local-First & Private",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = scheme.onSurfaceVariant
                             )
@@ -1040,7 +984,7 @@ fun SettingsScreen(
                             CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         } else {
                             VyxelActionPill(
-                                text = "Check Now",
+                                text = "Check Updates",
                                 icon = Icons.Default.Update,
                                 onClick = { viewModel.checkForUpdates() }
                             )
@@ -1048,7 +992,7 @@ fun SettingsScreen(
                     }
 
                     if (uiState.isDownloadingUpdate) {
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(10.dp))
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -1060,23 +1004,11 @@ fun SettingsScreen(
                                     .height(6.dp)
                                     .clip(CircleShape)
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Downloading in-app update...",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.primary
-                                )
-                                Text(
-                                    text = "${(uiState.downloadProgress * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.primary
-                                )
-                            }
+                            Text(
+                                text = "Downloading update: ${(uiState.downloadProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.primary
+                            )
                         }
                     } else if (uiState.downloadedApkUri != null) {
                         Spacer(Modifier.height(10.dp))
@@ -1100,7 +1032,7 @@ fun SettingsScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
                     Spacer(Modifier.height(10.dp))
 
@@ -1111,88 +1043,30 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Temporary Storage & Cache",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
+                                text = "Temporary Cache",
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = scheme.onSurface
                             )
                             Text(
-                                text = "Clean downloaded update APKs, cached receipts, and export files",
+                                text = "Clean export files, receipts, and APK cache",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = scheme.onSurfaceVariant
                             )
                         }
                         VyxelActionPill(
-                            text = "Clean Cache",
+                            text = "Clean",
                             icon = Icons.Default.CleaningServices,
                             onClick = { viewModel.clearAppCache(context) }
                         )
                     }
-                }
-            }
 
-            // ── 9. Community & Support Group ──────────────────────────────────
-            item(key = "community") {
-                VyxelSettingsCard(title = "Support & Community") {
-                    VyxelActionRow(
-                        title = "Join Support Group",
-                        subtitle = "Community discussions, feature ideas, and support",
-                        icon = Icons.Default.Group,
-                        onClick = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://github.com/prajwalprince94-cmd/Expence/discussions")
-                                )
-                            )
-                        },
-                        trailingContent = {
-                            Icon(Icons.Default.OpenInNew, null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                        }
-                    )
-
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(10.dp))
                     HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(10.dp))
 
                     VyxelActionRow(
-                        title = "Report an Issue / Bug",
-                        subtitle = "Submit issue report or feature request on GitHub",
-                        icon = Icons.Default.BugReport,
-                        onClick = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://github.com/prajwalprince94-cmd/Expence/issues")
-                                )
-                            )
-                        },
-                        trailingContent = {
-                            Icon(Icons.Default.OpenInNew, null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                        }
-                    )
-                }
-            }
-
-            // ── 10. About & Architecture ──────────────────────────────────────
-            item(key = "about") {
-                VyxelSettingsCard(title = "About KnowSpends") {
-                    Text(
-                        text = "KnowSpends • Private Personal Ledger",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurface
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Strict financial privacy: 100% local-first database, Room Single Source of Truth (SSOT), and fluid Material 3 Expressive UI. Developed with passion by Prajwal.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(14.dp))
-
-                    VyxelActionPill(
-                        text = "GitHub Repository",
+                        title = "GitHub Repository & Community",
+                        subtitle = "Source code, release notes, and discussions",
                         icon = Icons.Default.OpenInNew,
                         onClick = {
                             context.startActivity(
@@ -1200,32 +1074,6 @@ fun SettingsScreen(
                                     Intent.ACTION_VIEW,
                                     Uri.parse("https://github.com/prajwalprince94-cmd/Expence")
                                 )
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // ── 11. Danger Zone ──────────────────────────────────────────────
-            item(key = "danger_zone") {
-                VyxelSettingsCard(title = "Danger Zone") {
-                    Text(
-                        text = "Irreversible ledger operations. Proceed with extreme caution.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.error
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    VyxelActionRow(
-                        title = "Reset All Ledger Data",
-                        subtitle = "Permanently wipe all transactions, accounts, and categories, restoring factory defaults",
-                        icon = Icons.Default.DeleteForever,
-                        onClick = { viewModel.showResetConfirmDialog(true) },
-                        trailingContent = {
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = scheme.error
                             )
                         }
                     )

@@ -208,6 +208,14 @@ class BackTapService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         backTapDetector?.stop()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        notificationManager?.cancel(NOTIFICATION_ID)
         serviceJob.cancel()
         Log.d(TAG, "BackTapService destroyed")
     }

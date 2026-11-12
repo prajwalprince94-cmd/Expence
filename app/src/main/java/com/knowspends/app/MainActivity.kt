@@ -52,7 +52,7 @@ class MainActivity : FragmentActivity() {
 
         backTapDetector = BackTapDetector(this) {
             runOnUiThread {
-                if (!isAppLocked) {
+                if (userPreferences.backTapEnabled && !isAppLocked) {
                     triggerDynamicIsland = true
                 }
             }
@@ -78,8 +78,10 @@ class MainActivity : FragmentActivity() {
                         updateBackTapSensitivity()
                         if (prefs.backTapEnabled) {
                             com.knowspends.app.sensor.BackTapService.start(this@MainActivity)
+                            backTapDetector?.start()
                         } else {
                             com.knowspends.app.sensor.BackTapService.stop(this@MainActivity)
+                            backTapDetector?.stop()
                         }
                     }
                 }
@@ -124,6 +126,8 @@ class MainActivity : FragmentActivity() {
         if (userPreferences.backTapEnabled) {
             updateBackTapSensitivity()
             backTapDetector?.start()
+        } else {
+            backTapDetector?.stop()
         }
     }
 

@@ -634,7 +634,7 @@ private fun VyxelNumericKeypad(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "+ Another",
+                        text = "Add Another",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
