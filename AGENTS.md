@@ -1,5 +1,11 @@
 # AGENTS.md — KnowSpends Engineering & Architecture Guidelines
 
+> [!IMPORTANT]
+> **DESIGN CONTRACT** — Before writing or editing any composable, screen, theme, or animation,
+> read **[`DESIGN.md`](./DESIGN.md)** in full. It is the single source of truth for all UI decisions:
+> color tokens, typography, spacing, motion rules, anti-slop gates, and per-screen contracts.
+> Do not use inline `Color(0xFF...)`, do not apply gradient fills, do not enable dynamic color.
+
 ## 1. Project Identity & Architecture
 - **App**: KnowSpends (`com.knowspends.app`)
 - **Philosophy**: Zero-network local-first personal ledger, strict financial privacy, high tactile utility.
