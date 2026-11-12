@@ -83,6 +83,9 @@ import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.fadingEdges
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressivePermissionCard
+import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -314,62 +317,43 @@ fun ReviewInboxScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             // Pending Transactions List
-            if (uiState.pendingTransactions.isEmpty()) {
+            val hasSmsPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+            if (!hasSmsPermission) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(scheme.surfaceContainerHighest),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Inbox,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = scheme.primary
-                            )
-                        }
-
-                        Text(
-                            text = "Review Inbox is Clear",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurface
-                        )
-
-                        Text(
-                            text = "New transactions from your bank SMS and UPI apps will automatically appear here for 1-tap review.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Button(
-                            onClick = { requestAndScanSms() },
-                            shape = VyxelShapeTokens.Pill
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Sms,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Scan Device SMS Inbox")
-                        }
-                    }
+                    ExpressivePermissionCard(
+                        title = "SMS Auto-Detection Permission Required",
+                        description = "KnowSpends detects financial debit and credit alerts from your banks and UPI apps to populate your Review Inbox automatically with zero manual entry.",
+                        icon = Icons.Default.Sms,
+                        onRequestPermission = { requestAndScanSms() }
+                    )
+                }
+            } else if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    ExpressiveTransactionListSkeleton(count = 4)
+                }
+            } else if (uiState.pendingTransactions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ExpressiveEmptyState(
+                        icon = Icons.Default.Inbox,
+                        title = "Review Inbox is Clear",
+                        subtitle = "New transactions from your bank SMS and UPI apps will automatically appear here for 1-tap review.",
+                        actionLabel = "Scan Device SMS Inbox",
+                        onActionClick = { requestAndScanSms() }
+                    )
                 }
             } else {
                 LazyColumn(

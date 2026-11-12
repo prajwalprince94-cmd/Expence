@@ -29,6 +29,10 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.QueryStats
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressiveHeroCardSkeleton
+import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -131,10 +135,18 @@ fun ReportsScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ── 1. Hero Cashflow & Pacing Card ──────────────────────────
-                item(key = "hero_cashflow") {
-                    CashflowHeroCard(uiState = uiState)
-                }
+                if (uiState.isLoading) {
+                    item(key = "loading_hero") {
+                        ExpressiveHeroCardSkeleton()
+                    }
+                    item(key = "loading_metrics") {
+                        ExpressiveTransactionListSkeleton(count = 3)
+                    }
+                } else {
+                    // ── 1. Hero Cashflow & Pacing Card ──────────────────────────
+                    item(key = "hero_cashflow") {
+                        CashflowHeroCard(uiState = uiState)
+                    }
 
                 // ── 2. Category Spending Donut & Distribution ───────────────
                 if (uiState.categories.isNotEmpty()) {
@@ -243,10 +255,11 @@ fun ReportsScreen(
                     }
                 }
 
-                // Empty state if completely no data across all metrics
-                if (uiState.categories.isEmpty() && uiState.topPayees.isEmpty() && uiState.totalExpenseMinor == 0L && uiState.totalIncomeMinor == 0L) {
-                    item(key = "empty_state") {
-                        EmptyReportView(message = "No transactions found for the selected time range")
+                    // Empty state if completely no data across all metrics
+                    if (uiState.categories.isEmpty() && uiState.topPayees.isEmpty() && uiState.totalExpenseMinor == 0L && uiState.totalIncomeMinor == 0L) {
+                        item(key = "empty_state") {
+                            EmptyReportView(message = "No transactions found for the selected time range")
+                        }
                     }
                 }
             }
@@ -792,26 +805,11 @@ private fun MonthlyTrendRowCard(trend: MonthlyTrendItem) {
 
 @Composable
 private fun EmptyReportView(message: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.PieChart,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
+    ExpressiveEmptyState(
+        icon = Icons.Default.QueryStats,
+        title = "No Financial Analytics Yet",
+        subtitle = "Detailed cashflow distribution, spending velocity, and monthly trend reports will appear once you record transactions.",
+        isCompact = false,
+        modifier = Modifier.padding(16.dp)
+    )
 }

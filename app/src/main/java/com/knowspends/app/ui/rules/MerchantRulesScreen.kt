@@ -51,6 +51,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressiveNoSearchResults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -249,63 +251,34 @@ fun MerchantRulesScreen(
             }
 
             // Rules List
-            if (uiState.filteredRules.isEmpty()) {
+            if (uiState.searchQuery.isNotEmpty() && uiState.filteredRules.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(scheme.surfaceContainerHighest),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Rule,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = scheme.primary
-                            )
-                        }
-
-                        Text(
-                            text = if (uiState.searchQuery.isNotEmpty()) "No matching rules found" else "No Merchant Rules Yet",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = scheme.onSurface
-                        )
-
-                        Text(
-                            text = if (uiState.searchQuery.isNotEmpty()) "Try a different search term" else "Add rules to auto-categorize specific payees, or simply approve SMS transactions in your Review Inbox to build memory automatically.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-
-                        if (uiState.searchQuery.isEmpty()) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Button(
-                                onClick = { viewModel.openAddDialog() },
-                                shape = VyxelShapeTokens.Pill
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Create First Rule")
-                            }
-                        }
-                    }
+                    ExpressiveNoSearchResults(
+                        query = uiState.searchQuery,
+                        onClearSearch = { viewModel.setSearchQuery("") },
+                        suggestedQueries = listOf("Swiggy", "Amazon", "Uber", "Zomato", "Electricity"),
+                        onSuggestionClick = { viewModel.setSearchQuery(it) }
+                    )
+                }
+            } else if (uiState.filteredRules.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ExpressiveEmptyState(
+                        icon = Icons.Default.Rule,
+                        title = "No Merchant Rules Yet",
+                        subtitle = "Add pattern rules to auto-categorize recurring payees, or approve SMS transactions in your Review Inbox to build memory automatically.",
+                        actionLabel = "Create First Rule",
+                        onActionClick = { viewModel.openAddDialog() }
+                    )
                 }
             } else {
                 LazyColumn(

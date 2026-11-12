@@ -40,6 +40,7 @@ class MainActivity : FragmentActivity() {
     private var securityConfig by mutableStateOf(SecurityConfig())
     private var userPreferences by mutableStateOf(com.knowspends.app.domain.model.UserPreferences())
     private var isAppLocked by mutableStateOf(false)
+    private var isSessionTimeout by mutableStateOf(false)
     private var backgroundTimestamp: Long = 0L
 
     private var triggerDynamicIsland by mutableStateOf(false)
@@ -106,6 +107,7 @@ class MainActivity : FragmentActivity() {
                     } else {
                         if (isAppLocked && securityConfig.isBiometricEnabled) {
                             AppLockScreen(
+                                isSessionTimeout = isSessionTimeout,
                                 onUnlockClicked = { promptUnlock() }
                             )
                         } else {
@@ -171,6 +173,7 @@ class MainActivity : FragmentActivity() {
         if (backgroundTimestamp != 0L && securityConfig.isBiometricEnabled) {
             val elapsedMinutes = (System.currentTimeMillis() - backgroundTimestamp) / 1000 / 60
             if (elapsedMinutes >= securityConfig.lockTimeoutMinutes) {
+                isSessionTimeout = true
                 isAppLocked = true
                 promptUnlock()
             }
@@ -181,15 +184,17 @@ class MainActivity : FragmentActivity() {
         if (!BiometricAuthManager.canAuthenticate(this)) {
             // Device does not support biometrics/credentials, bypass
             isAppLocked = false
+            isSessionTimeout = false
             return
         }
 
         BiometricAuthManager.authenticate(
             activity = this,
-            title = "Unlock KnowSpends",
-            subtitle = "Authenticate to access your accounts",
+            title = if (isSessionTimeout) "Session Timed Out" else "Unlock KnowSpends",
+            subtitle = if (isSessionTimeout) "Authenticate to resume your session" else "Authenticate to access your accounts",
             onSuccess = {
                 isAppLocked = false
+                isSessionTimeout = false
             }
         )
     }

@@ -58,6 +58,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressiveNoSearchResults
+import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -369,73 +372,57 @@ fun TransactionsScreen(
             }
         }
     ) { innerPadding ->
-        if (uiState.dayGroups.isEmpty()) {
+        if (uiState.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(innerPadding)
+                    .padding(16.dp)
+            ) {
+                ExpressiveTransactionListSkeleton(count = 6)
+            }
+        } else if (uiState.searchQuery.isNotBlank() && uiState.dayGroups.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(scheme.surfaceContainerHighest.copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ReceiptLong,
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp),
-                            tint = scheme.primary.copy(alpha = 0.8f)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = if (uiState.searchQuery.isNotBlank()) "No matching records found" else "No transactions yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = if (uiState.searchQuery.isNotBlank())
-                            "Try searching with different keywords or clearing active filters"
-                        else
-                            "Tap the floating + button to log an expense or income",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        textAlign = TextAlign.Center
-                    )
-                    if (uiState.searchQuery.isNotBlank() || uiState.selectedType != null || uiState.selectedAccountId != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = viewModel::clearAllFilters,
-                            shape = VyxelShapeTokens.Pill,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = scheme.primaryContainer,
-                                contentColor = scheme.onPrimaryContainer
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = "Clear All Filters",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                ExpressiveNoSearchResults(
+                    query = uiState.searchQuery,
+                    onClearSearch = { viewModel.setSearchQuery("") },
+                    suggestedQueries = listOf("UPI", "Swiggy", "Zomato", "Amazon", "Salary"),
+                    onSuggestionClick = { viewModel.setSearchQuery(it) }
+                )
+            }
+        } else if (uiState.dayGroups.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                ExpressiveEmptyState(
+                    icon = Icons.Default.ReceiptLong,
+                    title = "No transactions found",
+                    subtitle = if (uiState.selectedType != null || uiState.selectedAccountId != null)
+                        "No transactions match the selected account or category filters."
+                    else
+                        "No spending records found. Tap the button below to log your first transaction.",
+                    actionLabel = if (uiState.selectedType != null || uiState.selectedAccountId != null)
+                        "Clear Filters"
+                    else
+                        "Log Transaction",
+                    onActionClick = {
+                        if (uiState.selectedType != null || uiState.selectedAccountId != null) {
+                            viewModel.clearAllFilters()
+                        } else {
+                            onTransactionClick(0L)
                         }
                     }
-                }
+                )
             }
         } else {
             LazyColumn(

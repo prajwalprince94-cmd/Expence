@@ -90,6 +90,7 @@ import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.TransferColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.pressScale
+import com.knowspends.app.ui.components.states.shake
 import com.knowspends.app.util.VyxelHaptics
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -114,9 +115,12 @@ fun AddTransactionScreen(
     var showAccountSheet by remember { mutableStateOf(false) }
     var showTransferAccountSheet by remember { mutableStateOf(false) }
     var showDetailsSheet by remember { mutableStateOf(false) }
+    var shakeTrigger by remember { mutableStateOf(0) }
+    var amountValidationError by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.navigateUp) {
         if (uiState.navigateUp) {
+            VyxelHaptics.success(context)
             onNavigateUp()
             viewModel.onNavigatedUp()
         }
@@ -214,7 +218,8 @@ fun AddTransactionScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .shake(shakeTrigger)
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -225,11 +230,20 @@ fun AddTransactionScreen(
                         fontFamily = FontFamily.Monospace,
                         fontFeatureSettings = "tnum"
                     ),
-                    color = if (uiState.amountInput == "0") scheme.onSurfaceVariant.copy(alpha = 0.5f) else typeColor,
+                    color = if (amountValidationError) scheme.error else if (uiState.amountInput == "0") scheme.onSurfaceVariant.copy(alpha = 0.5f) else typeColor,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (amountValidationError) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Amount must be greater than ₹0",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.error,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             // ── 3. Context Pills Row (Account, Transfer, Date, Note/Payee) ────
@@ -350,19 +364,34 @@ fun AddTransactionScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ── 5. Tactile Numeric Keypad ──────────────────────────────────────
             VyxelNumericKeypad(
                 onKeyPress = { char ->
+                    amountValidationError = false
                     viewModel.onEvent(AddTransactionEvent.OnKeypadPress(char))
                 },
                 onBackspace = {
+                    amountValidationError = false
                     viewModel.onEvent(AddTransactionEvent.OnBackspace)
                 },
                 onSave = {
-                    viewModel.onEvent(AddTransactionEvent.OnSave)
+                    if (uiState.amountMinor <= 0L) {
+                        shakeTrigger++
+                        amountValidationError = true
+                        VyxelHaptics.error(context)
+                    } else {
+                        amountValidationError = false
+                        viewModel.onEvent(AddTransactionEvent.OnSave)
+                    }
                 },
                 onSaveAndAddAnother = {
-                    viewModel.onEvent(AddTransactionEvent.OnSaveAndAddAnother)
+                    if (uiState.amountMinor <= 0L) {
+                        shakeTrigger++
+                        amountValidationError = true
+                        VyxelHaptics.error(context)
+                    } else {
+                        amountValidationError = false
+                        viewModel.onEvent(AddTransactionEvent.OnSaveAndAddAnother)
+                    }
                 },
                 isSaving = uiState.isSaving,
                 isEditing = uiState.transactionId != null

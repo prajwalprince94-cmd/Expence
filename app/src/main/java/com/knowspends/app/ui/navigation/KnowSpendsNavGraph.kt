@@ -15,12 +15,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalContext
+import com.knowspends.app.ui.components.states.ExpressiveNetworkBanner
+import com.knowspends.app.util.NetworkConnectivityObserver
+import com.knowspends.app.util.NetworkStatus
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
@@ -105,15 +110,26 @@ fun KnowSpendsAppRoot(
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = if (isTopLevelRoute) 0.dp else innerPadding.calculateBottomPadding()
-                )
-        ) {
-            NavHost(
+            val context = LocalContext.current
+            val networkObserver = remember(context) { NetworkConnectivityObserver(context.applicationContext) }
+            val networkStatus by networkObserver.networkStatus.collectAsStateWithLifecycle(initialValue = NetworkStatus.Available)
+
+            val isOffline = networkStatus == NetworkStatus.Unavailable || networkStatus == NetworkStatus.Lost
+            val isSlow = networkStatus == NetworkStatus.Losing
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        top = innerPadding.calculateTopPadding(),
+                        bottom = if (isTopLevelRoute) 0.dp else innerPadding.calculateBottomPadding()
+                    )
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    ExpressiveNetworkBanner(isOffline = isOffline, isSlowNetwork = isSlow)
+
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        NavHost(
                 navController = navController,
                 startDestination = Screen.Home.route,
                 modifier = Modifier.fillMaxSize(),
@@ -232,6 +248,8 @@ fun KnowSpendsAppRoot(
                     )
                 }
             }
+        }
+    }
 
             // Stride-style Floating Navigation Bar & Direct + Button (Auto-Layout Row beside navigation)
             if (barOffset < 140.dp) {

@@ -110,6 +110,9 @@ import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsSwitch
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
+import com.knowspends.app.ui.components.states.shake
 import com.knowspends.app.util.VyxelHaptics
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -388,60 +391,21 @@ fun SubscriptionsScreen(
             }
 
             // ── Subscriptions & Commitments List ──────────────────────────────
-            if (uiState.filteredRules.isEmpty()) {
+            if (uiState.isLoading) {
+                item(key = "loading_skeletons") {
+                    ExpressiveTransactionListSkeleton(count = 3)
+                }
+            } else if (uiState.filteredRules.isEmpty()) {
                 item(key = "empty_state") {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(scheme.surfaceContainerHighest),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Repeat,
-                                    contentDescription = null,
-                                    tint = scheme.primary,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                            Text(
-                                text = if (uiState.selectedFilter == "All") "No Subscriptions Tracked Yet" else "No ${uiState.selectedFilter} Commitments",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = scheme.onSurface
-                            )
-                            Text(
-                                text = "Keep tabs on Netflix, Spotify, broadband, rent, EMIs, and SIP investments automatically.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                            Button(
-                                onClick = {
-                                    VyxelHaptics.click(context)
-                                    viewModel.showAddEditDialog()
-                                },
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Add First Commitment")
-                            }
+                    ExpressiveEmptyState(
+                        icon = Icons.Default.Repeat,
+                        title = if (uiState.selectedFilter == "All") "No Subscriptions Tracked Yet" else "No ${uiState.selectedFilter} Commitments",
+                        subtitle = "Keep tabs on Netflix, Spotify, broadband, rent, EMIs, and SIP investments automatically.",
+                        actionLabel = "Add First Commitment",
+                        onActionClick = {
+                            viewModel.showAddEditDialog()
                         }
-                    }
+                    )
                 }
             } else {
                 items(
@@ -863,6 +827,8 @@ fun AddEditSubscriptionSheet(
     var autoPost by remember {
         mutableStateOf(editingRule?.autoPost ?: true)
     }
+    var shakeTrigger by remember { mutableStateOf(0) }
+    var showValidationErrors by remember { mutableStateOf(false) }
 
     data class Preset(val name: String, val category: String, val defaultAmt: String)
     val presets = remember {
@@ -931,8 +897,10 @@ fun AddEditSubscriptionSheet(
                 Surface(
                     shape = VyxelShapeTokens.CardSmall,
                     color = scheme.surfaceContainerHigh.copy(alpha = 0.45f),
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
+                    border = BorderStroke(1.dp, if (showValidationErrors && (amountStr.toDoubleOrNull() ?: 0.0) <= 0.0) scheme.error.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shake(shakeTrigger)
                 ) {
                     Column(
                         modifier = Modifier
@@ -965,7 +933,10 @@ fun AddEditSubscriptionSheet(
 
                             OutlinedTextField(
                                 value = amountStr,
-                                onValueChange = { amountStr = it.filter { c -> c.isDigit() || c == '.' } },
+                                onValueChange = {
+                                    amountStr = it.filter { c -> c.isDigit() || c == '.' }
+                                    if ((amountStr.toDoubleOrNull() ?: 0.0) > 0.0) showValidationErrors = false
+                                },
                                 placeholder = {
                                     Text(
                                         "0.00",
@@ -973,7 +944,7 @@ fun AddEditSubscriptionSheet(
                                             fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.Bold
                                         ),
-                                        color = scheme.onSurfaceVariant.copy(alpha = 0.35f)
+                                        color = scheme.onSurfaceVariant.copy(alpha = 0.3f)
                                     )
                                 },
                                 textStyle = MaterialTheme.typography.headlineLarge.copy(
@@ -989,6 +960,16 @@ fun AddEditSubscriptionSheet(
                                     unfocusedBorderColor = Color.Transparent
                                 ),
                                 modifier = Modifier.width(180.dp)
+                            )
+                        }
+
+                        if (showValidationErrors && (amountStr.toDoubleOrNull() ?: 0.0) <= 0.0) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Amount must be greater than ₹0",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.error,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -1053,12 +1034,19 @@ fun AddEditSubscriptionSheet(
                     ) {
                         OutlinedTextField(
                             value = payee,
-                            onValueChange = { payee = it },
+                            onValueChange = {
+                                payee = it
+                                if (it.isNotBlank()) showValidationErrors = false
+                            },
                             label = { Text("Service or Bill Name") },
                             placeholder = { Text("e.g. Netflix, Spotify, Rent") },
                             leadingIcon = {
                                 Icon(Icons.Default.CreditCard, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
                             },
+                            isError = showValidationErrors && payee.isBlank(),
+                            supportingText = if (showValidationErrors && payee.isBlank()) {
+                                { Text("Service or Bill Name is required", color = scheme.error) }
+                            } else null,
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = VyxelShapeTokens.CardSmall
@@ -1258,9 +1246,13 @@ fun AddEditSubscriptionSheet(
                 val isFormValid = payee.isNotBlank() && (amountStr.toDoubleOrNull() ?: 0.0) > 0.0
                 Button(
                     onClick = {
-                        val amountPaise = runCatching { (amountStr.toDouble() * 100).toLong() }.getOrDefault(0L)
-                        if (isFormValid) {
-                            VyxelHaptics.click(context)
+                        if (!isFormValid) {
+                            shakeTrigger++
+                            showValidationErrors = true
+                            VyxelHaptics.error(context)
+                        } else {
+                            val amountPaise = runCatching { (amountStr.toDouble() * 100).toLong() }.getOrDefault(0L)
+                            VyxelHaptics.success(context)
                             onSave(
                                 editingRule?.id ?: 0L,
                                 payee.trim(),
@@ -1273,7 +1265,6 @@ fun AddEditSubscriptionSheet(
                             )
                         }
                     },
-                    enabled = isFormValid,
                     shape = VyxelShapeTokens.Pill,
                     colors = ButtonDefaults.buttonColors(containerColor = scheme.primary),
                     modifier = Modifier

@@ -41,6 +41,9 @@ import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.auroraGlow
 import com.knowspends.app.ui.theme.fadingEdges
 import com.knowspends.app.ui.theme.pressScale
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -797,28 +800,16 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        if (uiState.recentTransactions.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No recent transactions. Tap + below to add your first expense.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        if (uiState.isLoading) {
+            ExpressiveTransactionListSkeleton(count = 3)
+        } else if (uiState.recentTransactions.isEmpty()) {
+            ExpressiveEmptyState(
+                icon = Icons.Default.ReceiptLong,
+                title = "No recent transactions",
+                subtitle = "Your spending activity will appear here as soon as you record or scan expenses.",
+                actionLabel = "Add First Expense",
+                onActionClick = { onTransactionClick(0L) }
+            )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 uiState.recentTransactions.forEach { item ->

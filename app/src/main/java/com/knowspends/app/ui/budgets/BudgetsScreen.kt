@@ -48,6 +48,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import com.knowspends.app.ui.components.states.ExpressiveEmptyState
+import com.knowspends.app.ui.components.states.ExpressiveHeroCardSkeleton
+import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -319,61 +322,19 @@ fun BudgetsScreen(
                 )
             }
 
-            // ── Category Budgets List ─────────────────────────────────────────
-            if (uiState.budgets.isEmpty()) {
+            if (uiState.isLoading) {
+                item(key = "loading_skeletons") {
+                    ExpressiveTransactionListSkeleton(count = 3)
+                }
+            } else if (uiState.budgets.isEmpty()) {
                 item(key = "empty_state") {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(scheme.surfaceContainerHighest),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PieChart,
-                                    contentDescription = null,
-                                    tint = scheme.primary,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                            Text(
-                                text = "No Budgets Set This Month",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = scheme.onSurface
-                            )
-                            Text(
-                                text = "Set category spending limits to keep your finances disciplined and track progress in real-time.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                            Button(
-                                onClick = {
-                                    VyxelHaptics.click(context)
-                                    viewModel.openSetBudgetDialog()
-                                },
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Set First Category Budget")
-                            }
-                        }
-                    }
+                    ExpressiveEmptyState(
+                        icon = Icons.Default.PieChart,
+                        title = "No Budgets Set This Month",
+                        subtitle = "Set category spending limits to keep your finances disciplined and track progress in real-time.",
+                        actionLabel = "Set First Category Budget",
+                        onActionClick = { viewModel.openSetBudgetDialog() }
+                    )
                 }
             } else {
                 items(
