@@ -37,6 +37,9 @@ class BackTapService : Service() {
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
 
+    @Inject
+    lateinit var dynamicIslandOverlayManager: com.knowspends.app.ui.island.DynamicIslandOverlayManager
+
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
@@ -155,50 +158,24 @@ class BackTapService : Service() {
         Log.d(TAG, "Hardware Back-Tap detected in BackTapService!")
         VyxelHaptics.heavy(this)
 
-        val openIslandIntent = Intent(this, MainActivity::class.java).apply {
-            action = Intent.ACTION_VIEW
-            data = Uri.parse("knowspends://dynamic-island")
-            putExtra("TRIGGER_DYNAMIC_ISLAND", true)
-            putExtra("IS_EXTERNAL_TRIGGER", true)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        if (com.knowspends.app.KnowSpendsApp.isAppInForeground) {
+            Log.d(TAG, "App is in foreground, in-app detector will handle tap")
+            return
         }
 
         val canOverlay = Settings.canDrawOverlays(this)
         Log.d(TAG, "canDrawOverlays status: $canOverlay")
 
-        // 1. Attempt to launch via PendingIntent with BACKGROUND_ACTIVITY_START_ALLOWED (Android 14+ / API 34+)
-        var launchSucceeded = false
-        try {
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                HEADS_UP_NOTIFICATION_ID,
-                openIslandIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ActivityOptions.makeBasic().apply {
-                    setPendingIntentBackgroundActivityStartMode(
-                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                    )
-                }.toBundle()
-            } else {
-                null
+        if (canOverlay) {
+            dynamicIslandOverlayManager.showOverlay()
+        } else {
+            val openIslandIntent = Intent(this, MainActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                data = Uri.parse("knowspends://dynamic-island")
+                putExtra("TRIGGER_DYNAMIC_ISLAND", true)
+                putExtra("IS_EXTERNAL_TRIGGER", true)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
-            pendingIntent.send(this, 0, null, null, null, null, options)
-            launchSucceeded = true
-            Log.d(TAG, "Quick Spend Island launched via PendingIntent")
-        } catch (e: Exception) {
-            Log.w(TAG, "PendingIntent launch failed: ${e.message}, falling back to startActivity")
-            try {
-                startActivity(openIslandIntent)
-                launchSucceeded = true
-            } catch (e2: Exception) {
-                Log.w(TAG, "Direct activity launch from background restricted: ${e2.message}")
-            }
-        }
-
-        // 2. High-priority Heads-up banner fallback if overlay is not granted or launch wasn't confirmed
-        if (!canOverlay || !launchSucceeded) {
             showHeadsUpPopupNotification(openIslandIntent)
         }
     }

@@ -94,7 +94,7 @@ class DynamicIslandViewModel @Inject constructor(
         _internal.update {
             it.copy(
                 isExpanded = true,
-                isPillVisible = true,
+                isPillVisible = false,
                 amountInput = "0",
                 isSuccess = false,
                 errorMessage = null

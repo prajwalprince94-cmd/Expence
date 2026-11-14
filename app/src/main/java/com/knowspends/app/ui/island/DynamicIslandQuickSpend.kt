@@ -142,8 +142,11 @@ fun DynamicIslandQuickSpend(
     val collapseSpringOffset = spring<IntOffset>(dampingRatio = 0.88f, stiffness = 320f)
 
     // Hardware and gesture Back button handling to smoothly collapse island instead of exiting app
-    BackHandler(enabled = isExpanded) {
-        onCollapse()
+    val backDispatcherOwner = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current
+    if (backDispatcherOwner != null) {
+        BackHandler(enabled = isExpanded) {
+            onCollapse()
+        }
     }
 
     // Interactive tactile compression swell when touched
@@ -178,81 +181,6 @@ fun DynamicIslandQuickSpend(
         modifier = modifier,
         contentAlignment = Alignment.TopCenter
     ) {
-        // ── 1. Compact Resting Live Activity Pill (islandcn compact presentation) ─
-        if (uiState.isPillVisible && !isExpanded) {
-            Surface(
-                modifier = Modifier
-                    .padding(top = maxOf(statusBarHeight - 2.dp, 8.dp))
-                    .width(196.dp)
-                    .height(37.dp)
-                    .graphicsLayer {
-                        scaleX = islandSwellScale.value
-                        scaleY = islandSwellScale.value
-                    }
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = CircleShape,
-                        spotColor = Color.Black.copy(alpha = 0.40f)
-                    )
-                    .clip(CircleShape)
-                    .clickable {
-                        triggerIslandSwell()
-                        VyxelHaptics.click(context)
-                        onExpand()
-                    },
-                color = IslandBlack,
-                border = BorderStroke(1.2.dp, IslandKeyline),
-                shape = CircleShape
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Leading Slot: Amber icon tile concentric with left capsule arc
-                    Box(
-                        modifier = Modifier
-                            .size(23.dp)
-                            .clip(CircleShape)
-                            .background(IslandTileBg),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountBalanceWallet,
-                            contentDescription = "Dynamic Island",
-                            tint = IslandAmber,
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-
-                    // Trailing Slot: Live status / daily spending formatted with tabular figures
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Today",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = Color.White.copy(alpha = 0.62f)
-                        )
-                        Text(
-                            text = uiState.todaySpentFormatted,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
 
         // ── 2. Expanded Modal Activity Presentation (islandcn expanded presentation)
         AnimatedVisibility(

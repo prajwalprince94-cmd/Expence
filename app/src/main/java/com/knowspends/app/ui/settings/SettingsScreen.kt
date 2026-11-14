@@ -51,6 +51,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +101,7 @@ fun SettingsScreen(
     onNavigateToMerchantRules: () -> Unit,
     onNavigateToInbox: () -> Unit,
     modifier: Modifier = Modifier,
+    onSubSectionStateChanged: (Boolean) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,6 +111,16 @@ fun SettingsScreen(
 
     var activeSectionId by rememberSaveable { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(activeSectionId) {
+        onSubSectionStateChanged(activeSectionId != null)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onSubSectionStateChanged(false)
+        }
+    }
 
     // Intercept system back press when inside a sub-screen
     BackHandler(enabled = activeSectionId != null) {

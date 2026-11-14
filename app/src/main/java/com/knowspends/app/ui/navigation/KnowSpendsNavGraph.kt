@@ -92,10 +92,12 @@ fun KnowSpendsAppRoot(
         }
     }
 
+    var isSettingsSubSectionActive by remember { mutableStateOf(false) }
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val isTopLevelRoute = Screen.bottomNavItems.any { it.route == currentRoute }
+    val isTopLevelRoute = Screen.bottomNavItems.any { it.route == currentRoute } && !isSettingsSubSectionActive
 
     val barOffset by animateDpAsState(
         targetValue = if (isTopLevelRoute) 0.dp else 140.dp,
@@ -160,7 +162,10 @@ fun KnowSpendsAppRoot(
                         onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) },
                         onNavigateToSubscriptions = { navController.navigate(Screen.Subscriptions.route) },
                         onNavigateToMerchantRules = { navController.navigate(Screen.MerchantRules.route) },
-                        onNavigateToInbox = { navController.navigate(Screen.ReviewInbox.route) }
+                        onNavigateToInbox = { navController.navigate(Screen.ReviewInbox.route) },
+                        onSubSectionStateChanged = { isSubSection ->
+                            isSettingsSubSectionActive = isSubSection
+                        }
                     )
                 }
                 composable(
