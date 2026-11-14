@@ -224,8 +224,13 @@ fun SettingsScreen(
 
                     SettingsSection.CATEGORIES_ACCOUNTS -> {
                         CategoriesAccountsSection(
-                            accountCount = uiState.accountCount,
-                            categoryCount = uiState.categoryCount,
+                            accounts = uiState.accounts,
+                            categories = uiState.categories,
+                            currencySymbol = uiState.userPreferences.currencySymbol,
+                            onSaveAccount = { viewModel.saveAccount(it) },
+                            onArchiveAccount = { id, archived -> viewModel.archiveAccount(id, archived) },
+                            onSaveCategory = { viewModel.saveCategory(it) },
+                            onArchiveCategory = { id, archived -> viewModel.archiveCategory(id, archived) },
                             onNavigateToMerchantRules = onNavigateToMerchantRules
                         )
                     }

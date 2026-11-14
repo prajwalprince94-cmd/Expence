@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.knowspends.app.data.remote.UpdateCheckResult
 import com.knowspends.app.data.remote.UpdateCheckerService
+import com.knowspends.app.domain.model.Account
+import com.knowspends.app.domain.model.Category
 import com.knowspends.app.domain.model.RestoreResult
 import com.knowspends.app.domain.model.SecurityConfig
 import com.knowspends.app.domain.model.UserPreferences
@@ -31,8 +33,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -59,7 +59,9 @@ data class SettingsUiState(
     val isScanningSms: Boolean = false,
     val accountCount: Int = 0,
     val categoryCount: Int = 0,
-    val transactionCount: Int = 0
+    val transactionCount: Int = 0,
+    val accounts: List<Account> = emptyList(),
+    val categories: List<Category> = emptyList()
 )
 
 @HiltViewModel
@@ -98,19 +100,48 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            accountRepository.getAllAccounts().collect { accounts ->
-                _uiState.update { it.copy(accountCount = accounts.size) }
+            accountRepository.getActiveAccountsWithBalances().collect { accounts ->
+                _uiState.update { it.copy(accounts = accounts, accountCount = accounts.size) }
             }
         }
         viewModelScope.launch {
             categoryRepository.getActiveCategories().collect { categories ->
-                _uiState.update { it.copy(categoryCount = categories.size) }
+                _uiState.update { it.copy(categories = categories, categoryCount = categories.size) }
             }
         }
         viewModelScope.launch {
             transactionRepository.getAllTransactionsWithDetails().collect { txs ->
                 _uiState.update { it.copy(transactionCount = txs.size) }
             }
+        }
+    }
+
+    // Categories & Accounts Management
+    fun saveAccount(account: Account) {
+        viewModelScope.launch {
+            accountRepository.saveAccount(account)
+            _uiState.update { it.copy(statusMessage = "Account saved!") }
+        }
+    }
+
+    fun archiveAccount(id: Long, archived: Boolean) {
+        viewModelScope.launch {
+            accountRepository.archiveAccount(id, archived)
+            _uiState.update { it.copy(statusMessage = if (archived) "Account archived" else "Account unarchived") }
+        }
+    }
+
+    fun saveCategory(category: Category) {
+        viewModelScope.launch {
+            categoryRepository.saveCategory(category)
+            _uiState.update { it.copy(statusMessage = "Category saved!") }
+        }
+    }
+
+    fun archiveCategory(id: Long, archived: Boolean) {
+        viewModelScope.launch {
+            categoryRepository.archiveCategory(id, archived)
+            _uiState.update { it.copy(statusMessage = if (archived) "Category archived" else "Category unarchived") }
         }
     }
 
