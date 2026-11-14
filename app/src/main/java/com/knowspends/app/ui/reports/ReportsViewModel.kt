@@ -71,9 +71,13 @@ class ReportsViewModel @Inject constructor(
     private val _selectedRange = MutableStateFlow(DateRangeType.THIS_MONTH)
     private val _selectedTab = MutableStateFlow(ReportTab.INSIGHTS)
 
-    val uiState: StateFlow<ReportsUiState> = combine(_selectedRange, _selectedTab) { range, tab ->
-        range to tab
-    }.flatMapLatest { (range, tab) ->
+    val uiState: StateFlow<ReportsUiState> = combine(
+        _selectedRange,
+        _selectedTab,
+        userPreferencesRepository.userPreferencesFlow
+    ) { range, tab, prefs ->
+        Triple(range, tab, prefs.currencySymbol)
+    }.flatMapLatest { (range, tab, currencySymbol) ->
         val (startMillis, endMillis) = computeDateBounds(range)
 
         combine(
@@ -81,10 +85,8 @@ class ReportsViewModel @Inject constructor(
             transactionRepository.getCategoryBreakdown(startMillis, endMillis, TransactionType.EXPENSE),
             transactionRepository.getTopPayees(startMillis, endMillis, limit = 10),
             transactionRepository.getMonthlyTrends(startMillis, endMillis),
-            transactionRepository.getTransactionsBetween(startMillis, endMillis),
-            userPreferencesRepository.userPreferencesFlow
-        ) { summary, categories, payees, trends, transactions, userPreferences ->
-            val currencySymbol = userPreferences.currencySymbol
+            transactionRepository.getTransactionsBetween(startMillis, endMillis)
+        ) { summary, categories, payees, trends, transactions ->
             val insights = generateNarrativeInsights(
                 transactions = transactions,
                 totalExpenseMinor = summary.totalExpenseMinor,
