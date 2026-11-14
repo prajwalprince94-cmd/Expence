@@ -11,8 +11,10 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.OnBackPressedDispatcherOwner
+import androidx.activity.setViewTreeOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,9 +24,11 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.knowspends.app.domain.model.Transaction
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.UserPreferences
@@ -132,19 +136,11 @@ class DynamicIslandOverlayManager @Inject constructor(
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
 
-        val composeView = object : ComposeView(context) {
-            override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-                if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
-                    hideOverlay()
-                    return true
-                }
-                return super.dispatchKeyEvent(event)
-            }
-        }.apply {
+        val composeView = ComposeView(context).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
-            androidx.lifecycle.ViewTreeLifecycleOwner.set(this, lifecycleOwner)
-            androidx.savedstate.ViewTreeSavedStateRegistryOwner.set(this, lifecycleOwner)
-            androidx.activity.ViewTreeOnBackPressedDispatcherOwner.set(this, lifecycleOwner)
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            setViewTreeOnBackPressedDispatcherOwner(lifecycleOwner)
 
             setContent {
                 val uiState by _uiState.collectAsState()
@@ -171,9 +167,30 @@ class DynamicIslandOverlayManager @Inject constructor(
             }
         }
 
+        val container = object : FrameLayout(context) {
+            override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+                if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                    hideOverlay()
+                    return true
+                }
+                return super.dispatchKeyEvent(event)
+            }
+        }.apply {
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            setViewTreeOnBackPressedDispatcherOwner(lifecycleOwner)
+            addView(
+                composeView,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+
         try {
-            windowManager.addView(composeView, params)
-            overlayView = composeView
+            windowManager.addView(container, params)
+            overlayView = container
             isShowing = true
             Log.d(TAG, "Dynamic Island overlay window successfully attached to WindowManager")
         } catch (e: Exception) {
