@@ -22,6 +22,7 @@ These are **cloned and symlinked** into `~/.claude/skills/` and are active in ev
 | `design-guide` | [GrubbyLee/design-guide](https://github.com/GrubbyLee/design-guide) | Pick direction → lock contract → build UI → verify. Includes 15+ reference files |
 | `web-design-skills` | [lotfb86/web-design-skills](https://github.com/lotfb86/web-design-skills) | Frontend design philosophy, responsive, guidelines review |
 | `huashu-design` | [alchaincyf/huashu-design](https://github.com/alchaincyf/huashu-design) | Prototypes, slides, motion, MP4 export via HTML |
+| `islandcn` (`islands`) | [opencoredev/islandcn](https://github.com/opencoredev/islandcn) | Open-source Dynamic Island for web apps — live activity pill engine, spring physics, split/minimal/expanded states, and presets (upload, timer, playback, call, ETA, battery) |
 
 ### CLI Tools Installed (pnpm global)
 
