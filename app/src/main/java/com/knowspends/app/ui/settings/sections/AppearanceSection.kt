@@ -139,7 +139,7 @@ fun AppearanceSection(
 
                 // Live Preview Card
                 Surface(
-                    shape = VyxelShapeTokens.CardMedium,
+                    shape = VyxelShapeTokens.Card,
                     color = scheme.surfaceContainerHigh.copy(alpha = 0.45f),
                     border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
@@ -227,12 +227,12 @@ fun AppearanceSection(
                     val isSelected = userPreferences.fontId == id
                     val itemBg by animateColorAsState(
                         targetValue = if (isSelected) scheme.primaryContainer.copy(alpha = 0.35f) else scheme.surfaceContainerHigh.copy(alpha = 0.25f),
-                        animationSpec = KnowSpendsMotion.snappy,
+                        animationSpec = KnowSpendsMotion.snappy(),
                         label = "fontBg_$id"
                     )
                     val borderColor by animateColorAsState(
                         targetValue = if (isSelected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.25f),
-                        animationSpec = KnowSpendsMotion.snappy,
+                        animationSpec = KnowSpendsMotion.snappy(),
                         label = "fontBorder_$id"
                     )
 
