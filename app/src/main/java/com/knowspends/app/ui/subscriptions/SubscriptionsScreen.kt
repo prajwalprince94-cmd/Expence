@@ -130,6 +130,7 @@ fun SubscriptionsScreen(
     val scheme = MaterialTheme.colorScheme
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    var ruleToDeleteOnSwipe by remember { mutableStateOf<RecurringRule?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -424,7 +425,7 @@ fun SubscriptionsScreen(
                         },
                         onDelete = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.deleteSubscription(rule.id)
+                            ruleToDeleteOnSwipe = rule
                         }
                     )
                 }
@@ -445,6 +446,51 @@ fun SubscriptionsScreen(
             onDismiss = { viewModel.dismissDialog() },
             onSave = { id, payee, amountMinor, accountId, categoryId, freq, day, autoPost ->
                 viewModel.saveSubscription(id, payee, amountMinor, accountId, categoryId, freq, day, autoPost)
+            },
+            onDelete = { id ->
+                viewModel.dismissDialog()
+                viewModel.deleteSubscription(id)
+            }
+        )
+    }
+
+    ruleToDeleteOnSwipe?.let { rule ->
+        AlertDialog(
+            onDismissRequest = { ruleToDeleteOnSwipe = null },
+            title = {
+                Text(
+                    text = "Delete Commitment?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete ${rule.payee}? Future recurring transactions will no longer be generated.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val id = rule.id
+                        ruleToDeleteOnSwipe = null
+                        VyxelHaptics.heavy(context)
+                        viewModel.deleteSubscription(id)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ExpenseColor,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Delete", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { ruleToDeleteOnSwipe = null }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -800,7 +846,8 @@ fun AddEditSubscriptionSheet(
     accounts: List<Account>,
     categories: List<Category>,
     onDismiss: () -> Unit,
-    onSave: (id: Long, payee: String, amountMinor: Long, accountId: Long, categoryId: Long?, freq: RecurrenceFrequency, dayOfMonth: Int, autoPost: Boolean) -> Unit
+    onSave: (id: Long, payee: String, amountMinor: Long, accountId: Long, categoryId: Long?, freq: RecurrenceFrequency, dayOfMonth: Int, autoPost: Boolean) -> Unit,
+    onDelete: (id: Long) -> Unit = {}
 ) {
     val scheme = MaterialTheme.colorScheme
     val context = LocalContext.current
@@ -829,6 +876,7 @@ fun AddEditSubscriptionSheet(
     }
     var shakeTrigger by remember { mutableStateOf(0) }
     var showValidationErrors by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     data class Preset(val name: String, val category: String, val defaultAmt: String)
     val presets = remember {
@@ -1278,6 +1326,68 @@ fun AddEditSubscriptionSheet(
                         fontWeight = FontWeight.Bold,
                         color = scheme.onPrimary
                     )
+                }
+
+                if (editingRule != null) {
+                    if (showDeleteConfirmDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteConfirmDialog = false },
+                            title = {
+                                Text(
+                                    text = "Delete Commitment?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = "Are you sure you want to delete ${editingRule.payee}? Future recurring transactions will no longer be generated.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        showDeleteConfirmDialog = false
+                                        VyxelHaptics.heavy(context)
+                                        onDelete(editingRule.id)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = ExpenseColor,
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Text("Delete", fontWeight = FontWeight.Bold)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            VyxelHaptics.click(context)
+                            showDeleteConfirmDialog = true
+                        },
+                        shape = VyxelShapeTokens.Pill,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseColor),
+                        border = BorderStroke(1.dp, ExpenseColor.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .pressScale(0.97f)
+                    ) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete Commitment", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

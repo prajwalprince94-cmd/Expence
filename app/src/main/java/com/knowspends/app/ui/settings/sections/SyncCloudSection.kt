@@ -75,17 +75,12 @@ fun SyncCloudSection(
             )
         }
 
-        // ── 2. Network Preferences ────────────────────────────────────────────
-        ExpressiveSettingsGroup(title = "Network Constraints") {
-            ExpressiveSettingsSwitch(
-                title = "Sync Over Wi-Fi Only",
-                subtitle = "Restricts automated cloud drive exports from consuming mobile cellular data",
-                icon = Icons.Default.Wifi,
-                checked = wifiOnly,
-                onCheckedChange = {
-                    wifiOnly = it
-                    onSaveSyncPreferences(it)
-                }
+        // ── 2. Local-First Guarantees ──────────────────────────────────────────
+        ExpressiveSettingsGroup(title = "Local-First Guarantees") {
+            ExpressiveSettingsItem(
+                title = "No Cloud Telemetry or Trackers",
+                subtitle = "Zero outbound network telemetry or analytics SDKs embedded in KnowSpends",
+                icon = Icons.Default.Lock
             )
         }
     }

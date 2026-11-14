@@ -110,9 +110,16 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.rememberCoroutineScope
 import com.knowspends.app.ui.components.bouncyClickable
 import com.knowspends.app.ui.theme.progressiveScrollBlur
+import com.knowspends.app.ui.transactions.TransactionDetailSheet
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -124,14 +131,18 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scheme = MaterialTheme.colorScheme
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var selectedTransactionForDetail by remember { mutableStateOf<TransactionWithDetails?>(null) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .progressiveScrollBlur(topBlur = 16.dp, bottomBlur = 48.dp, scrimColor = scheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .progressiveScrollBlur(topBlur = 16.dp, bottomBlur = 48.dp, scrimColor = scheme.background)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
         // App Header: Clean Title, Month Label & Review Inbox Shortcut
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -815,7 +826,7 @@ fun HomeScreen(
                 uiState.recentTransactions.forEach { item ->
                     RecentTransactionItem(
                         item = item,
-                        onClick = { onTransactionClick(item.transaction.id) }
+                        onClick = { selectedTransactionForDetail = item }
                     )
                 }
             }
@@ -824,6 +835,15 @@ fun HomeScreen(
         // Adaptive bottom clearance for the floating navigation bar and + button
         val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         Spacer(modifier = Modifier.height(navBarPadding + 80.dp))
+    }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
+            .padding(bottom = 92.dp, start = 16.dp, end = 16.dp)
+    )
     }
 
     // Individual Account Editing Modal Flow
@@ -871,6 +891,34 @@ fun HomeScreen(
             }
             null -> {}
         }
+    }
+
+    // Transaction Details Sheet Modal Flow
+    selectedTransactionForDetail?.let { item ->
+        TransactionDetailSheet(
+            item = item,
+            onDismiss = { selectedTransactionForDetail = null },
+            onEdit = {
+                val id = item.transaction.id
+                selectedTransactionForDetail = null
+                onTransactionClick(id)
+            },
+            onDelete = {
+                val txId = item.transaction.id
+                selectedTransactionForDetail = null
+                viewModel.deleteTransaction(txId)
+                scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Transaction deleted",
+                        actionLabel = "Undo",
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.undoDelete(txId)
+                    }
+                }
+            }
+        )
     }
 }
 

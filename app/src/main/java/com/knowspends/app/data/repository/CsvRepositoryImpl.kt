@@ -96,7 +96,9 @@ class CsvRepositoryImpl @Inject constructor(
 
             val dateIdx = headers.indexOfFirst { it.contains("date") }
             val typeIdx = headers.indexOfFirst { it.contains("type") }
-            val amountIdx = headers.indexOfFirst { it.contains("amount") }
+            val amountMinorIdx = headers.indexOfFirst { it.contains("amount_minor") || it == "paise" }
+            val amountFormattedIdx = headers.indexOfFirst { it.contains("amount_formatted") }
+            val amountIdx = if (amountFormattedIdx != -1) amountFormattedIdx else headers.indexOfFirst { it.contains("amount") }
             val catIdx = headers.indexOfFirst { it.contains("cat") }
             val accIdx = headers.indexOfFirst { it.contains("account") }
             val payeeIdx = headers.indexOfFirst { it.contains("payee") || it.contains("merchant") }
@@ -111,13 +113,20 @@ class CsvRepositoryImpl @Inject constructor(
 
                 val dateStr = if (dateIdx in row.indices) row[dateIdx] else ""
                 val typeStr = if (typeIdx in row.indices) row[typeIdx].uppercase() else "EXPENSE"
-                val amountStr = if (amountIdx in row.indices) row[amountIdx] else "0"
                 val catStr = if (catIdx in row.indices) row[catIdx].trim() else ""
                 val accStr = if (accIdx in row.indices) row[accIdx].trim() else ""
                 val payeeStr = if (payeeIdx in row.indices) row[payeeIdx].trim() else ""
                 val noteStr = if (noteIdx in row.indices) row[noteIdx].trim() else ""
 
-                val amountMinor = MoneyFormatter.parseToPaise(amountStr)
+                val amountMinor = when {
+                    amountMinorIdx != -1 && amountMinorIdx in row.indices && row[amountMinorIdx].isNotBlank() -> {
+                        row[amountMinorIdx].trim().toLongOrNull() ?: (if (amountIdx in row.indices) MoneyFormatter.parseToPaise(row[amountIdx]) else 0L)
+                    }
+                    amountIdx != -1 && amountIdx in row.indices -> {
+                        MoneyFormatter.parseToPaise(row[amountIdx])
+                    }
+                    else -> 0L
+                }
                 if (amountMinor <= 0) continue
 
                 val dateMillis = parseDate(dateStr)

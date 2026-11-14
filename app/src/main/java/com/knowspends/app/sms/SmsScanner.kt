@@ -88,7 +88,7 @@ class SmsScanner @Inject constructor(
                             projection,
                             null,
                             null,
-                            "date DESC LIMIT 250"
+                            "date DESC"
                         )
                     } catch (e: Exception) {
                         null
@@ -101,6 +101,7 @@ class SmsScanner @Inject constructor(
                     val dateIndex = c.getColumnIndex("date")
 
                     while (c.moveToNext()) {
+                        if (totalScanned >= 250) break
                         totalScanned++
                         scannedAny = true
 

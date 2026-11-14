@@ -128,16 +128,16 @@ interface TransactionDao {
 
     @Query("""
         SELECT 
-            c.id AS categoryId,
-            c.name AS categoryName,
+            COALESCE(c.id, 0) AS categoryId,
+            COALESCE(c.name, 'Uncategorized') AS categoryName,
             c.iconKey AS categoryIcon,
             c.colour AS categoryColour,
             SUM(t.amountMinor) AS totalAmountMinor,
             COUNT(t.id) AS transactionCount
         FROM transactions t
-        INNER JOIN categories c ON t.categoryId = c.id
+        LEFT JOIN categories c ON t.categoryId = c.id
         WHERE t.type = :type AND t.deletedAt IS NULL AND t.date >= :startDate AND t.date <= :endDate
-        GROUP BY c.id
+        GROUP BY COALESCE(c.id, 0)
         ORDER BY totalAmountMinor DESC
     """)
     fun getCategoryAggregatesBetweenFlow(

@@ -258,7 +258,21 @@ class HomeViewModel @Inject constructor(
     fun updateAccountBalance(accountId: Long, newBalanceMinor: Long) {
         viewModelScope.launch {
             val acc = uiState.value.accounts.find { it.id == accountId } ?: return@launch
-            accountRepository.saveAccount(acc.copy(openingBalanceMinor = newBalanceMinor))
+            val delta = acc.currentBalanceMinor - acc.openingBalanceMinor
+            val adjustedOpeningBalance = newBalanceMinor - delta
+            accountRepository.saveAccount(acc.copy(openingBalanceMinor = adjustedOpeningBalance))
+        }
+    }
+
+    fun deleteTransaction(id: Long) {
+        viewModelScope.launch {
+            transactionRepository.softDeleteTransaction(id)
+        }
+    }
+
+    fun undoDelete(id: Long) {
+        viewModelScope.launch {
+            transactionRepository.restoreTransaction(id)
         }
     }
 

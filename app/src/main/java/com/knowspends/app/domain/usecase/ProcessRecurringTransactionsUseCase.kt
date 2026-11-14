@@ -64,12 +64,18 @@ class ProcessRecurringTransactionsUseCase @Inject constructor(
                 }
 
                 // Advance to next cycle
-                currentDue = calculateNextDueDate(
+                val nextDue = calculateNextDueDate(
                     calendar = calendar,
                     frequency = runCatching { RecurrenceFrequency.valueOf(rule.frequency) }.getOrDefault(RecurrenceFrequency.MONTHLY),
                     interval = rule.interval,
                     preferredDayOfMonth = preferredDayOfMonth
                 )
+
+                if (nextDue <= currentDue) {
+                    // Prevent infinite loop if calculation fails to advance
+                    break
+                }
+                currentDue = nextDue
 
                 recurringRuleDao.updateNextDueDate(rule.id, currentDue)
 
@@ -93,20 +99,21 @@ class ProcessRecurringTransactionsUseCase @Inject constructor(
         interval: Int,
         preferredDayOfMonth: Int
     ): Long {
+        val safeInterval = maxOf(1, interval)
         when (frequency) {
             RecurrenceFrequency.DAILY -> {
-                calendar.add(Calendar.DAY_OF_YEAR, interval)
+                calendar.add(Calendar.DAY_OF_YEAR, safeInterval)
             }
             RecurrenceFrequency.WEEKLY -> {
-                calendar.add(Calendar.WEEK_OF_YEAR, interval)
+                calendar.add(Calendar.WEEK_OF_YEAR, safeInterval)
             }
             RecurrenceFrequency.MONTHLY -> {
-                calendar.add(Calendar.MONTH, interval)
+                calendar.add(Calendar.MONTH, safeInterval)
                 val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
                 calendar.set(Calendar.DAY_OF_MONTH, Math.min(preferredDayOfMonth, maxDay))
             }
             RecurrenceFrequency.YEARLY -> {
-                calendar.add(Calendar.YEAR, interval)
+                calendar.add(Calendar.YEAR, safeInterval)
                 val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
                 calendar.set(Calendar.DAY_OF_MONTH, Math.min(preferredDayOfMonth, maxDay))
             }

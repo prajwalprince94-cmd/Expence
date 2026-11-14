@@ -640,6 +640,7 @@ fun SetBudgetSheet(
     } ?: ""
     var amountText by remember { mutableStateOf(initialAmount) }
     var rollover by remember { mutableStateOf(editingBudget?.rollover ?: false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     val quickPresets = listOf("2000", "5000", "10000", "15000", "25000", "50000")
 
@@ -911,10 +912,50 @@ fun SetBudgetSheet(
                 }
 
                 if (editingBudget != null) {
+                    if (showDeleteConfirmDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteConfirmDialog = false },
+                            title = {
+                                Text(
+                                    text = "Delete Budget Envelope?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = "Are you sure you want to delete this category budget? Past transactions will remain intact.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = scheme.onSurfaceVariant
+                                )
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        showDeleteConfirmDialog = false
+                                        VyxelHaptics.heavy(context)
+                                        onDelete(editingBudget.budgetId)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = ExpenseColor,
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Text("Delete", fontWeight = FontWeight.Bold)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
                     OutlinedButton(
                         onClick = {
                             VyxelHaptics.click(context)
-                            onDelete(editingBudget.budgetId)
+                            showDeleteConfirmDialog = true
                         },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseColor),

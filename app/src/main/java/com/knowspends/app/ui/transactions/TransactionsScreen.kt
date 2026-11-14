@@ -124,6 +124,7 @@ fun TransactionsScreen(
     val scope = rememberCoroutineScope()
     val scheme = MaterialTheme.colorScheme
     var isSearchExpanded by remember { mutableStateOf(false) }
+    var selectedTransactionForDetail by remember { mutableStateOf<TransactionWithDetails?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -520,7 +521,7 @@ fun TransactionsScreen(
                     ) { item ->
                         TransactionListItem(
                             item = item,
-                            onClick = { onEditTransaction(item.transaction.id) },
+                            onClick = { selectedTransactionForDetail = item },
                             onDelete = {
                                 val txId = item.transaction.id
                                 viewModel.deleteTransaction(txId)
@@ -540,6 +541,33 @@ fun TransactionsScreen(
                 }
             }
         }
+    }
+
+    selectedTransactionForDetail?.let { item ->
+        TransactionDetailSheet(
+            item = item,
+            onDismiss = { selectedTransactionForDetail = null },
+            onEdit = {
+                val id = item.transaction.id
+                selectedTransactionForDetail = null
+                onEditTransaction(id)
+            },
+            onDelete = {
+                val txId = item.transaction.id
+                selectedTransactionForDetail = null
+                viewModel.deleteTransaction(txId)
+                scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "Transaction deleted",
+                        actionLabel = "Undo",
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.undoDelete(txId)
+                    }
+                }
+            }
+        )
     }
 }
 

@@ -51,6 +51,7 @@ interface AccountDao {
                    CASE 
                        WHEN t.type = 'INCOME' AND t.accountId = a.id THEN t.amountMinor
                        WHEN t.type = 'EXPENSE' AND t.accountId = a.id THEN -t.amountMinor
+                       WHEN t.type = 'TRANSFER' AND t.accountId = a.id AND t.transferAccountId = a.id THEN 0
                        WHEN t.type = 'TRANSFER' AND t.transferAccountId = a.id THEN t.amountMinor
                        WHEN t.type = 'TRANSFER' AND t.accountId = a.id THEN -t.amountMinor
                        ELSE 0
@@ -69,6 +70,7 @@ interface AccountDao {
             CASE 
                 WHEN type = 'INCOME' AND accountId = :accountId THEN amountMinor
                 WHEN type = 'EXPENSE' AND accountId = :accountId THEN -amountMinor
+                WHEN type = 'TRANSFER' AND accountId = :accountId AND transferAccountId = :accountId THEN 0
                 WHEN type = 'TRANSFER' AND transferAccountId = :accountId THEN amountMinor
                 WHEN type = 'TRANSFER' AND accountId = :accountId THEN -amountMinor
                 ELSE 0

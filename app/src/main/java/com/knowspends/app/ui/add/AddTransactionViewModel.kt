@@ -85,6 +85,8 @@ class AddTransactionViewModel @Inject constructor(
     )
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
 
+    private var allCategoriesCache: List<Category> = emptyList()
+
     fun onNavigatedUp() {
         _uiState.update { it.copy(navigateUp = false) }
     }
@@ -101,6 +103,7 @@ class AddTransactionViewModel @Inject constructor(
             ) { accounts, categories ->
                 accounts to categories
             }.collect { (accounts, categories) ->
+                allCategoriesCache = categories
                 _uiState.update { current ->
                     val defaultAccount = current.selectedAccountId ?: accounts.firstOrNull()?.id
                     val filteredCategories = categories.filter { it.kind == current.type }
@@ -127,9 +130,11 @@ class AddTransactionViewModel @Inject constructor(
                     val amountStr = if (paisePart == 0L) rupeesPart.toString() else "$rupeesPart.${paisePart.toString().padStart(2, '0')}"
 
                     _uiState.update { current ->
+                        val filteredCategories = allCategoriesCache.filter { it.kind == t.type }
                         current.copy(
                             amountInput = amountStr,
                             type = t.type,
+                            categories = if (filteredCategories.isNotEmpty()) filteredCategories else current.categories,
                             selectedAccountId = t.accountId,
                             selectedTransferAccountId = t.transferAccountId,
                             selectedCategoryId = t.categoryId,
@@ -232,9 +237,15 @@ class AddTransactionViewModel @Inject constructor(
             return
         }
 
-        if (state.type == TransactionType.TRANSFER && state.selectedTransferAccountId == null) {
-            _uiState.update { it.copy(errorMessage = "Please select destination account") }
-            return
+        if (state.type == TransactionType.TRANSFER) {
+            if (state.selectedTransferAccountId == null) {
+                _uiState.update { it.copy(errorMessage = "Please select destination account") }
+                return
+            }
+            if (state.selectedAccountId == state.selectedTransferAccountId) {
+                _uiState.update { it.copy(errorMessage = "Source and destination accounts must be different") }
+                return
+            }
         }
 
         viewModelScope.launch {
