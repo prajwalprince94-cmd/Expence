@@ -407,7 +407,7 @@ fun TransactionDetailSheet(
                     OutlinedButton(
                         onClick = { showDeleteConfirmDialog = true },
                         modifier = Modifier.weight(1f),
-                        shape = VyxelShapeTokens.Button,
+                        shape = VyxelShapeTokens.Pill,
                         border = BorderStroke(1.dp, ExpenseColor.copy(alpha = 0.5f)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = ExpenseColor
@@ -429,7 +429,7 @@ fun TransactionDetailSheet(
                     Button(
                         onClick = onEdit,
                         modifier = Modifier.weight(1.5f),
-                        shape = VyxelShapeTokens.Button,
+                        shape = VyxelShapeTokens.Pill,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = scheme.primary,
                             contentColor = scheme.onPrimary
