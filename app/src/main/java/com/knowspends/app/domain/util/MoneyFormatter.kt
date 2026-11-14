@@ -20,16 +20,18 @@ object MoneyFormatter {
     fun formatPaise(
         amountPaise: Long,
         includeSymbol: Boolean = true,
-        showDecimals: Boolean = true
+        showDecimals: Boolean = true,
+        currencySymbol: String = "₹"
     ): String {
         val isNegative = amountPaise < 0
-        val absPaise = Math.abs(amountPaise)
+        val safePaise = if (amountPaise == Long.MIN_VALUE) Long.MAX_VALUE else amountPaise
+        val absPaise = Math.abs(safePaise)
         val rupees = absPaise / 100
         val paise = absPaise % 100
 
         val formattedRupees = formatIndianGrouping(rupees)
         val prefix = if (isNegative) "- " else ""
-        val symbol = if (includeSymbol) "₹" else ""
+        val symbol = if (includeSymbol) currencySymbol else ""
 
         return if (showDecimals) {
             val paiseString = paise.toString().padStart(2, '0')

@@ -19,7 +19,7 @@ import com.knowspends.app.data.local.entity.TransactionEntity
         com.knowspends.app.data.local.entity.RecurringExecutionEntity::class,
         com.knowspends.app.data.local.entity.PendingTransactionEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class KnowSpendsDatabase : RoomDatabase() {

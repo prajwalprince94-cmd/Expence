@@ -129,7 +129,7 @@ class CsvRepositoryImpl @Inject constructor(
                 }
                 if (amountMinor <= 0) continue
 
-                val dateMillis = parseDate(dateStr)
+                val dateMillis = parseDate(dateStr) ?: continue
                 val resolvedAccount = accountMap[accStr.lowercase()] ?: defaultAccount
 
                 val resolvedCategory = if (catStr.isNotBlank()) {
@@ -223,18 +223,29 @@ class CsvRepositoryImpl @Inject constructor(
         return tokens
     }
 
-    private fun parseDate(dateStr: String): Long {
+    private fun parseDate(dateStr: String): Long? {
+        val trimmed = dateStr.trim()
+        if (trimmed.isBlank()) return null
+
+        trimmed.toLongOrNull()?.let {
+            if (it > 0) return it
+        }
+
         val formats = listOf(
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US),
             SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
             SimpleDateFormat("yyyy-MM-dd", Locale.US),
+            SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.US),
             SimpleDateFormat("dd/MM/yyyy", Locale.US),
-            SimpleDateFormat("MM/dd/yyyy", Locale.US)
+            SimpleDateFormat("MM/dd/yyyy", Locale.US),
+            SimpleDateFormat("dd-MM-yyyy", Locale.US),
+            SimpleDateFormat("yyyy/MM/dd", Locale.US)
         )
         for (f in formats) {
-            val parsed = runCatching { f.parse(dateStr) }.getOrNull()
+            val parsed = runCatching { f.parse(trimmed) }.getOrNull()
             if (parsed != null) return parsed.time
         }
-        return System.currentTimeMillis()
+        return null
     }
 
     private fun computeSourceHash(dateMillis: Long, amountMinor: Long, payee: String, accountId: Long): String {

@@ -101,14 +101,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     )
                     entryPoint.transactionRepository().saveTransaction(tx)
 
-                    // Update account balance
-                    matchingAccount?.let { acc ->
-                        val balanceDelta = if (parsed.type == TransactionType.INCOME) parsed.amountMinor else -parsed.amountMinor
-                        entryPoint.accountRepository().saveAccount(
-                            acc.copy(currentBalanceMinor = acc.currentBalanceMinor + balanceDelta)
-                        )
-                    }
-
                     val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
                     val actionLabel = if (parsed.type == TransactionType.INCOME) "Received" else "Spent"
                     val catLabel = matchingCategory?.name?.let { " ($it)" } ?: ""

@@ -17,13 +17,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import com.knowspends.app.domain.repository.UserPreferencesRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
     private val recurringRuleRepository: RecurringRuleRepository,
     private val accountRepository: AccountRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _selectedFilter = MutableStateFlow("All")
@@ -33,15 +35,17 @@ class SubscriptionsViewModel @Inject constructor(
     private data class DialogState(
         val filter: String,
         val showDialog: Boolean,
-        val editRule: RecurringRule?
+        val editRule: RecurringRule?,
+        val currencySymbol: String
     )
 
     private val _dialogState = combine(
         _selectedFilter,
         _showAddEditDialog,
-        _editingRule
-    ) { filter, showDialog, editRule ->
-        DialogState(filter, showDialog, editRule)
+        _editingRule,
+        userPreferencesRepository.userPreferencesFlow
+    ) { filter, showDialog, editRule, prefs ->
+        DialogState(filter, showDialog, editRule, prefs.currencySymbol)
     }
 
     val uiState: StateFlow<SubscriptionsUiState> = combine(
@@ -57,6 +61,7 @@ class SubscriptionsViewModel @Inject constructor(
             selectedFilter = dialog.filter,
             showAddEditDialog = dialog.showDialog,
             editingRule = dialog.editRule,
+            currencySymbol = dialog.currencySymbol,
             isLoading = false
         )
     }.stateIn(

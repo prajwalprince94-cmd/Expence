@@ -367,6 +367,7 @@ fun BudgetsScreen(
             SetBudgetSheet(
                 editingBudget = uiState.selectedBudgetForEdit,
                 categories = uiState.categories,
+                currencySymbol = uiState.currencySymbol,
                 onDismiss = viewModel::closeSetBudgetDialog,
                 onSave = { categoryId, amountMinor, rollover ->
                     viewModel.saveBudget(categoryId, amountMinor, rollover)
@@ -625,6 +626,7 @@ fun CategoryBudgetCard(
 fun SetBudgetSheet(
     editingBudget: CategoryBudget?,
     categories: List<Category>,
+    currencySymbol: String = "₹",
     onDismiss: () -> Unit,
     onSave: (categoryId: Long, amountMinor: Long, rollover: Boolean) -> Unit,
     onDelete: (budgetId: Long) -> Unit
@@ -721,7 +723,7 @@ fun SetBudgetSheet(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "₹",
+                                text = currencySymbol,
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace
@@ -789,7 +791,7 @@ fun SetBudgetSheet(
                                 border = BorderStroke(1.dp, if (isSelected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.35f))
                             ) {
                                 Text(
-                                    text = "₹$preset",
+                                    text = "$currencySymbol$preset",
                                     style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
@@ -907,7 +909,7 @@ fun SetBudgetSheet(
                         .height(52.dp)
                 ) {
                     Text(
-                        text = if (editingBudget != null) "Save Changes" else "Set Budget • ₹${amountText.ifBlank { "0" }}",
+                        text = if (editingBudget != null) "Save Changes" else "Set Budget • $currencySymbol${amountText.ifBlank { "0" }}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )

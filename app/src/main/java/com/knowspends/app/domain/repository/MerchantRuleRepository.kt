@@ -8,4 +8,6 @@ interface MerchantRuleRepository {
     suspend fun saveRule(pattern: String, categoryId: Long, categoryName: String, isExactMatch: Boolean = false): MerchantRule
     suspend fun deleteRule(id: String)
     suspend fun matchCategory(merchantOrPayee: String): MerchantRule?
+    suspend fun getAllRules(): List<MerchantRule>
+    suspend fun restoreRules(rules: List<MerchantRule>)
 }

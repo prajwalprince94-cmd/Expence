@@ -11,10 +11,11 @@ data class BackupPayload(
     val categories: List<CategoryBackupDto> = emptyList(),
     val transactions: List<TransactionBackupDto> = emptyList(),
     val budgets: List<BudgetBackupDto> = emptyList(),
-    val recurringRules: List<RecurringRuleBackupDto> = emptyList()
+    val recurringRules: List<RecurringRuleBackupDto> = emptyList(),
+    val merchantRules: List<MerchantRuleBackupDto> = emptyList()
 ) {
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 1
+        const val CURRENT_SCHEMA_VERSION = 2
     }
 }
 
@@ -85,13 +86,24 @@ data class RecurringRuleBackupDto(
     val isActive: Boolean = true
 )
 
+@Serializable
+data class MerchantRuleBackupDto(
+    val id: String,
+    val merchantPattern: String,
+    val categoryId: Long,
+    val categoryName: String,
+    val isExactMatch: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 sealed class RestoreResult {
     data class Success(
         val accountsRestored: Int,
         val categoriesRestored: Int,
         val transactionsRestored: Int,
         val budgetsRestored: Int,
-        val recurringRulesRestored: Int
+        val recurringRulesRestored: Int,
+        val merchantRulesRestored: Int = 0
     ) : RestoreResult()
 
     data class Error(val message: String) : RestoreResult()

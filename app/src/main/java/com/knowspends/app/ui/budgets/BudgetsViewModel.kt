@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.knowspends.app.domain.repository.UserPreferencesRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -30,6 +31,7 @@ data class BudgetsUiState(
     val totalSpentMinor: Long = 0L,
     val isSetBudgetDialogOpen: Boolean = false,
     val selectedBudgetForEdit: CategoryBudget? = null,
+    val currencySymbol: String = "₹",
     val isLoading: Boolean = false
 ) {
     val totalRemainingMinor: Long
@@ -39,13 +41,13 @@ data class BudgetsUiState(
         get() = if (totalBudgetedMinor <= 0) 0f else (totalSpentMinor.toFloat() / totalBudgetedMinor.toFloat()).coerceAtLeast(0f)
 
     val formattedTotalBudgeted: String
-        get() = MoneyFormatter.formatPaise(totalBudgetedMinor)
+        get() = MoneyFormatter.formatPaise(totalBudgetedMinor, currencySymbol = currencySymbol)
 
     val formattedTotalSpent: String
-        get() = MoneyFormatter.formatPaise(totalSpentMinor)
+        get() = MoneyFormatter.formatPaise(totalSpentMinor, currencySymbol = currencySymbol)
 
     val formattedTotalRemaining: String
-        get() = MoneyFormatter.formatPaise(totalRemainingMinor)
+        get() = MoneyFormatter.formatPaise(totalRemainingMinor, currencySymbol = currencySymbol)
 }
 
 data class BudgetDialogState(
@@ -56,7 +58,8 @@ data class BudgetDialogState(
 @HiltViewModel
 class BudgetsViewModel @Inject constructor(
     private val budgetRepository: BudgetRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val calendar = Calendar.getInstance()
@@ -92,8 +95,9 @@ class BudgetsViewModel @Inject constructor(
     val uiState: StateFlow<BudgetsUiState> = combine(
         budgetRepository.getBudgetsForPeriod(currentPeriod, periodStartMillis, periodEndMillis),
         categoryRepository.getCategoriesByKind(TransactionType.EXPENSE),
-        _dialogState
-    ) { budgets, categories, dialogState ->
+        _dialogState,
+        userPreferencesRepository.userPreferencesFlow
+    ) { budgets, categories, dialogState, prefs ->
         val totalBudget = budgets.sumOf { it.budgetAmountMinor }
         val totalSpent = budgets.sumOf { it.spentAmountMinor }
 
@@ -106,6 +110,7 @@ class BudgetsViewModel @Inject constructor(
             totalSpentMinor = totalSpent,
             isSetBudgetDialogOpen = dialogState.isOpen,
             selectedBudgetForEdit = dialogState.selectedBudget,
+            currencySymbol = prefs.currencySymbol,
             isLoading = false
         )
     }.stateIn(

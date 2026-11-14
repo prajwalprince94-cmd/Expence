@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index("accountId", "date"),
         Index("categoryId", "date"),
+        Index("transferAccountId"),
         Index("deletedAt")
     ],
     foreignKeys = [
@@ -23,6 +24,12 @@ import androidx.room.PrimaryKey
             entity = CategoryEntity::class,
             parentColumns = ["id"],
             childColumns = ["categoryId"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["transferAccountId"],
             onDelete = ForeignKey.SET_NULL
         )
     ]

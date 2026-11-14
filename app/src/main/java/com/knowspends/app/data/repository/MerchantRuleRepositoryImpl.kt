@@ -5,10 +5,12 @@ import com.knowspends.app.di.IoDispatcher
 import com.knowspends.app.domain.model.MerchantRule
 import com.knowspends.app.domain.repository.MerchantRuleRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -33,7 +35,9 @@ class MerchantRuleRepositoryImpl @Inject constructor(
     private val _rulesState = MutableStateFlow<List<MerchantRule>>(emptyList())
 
     init {
-        loadRulesFromDisk()
+        CoroutineScope(ioDispatcher + SupervisorJob()).launch {
+            loadRulesFromDisk()
+        }
     }
 
     private fun loadRulesFromDisk() {
@@ -157,6 +161,19 @@ class MerchantRuleRepositoryImpl @Inject constructor(
         // 3. Pattern contains candidate (e.g. pattern "Uber India" contains "Uber")
         rules.firstOrNull {
             !it.isExactMatch && it.merchantPattern.contains(candidate, ignoreCase = true)
+        }
+    }
+
+    override suspend fun getAllRules(): List<MerchantRule> = withContext(ioDispatcher) {
+        mutex.withLock {
+            _rulesState.value
+        }
+    }
+
+    override suspend fun restoreRules(rules: List<MerchantRule>) = withContext(ioDispatcher) {
+        mutex.withLock {
+            _rulesState.value = rules
+            writeRulesToDisk(rules)
         }
     }
 }

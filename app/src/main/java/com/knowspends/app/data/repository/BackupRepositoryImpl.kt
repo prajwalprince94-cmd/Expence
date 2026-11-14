@@ -7,7 +7,9 @@ import com.knowspends.app.data.local.entity.BudgetEntity
 import com.knowspends.app.data.local.entity.CategoryEntity
 import com.knowspends.app.data.local.entity.RecurringRuleEntity
 import com.knowspends.app.data.local.entity.TransactionEntity
-import com.knowspends.app.di.IoDispatcher
+import com.knowspends.app.domain.model.MerchantRule
+import com.knowspends.app.domain.model.MerchantRuleBackupDto
+import com.knowspends.app.domain.repository.MerchantRuleRepository
 import com.knowspends.app.domain.model.AccountBackupDto
 import com.knowspends.app.domain.model.BackupPayload
 import com.knowspends.app.domain.model.BudgetBackupDto
@@ -29,6 +31,7 @@ import javax.inject.Singleton
 @Singleton
 class BackupRepositoryImpl @Inject constructor(
     private val database: KnowSpendsDatabase,
+    private val merchantRuleRepository: MerchantRuleRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : BackupRepository {
 
@@ -44,6 +47,7 @@ class BackupRepositoryImpl @Inject constructor(
         val transactions = database.transactionDao().getAllTransactionsForBackup()
         val budgets = database.budgetDao().getAllBudgetsForBackup()
         val recurringRules = database.recurringRuleDao().getAllRulesForBackup()
+        val merchantRules = merchantRuleRepository.getAllRules()
 
         BackupPayload(
             schemaVersion = BackupPayload.CURRENT_SCHEMA_VERSION,
@@ -115,6 +119,16 @@ class BackupRepositoryImpl @Inject constructor(
                     autoPost = it.autoPost,
                     isActive = it.isActive
                 )
+            },
+            merchantRules = merchantRules.map {
+                MerchantRuleBackupDto(
+                    id = it.id,
+                    merchantPattern = it.merchantPattern,
+                    categoryId = it.categoryId,
+                    categoryName = it.categoryName,
+                    isExactMatch = it.isExactMatch,
+                    createdAt = it.createdAt
+                )
             }
         )
     }
@@ -136,6 +150,9 @@ class BackupRepositoryImpl @Inject constructor(
             if (payload.schemaVersion > BackupPayload.CURRENT_SCHEMA_VERSION) {
                 return@withContext RestoreResult.Error("Unsupported backup schema version: ${payload.schemaVersion}. Please update KnowSpends.")
             }
+
+            // Clear existing tables first to prevent newer/deleted transactions from mingling with the backup
+            database.clearAllTables()
 
             database.withTransaction {
                 // Restore accounts
@@ -231,12 +248,28 @@ class BackupRepositoryImpl @Inject constructor(
                 }
             }
 
+            // Restore merchant categorization rules
+            if (payload.merchantRules.isNotEmpty()) {
+                val rules = payload.merchantRules.map {
+                    MerchantRule(
+                        id = it.id,
+                        merchantPattern = it.merchantPattern,
+                        categoryId = it.categoryId,
+                        categoryName = it.categoryName,
+                        isExactMatch = it.isExactMatch,
+                        createdAt = it.createdAt
+                    )
+                }
+                merchantRuleRepository.restoreRules(rules)
+            }
+
             RestoreResult.Success(
                 accountsRestored = payload.accounts.size,
                 categoriesRestored = payload.categories.size,
                 transactionsRestored = payload.transactions.size,
                 budgetsRestored = payload.budgets.size,
-                recurringRulesRestored = payload.recurringRules.size
+                recurringRulesRestored = payload.recurringRules.size,
+                merchantRulesRestored = payload.merchantRules.size
             )
         } catch (e: Exception) {
             RestoreResult.Error(e.localizedMessage ?: "Failed to restore backup")

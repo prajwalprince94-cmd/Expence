@@ -10,6 +10,7 @@ import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.PendingTransactionRepository
 import com.knowspends.app.domain.repository.TransactionRepository
+import com.knowspends.app.domain.repository.UserPreferencesRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,19 +51,20 @@ data class HomeUiState(
     val selectedAccountForAction: Account? = null,
     val activeEditField: AccountEditField? = null,
     val pendingSmsCount: Int = 0,
+    val currencySymbol: String = "₹",
     val isLoading: Boolean = false
 ) {
     val formattedTotalNetWorth: String
-        get() = MoneyFormatter.formatPaise(totalNetWorthMinor)
+        get() = MoneyFormatter.formatPaise(totalNetWorthMinor, currencySymbol = currencySymbol)
 
     val formattedExpense: String
-        get() = MoneyFormatter.formatPaise(monthlySummary.totalExpenseMinor)
+        get() = MoneyFormatter.formatPaise(monthlySummary.totalExpenseMinor, currencySymbol = currencySymbol)
 
     val formattedIncome: String
-        get() = MoneyFormatter.formatPaise(monthlySummary.totalIncomeMinor)
+        get() = MoneyFormatter.formatPaise(monthlySummary.totalIncomeMinor, currencySymbol = currencySymbol)
 
     val formattedNetSavings: String
-        get() = MoneyFormatter.formatPaise(monthlySummary.netSavingsMinor)
+        get() = MoneyFormatter.formatPaise(monthlySummary.netSavingsMinor, currencySymbol = currencySymbol)
 
     val savingsRatePercent: Int
         get() = if (monthlySummary.totalIncomeMinor > 0) {
@@ -78,7 +80,7 @@ data class HomeUiState(
         get() {
             val day = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
             val avg = monthlySummary.totalExpenseMinor / maxOf(1, day)
-            return MoneyFormatter.formatPaise(avg)
+            return MoneyFormatter.formatPaise(avg, currencySymbol = currencySymbol)
         }
 
     val daysRemainingInMonth: Int
@@ -98,17 +100,25 @@ data class HomeUiState(
         }
 
     val formattedSafeToSpendToday: String
-        get() = MoneyFormatter.formatPaise(safeToSpendTodayMinor, includeSymbol = true)
+        get() = MoneyFormatter.formatPaise(safeToSpendTodayMinor, includeSymbol = true, currencySymbol = currencySymbol)
 
     val isSafeToSpendPositive: Boolean
         get() = safeToSpendTodayMinor > 0
 }
 
+private data class HomeControlsState(
+    val selectedTab: Int,
+    val actionAccount: Account?,
+    val editField: AccountEditField?,
+    val currencySymbol: String
+)
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
-    private val pendingTransactionRepository: PendingTransactionRepository
+    private val pendingTransactionRepository: PendingTransactionRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val calendar = Calendar.getInstance()
@@ -143,9 +153,10 @@ class HomeViewModel @Inject constructor(
     private val _uiControlsFlow = combine(
         _selectedAnalyticsTab,
         _selectedAccountForAction,
-        _activeEditField
-    ) { tab, account, field ->
-        Triple(tab, account, field)
+        _activeEditField,
+        userPreferencesRepository.userPreferencesFlow
+    ) { tab, account, field, prefs ->
+        HomeControlsState(tab, account, field, prefs.currencySymbol)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -154,7 +165,7 @@ class HomeViewModel @Inject constructor(
         transactionRepository.getAllTransactionsWithDetails(),
         _uiControlsFlow,
         pendingTransactionRepository.getPendingCount()
-    ) { summary, accounts, transactions, (selectedTab, actionAccount, editField), pendingCount ->
+    ) { summary, accounts, transactions, controls, pendingCount ->
         val netWorth = accounts.sumOf { it.currentBalanceMinor }
         val recents = transactions.take(6)
 
@@ -219,10 +230,11 @@ class HomeViewModel @Inject constructor(
             recentTransactions = recents,
             dailyExpenses7Days = dailyItems,
             categoryExpenses = categoryShares,
-            selectedAnalyticsTab = selectedTab,
-            selectedAccountForAction = actionAccount,
-            activeEditField = editField,
+            selectedAnalyticsTab = controls.selectedTab,
+            selectedAccountForAction = controls.actionAccount,
+            activeEditField = controls.editField,
             pendingSmsCount = pendingCount,
+            currencySymbol = controls.currencySymbol,
             isLoading = false
         )
     }.stateIn(

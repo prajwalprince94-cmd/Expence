@@ -12,6 +12,7 @@ data class SubscriptionsUiState(
     val selectedFilter: String = "All", // "All", "Monthly", "Yearly", "Bills"
     val showAddEditDialog: Boolean = false,
     val editingRule: RecurringRule? = null,
+    val currencySymbol: String = "₹",
     val isLoading: Boolean = false
 ) {
     val activeRules: List<RecurringRule>
@@ -31,10 +32,10 @@ data class SubscriptionsUiState(
         get() = totalMonthlyBurnMinor * 12
 
     val formattedMonthlyBurn: String
-        get() = MoneyFormatter.formatPaise(totalMonthlyBurnMinor, includeSymbol = true)
+        get() = MoneyFormatter.formatPaise(totalMonthlyBurnMinor, includeSymbol = true, currencySymbol = currencySymbol)
 
     val formattedYearlyProjection: String
-        get() = MoneyFormatter.formatPaise(totalYearlyProjectionMinor, includeSymbol = true)
+        get() = MoneyFormatter.formatPaise(totalYearlyProjectionMinor, includeSymbol = true, currencySymbol = currencySymbol)
 
     val activeSubscriptionsCount: Int
         get() = activeRules.size

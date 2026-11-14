@@ -405,22 +405,27 @@ fun TransactionsScreen(
                     .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
+                val isSearching = uiState.searchQuery.isNotBlank()
+                val hasFilter = uiState.selectedType != null || uiState.selectedAccountId != null
+
                 ExpressiveEmptyState(
-                    icon = Icons.Default.ReceiptLong,
-                    title = "No transactions found",
-                    subtitle = if (uiState.selectedType != null || uiState.selectedAccountId != null)
-                        "No transactions match the selected account or category filters."
-                    else
-                        "No spending records found. Tap the button below to log your first transaction.",
-                    actionLabel = if (uiState.selectedType != null || uiState.selectedAccountId != null)
-                        "Clear Filters"
-                    else
-                        "Log Transaction",
+                    icon = if (isSearching) Icons.Default.Search else Icons.Default.ReceiptLong,
+                    title = if (isSearching) "No matching transactions" else "No transactions found",
+                    subtitle = when {
+                        isSearching -> "No results found for \"${uiState.searchQuery}\". Check spelling or clear search."
+                        hasFilter -> "No transactions match the selected account or category filters."
+                        else -> "No spending records found. Tap the button below to log your first transaction."
+                    },
+                    actionLabel = when {
+                        isSearching -> "Clear Search"
+                        hasFilter -> "Clear Filters"
+                        else -> "Log Transaction"
+                    },
                     onActionClick = {
-                        if (uiState.selectedType != null || uiState.selectedAccountId != null) {
-                            viewModel.clearAllFilters()
-                        } else {
-                            onEditTransaction(0L)
+                        when {
+                            isSearching -> viewModel.onSearchQueryChange("")
+                            hasFilter -> viewModel.clearAllFilters()
+                            else -> onEditTransaction(0L)
                         }
                     }
                 )

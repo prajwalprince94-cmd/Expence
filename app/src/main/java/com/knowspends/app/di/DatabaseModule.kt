@@ -33,7 +33,8 @@ object DatabaseModule {
             context,
             KnowSpendsDatabase::class.java,
             KnowSpendsDatabase.DATABASE_NAME
-        ).addCallback(object : RoomDatabase.Callback() {
+        ).fallbackToDestructiveMigration()
+        .addCallback(object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 // Seed initial accounts and categories

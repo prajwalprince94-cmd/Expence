@@ -445,6 +445,7 @@ fun SubscriptionsScreen(
             editingRule = uiState.editingRule,
             accounts = uiState.accounts,
             categories = uiState.categories,
+            currencySymbol = uiState.currencySymbol,
             onDismiss = { viewModel.dismissDialog() },
             onSave = { id, payee, amountMinor, accountId, categoryId, freq, day, autoPost ->
                 viewModel.saveSubscription(id, payee, amountMinor, accountId, categoryId, freq, day, autoPost)
@@ -847,6 +848,7 @@ fun AddEditSubscriptionSheet(
     editingRule: RecurringRule?,
     accounts: List<Account>,
     categories: List<Category>,
+    currencySymbol: String = "₹",
     onDismiss: () -> Unit,
     onSave: (id: Long, payee: String, amountMinor: Long, accountId: Long, categoryId: Long?, freq: RecurrenceFrequency, dayOfMonth: Int, autoPost: Boolean) -> Unit,
     onDelete: (id: Long) -> Unit = {}
@@ -972,7 +974,7 @@ fun AddEditSubscriptionSheet(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "₹",
+                                text = currencySymbol,
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace
@@ -1016,7 +1018,7 @@ fun AddEditSubscriptionSheet(
                         if (showValidationErrors && (amountStr.toDoubleOrNull() ?: 0.0) <= 0.0) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Amount must be greater than ₹0",
+                                text = "Amount must be greater than 0",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = scheme.error,
                                 fontWeight = FontWeight.SemiBold
@@ -1323,7 +1325,7 @@ fun AddEditSubscriptionSheet(
                         .pressScale(0.97f)
                 ) {
                     Text(
-                        text = if (editingRule != null) "Save Changes" else "Add Commitment • ₹${amountStr.ifBlank { "0" }}",
+                        text = if (editingRule != null) "Save Changes" else "Add Commitment • $currencySymbol${amountStr.ifBlank { "0" }}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onPrimary

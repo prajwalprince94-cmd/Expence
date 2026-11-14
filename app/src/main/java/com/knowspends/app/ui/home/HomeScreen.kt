@@ -388,7 +388,7 @@ fun HomeScreen(
                         }
 
                         Text(
-                            text = if (uiState.isSafeToSpendPositive) "${uiState.formattedSafeToSpendToday} / day" else "₹0 / day",
+                            text = if (uiState.isSafeToSpendPositive) "${uiState.formattedSafeToSpendToday} / day" else "${uiState.currencySymbol}0 / day",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (uiState.isSafeToSpendPositive) IncomeColor else ExpenseColor
@@ -1211,7 +1211,7 @@ fun AccountEditBalanceDialog(
                 OutlinedTextField(
                     value = balanceText,
                     onValueChange = { balanceText = it },
-                    label = { Text("Balance (₹)") },
+                    label = { Text("Balance (${uiState.currencySymbol})") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -1544,7 +1544,7 @@ fun SevenDaySpendingChart(
                 ) {
                     if (item.amountMinor > 0) {
                         Text(
-                            text = item.formattedAmount.replace("₹", "").split(".")[0],
+                            text = MoneyFormatter.formatIndianGrouping(item.amountMinor / 100),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = if (item.isToday) scheme.primary else scheme.onSurfaceVariant,

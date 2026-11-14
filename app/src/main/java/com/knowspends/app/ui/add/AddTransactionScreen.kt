@@ -238,7 +238,7 @@ fun AddTransactionScreen(
                 if (amountValidationError) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Amount must be greater than ₹0",
+                        text = "Amount must be greater than 0",
                         style = MaterialTheme.typography.labelSmall,
                         color = scheme.error,
                         fontWeight = FontWeight.SemiBold
