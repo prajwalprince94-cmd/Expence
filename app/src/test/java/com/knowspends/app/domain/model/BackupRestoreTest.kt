@@ -77,6 +77,23 @@ class BackupRestoreTest {
                     nextDueDate = 1730419200000L,
                     autoPost = true
                 )
+            ),
+            pendingTransactions = listOf(
+                PendingTransactionBackupDto(
+                    id = 1,
+                    amountMinor = 45000L,
+                    type = "EXPENSE",
+                    suggestedPayee = "Starbucks",
+                    accountTail = "**1234",
+                    rawMessage = "Paid Rs.450 to Starbucks"
+                )
+            ),
+            recurringExecutions = listOf(
+                RecurringExecutionBackupDto(
+                    id = 1,
+                    ruleId = 2,
+                    dueDate = 1730419200000L
+                )
             )
         )
 
@@ -86,6 +103,7 @@ class BackupRestoreTest {
         assertTrue(jsonString.contains("Main Savings"))
         assertTrue(jsonString.contains("125050"))
         assertTrue(jsonString.contains("Apartment Rent"))
+        assertTrue(jsonString.contains("Starbucks"))
 
         // Deserialize back
         val deserialized = json.decodeFromString<BackupPayload>(jsonString)
@@ -108,5 +126,10 @@ class BackupRestoreTest {
 
         assertEquals(originalPayload.recurringRules.size, deserialized.recurringRules.size)
         assertEquals("Landlord", deserialized.recurringRules.first().payee)
+
+        assertEquals(1, deserialized.pendingTransactions.size)
+        assertEquals("Starbucks", deserialized.pendingTransactions.first().suggestedPayee)
+        assertEquals(1, deserialized.recurringExecutions.size)
+        assertEquals(2L, deserialized.recurringExecutions.first().ruleId)
     }
 }

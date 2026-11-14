@@ -107,37 +107,45 @@ class SubscriptionsViewModel @Inject constructor(
         autoPost: Boolean
     ) {
         viewModelScope.launch {
-            val calendar = Calendar.getInstance()
-            calendar.set(Calendar.HOUR_OF_DAY, 9)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
+            val current = _editingRule.value
+            val nextDueDate = if (current != null && current.id == id &&
+                current.frequency == frequency && current.dayOfMonth == dayOfMonth &&
+                current.nextDueDate > System.currentTimeMillis()
+            ) {
+                current.nextDueDate
+            } else {
+                val calendar = Calendar.getInstance()
+                calendar.set(Calendar.HOUR_OF_DAY, 9)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
 
-            when (frequency) {
-                RecurrenceFrequency.DAILY -> {
-                    if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                        calendar.add(Calendar.DAY_OF_YEAR, 1)
+                when (frequency) {
+                    RecurrenceFrequency.DAILY -> {
+                        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                            calendar.add(Calendar.DAY_OF_YEAR, 1)
+                        }
+                    }
+                    RecurrenceFrequency.WEEKLY -> {
+                        calendar.add(Calendar.DAY_OF_YEAR, 7)
+                    }
+                    RecurrenceFrequency.MONTHLY -> {
+                        val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, maxDay))
+                        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                            calendar.add(Calendar.MONTH, 1)
+                        }
+                    }
+                    RecurrenceFrequency.YEARLY -> {
+                        val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, maxDay))
+                        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                            calendar.add(Calendar.YEAR, 1)
+                        }
                     }
                 }
-                RecurrenceFrequency.WEEKLY -> {
-                    calendar.add(Calendar.DAY_OF_YEAR, 7)
-                }
-                RecurrenceFrequency.MONTHLY -> {
-                    val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, maxDay))
-                    if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                        calendar.add(Calendar.MONTH, 1)
-                    }
-                }
-                RecurrenceFrequency.YEARLY -> {
-                    val maxDay = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, maxDay))
-                    if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                        calendar.add(Calendar.YEAR, 1)
-                    }
-                }
+                calendar.timeInMillis
             }
-            val nextDueDate = calendar.timeInMillis
 
             val rule = RecurringRule(
                 id = id,

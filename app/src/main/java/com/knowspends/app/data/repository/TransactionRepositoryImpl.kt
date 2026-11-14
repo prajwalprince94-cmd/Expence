@@ -131,6 +131,7 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun saveTransaction(transaction: Transaction): Long = withContext(ioDispatcher) {
         val now = System.currentTimeMillis()
+        val existing = if (transaction.id != 0L) transactionDao.getTransactionByIdOnce(transaction.id) else null
         val entity = TransactionEntity(
             id = transaction.id,
             accountId = transaction.accountId,
@@ -141,9 +142,11 @@ class TransactionRepositoryImpl @Inject constructor(
             date = transaction.date,
             note = transaction.note,
             payee = transaction.payee,
-            createdAt = if (transaction.id == 0L) now else transaction.createdAt,
+            createdAt = if (transaction.id == 0L) now else (existing?.createdAt ?: transaction.createdAt),
             updatedAt = now,
-            deletedAt = transaction.deletedAt
+            deletedAt = transaction.deletedAt,
+            importBatchId = existing?.importBatchId,
+            sourceHash = existing?.sourceHash
         )
         if (transaction.id == 0L) {
             transactionDao.insertTransaction(entity)

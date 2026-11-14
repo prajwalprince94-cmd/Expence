@@ -12,7 +12,9 @@ data class BackupPayload(
     val transactions: List<TransactionBackupDto> = emptyList(),
     val budgets: List<BudgetBackupDto> = emptyList(),
     val recurringRules: List<RecurringRuleBackupDto> = emptyList(),
-    val merchantRules: List<MerchantRuleBackupDto> = emptyList()
+    val merchantRules: List<MerchantRuleBackupDto> = emptyList(),
+    val pendingTransactions: List<PendingTransactionBackupDto> = emptyList(),
+    val recurringExecutions: List<RecurringExecutionBackupDto> = emptyList()
 ) {
     companion object {
         const val CURRENT_SCHEMA_VERSION = 2
@@ -96,6 +98,27 @@ data class MerchantRuleBackupDto(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Serializable
+data class PendingTransactionBackupDto(
+    val id: Long,
+    val amountMinor: Long,
+    val type: String,
+    val suggestedPayee: String,
+    val accountTail: String? = null,
+    val date: Long = System.currentTimeMillis(),
+    val rawMessage: String = "",
+    val status: String = "PENDING"
+)
+
+@Serializable
+data class RecurringExecutionBackupDto(
+    val id: Long = 0,
+    val ruleId: Long,
+    val dueDate: Long,
+    val transactionId: Long? = null,
+    val executedAt: Long = System.currentTimeMillis()
+)
+
 sealed class RestoreResult {
     data class Success(
         val accountsRestored: Int,
@@ -103,7 +126,9 @@ sealed class RestoreResult {
         val transactionsRestored: Int,
         val budgetsRestored: Int,
         val recurringRulesRestored: Int,
-        val merchantRulesRestored: Int = 0
+        val merchantRulesRestored: Int = 0,
+        val pendingTransactionsRestored: Int = 0,
+        val recurringExecutionsRestored: Int = 0
     ) : RestoreResult()
 
     data class Error(val message: String) : RestoreResult()

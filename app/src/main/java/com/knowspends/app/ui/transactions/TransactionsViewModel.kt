@@ -8,6 +8,7 @@ import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.AccountRepository
 import com.knowspends.app.domain.repository.PendingTransactionRepository
 import com.knowspends.app.domain.repository.TransactionRepository
+import com.knowspends.app.domain.repository.UserPreferencesRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +53,7 @@ data class TransactionsUiState(
     val formattedExpenseTotal: String = "₹0.00",
     val formattedIncomeTotal: String = "₹0.00",
     val formattedNetCashflow: String = "₹0.00",
+    val currencySymbol: String = "₹",
     val unreviewedSmsCount: Int = 0,
     val isLoading: Boolean = false
 )
@@ -60,7 +62,8 @@ data class TransactionsUiState(
 class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
-    private val pendingTransactionRepository: PendingTransactionRepository
+    private val pendingTransactionRepository: PendingTransactionRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -79,8 +82,10 @@ class TransactionsViewModel @Inject constructor(
         transactionRepository.getAllTransactionsWithDetails(),
         accountRepository.getAllAccounts(),
         _filterFlow,
-        pendingTransactionRepository.getPendingCount()
-    ) { allTransactions, accounts, filters, pendingCount ->
+        pendingTransactionRepository.getPendingCount(),
+        userPreferencesRepository.userPreferencesFlow
+    ) { allTransactions, accounts, filters, pendingCount, userPreferences ->
+        val currencySymbol = userPreferences.currencySymbol
         val query = filters.query
         val typeFilter = filters.type
         val accountFilter = filters.accountId
@@ -100,7 +105,7 @@ class TransactionsViewModel @Inject constructor(
             matchesQuery && matchesType && matchesAccount
         }
 
-        val groups = groupTransactionsByDay(filtered)
+        val groups = groupTransactionsByDay(filtered, currencySymbol)
         val expenseSum = filtered.filter { it.transaction.type == TransactionType.EXPENSE }.sumOf { it.transaction.amountMinor }
         val incomeSum = filtered.filter { it.transaction.type == TransactionType.INCOME }.sumOf { it.transaction.amountMinor }
         val netCashflow = incomeSum - expenseSum
@@ -115,9 +120,10 @@ class TransactionsViewModel @Inject constructor(
             totalExpenseMinor = expenseSum,
             totalIncomeMinor = incomeSum,
             netCashflowMinor = netCashflow,
-            formattedExpenseTotal = MoneyFormatter.formatPaise(expenseSum, includeSymbol = true),
-            formattedIncomeTotal = MoneyFormatter.formatPaise(incomeSum, includeSymbol = true),
-            formattedNetCashflow = MoneyFormatter.formatPaise(netCashflow, includeSymbol = true),
+            formattedExpenseTotal = MoneyFormatter.formatPaise(expenseSum, includeSymbol = true, currencySymbol = currencySymbol),
+            formattedIncomeTotal = MoneyFormatter.formatPaise(incomeSum, includeSymbol = true, currencySymbol = currencySymbol),
+            formattedNetCashflow = MoneyFormatter.formatPaise(netCashflow, includeSymbol = true, currencySymbol = currencySymbol),
+            currencySymbol = currencySymbol,
             unreviewedSmsCount = pendingCount,
             isLoading = false
         )
@@ -157,7 +163,7 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
-    private fun groupTransactionsByDay(list: List<TransactionWithDetails>): List<DayGroup> {
+    private fun groupTransactionsByDay(list: List<TransactionWithDetails>, currencySymbol: String): List<DayGroup> {
         val calendar = Calendar.getInstance()
         val today = Calendar.getInstance()
         val yesterday = Calendar.getInstance().apply { add(Calendar.DATE, -1) }
@@ -188,10 +194,10 @@ class TransactionsViewModel @Inject constructor(
             DayGroup(
                 dateLabel = label,
                 dayTotalMinor = dayExpenses,
-                formattedDayTotal = MoneyFormatter.formatPaise(dayExpenses, includeSymbol = true),
+                formattedDayTotal = MoneyFormatter.formatPaise(dayExpenses, includeSymbol = true, currencySymbol = currencySymbol),
                 transactions = dayItems,
                 dayIncomeMinor = dayIncome,
-                formattedDayIncome = MoneyFormatter.formatPaise(dayIncome, includeSymbol = true),
+                formattedDayIncome = MoneyFormatter.formatPaise(dayIncome, includeSymbol = true, currencySymbol = currencySymbol),
                 count = dayItems.size
             )
         }

@@ -80,6 +80,32 @@ class BankMessageParserTest {
     }
 
     @Test
+    fun `failed and declined transaction messages are strictly rejected`() {
+        val failed1 = "Your transaction of Rs.500 at Starbucks has failed due to insufficient funds."
+        val declined = "Transaction of INR 1,200 at Amazon declined due to technical error."
+        val unsuccessful = "UPI payment of Rs.350 was unsuccessful."
+
+        assertNull(BankMessageParser.parse(failed1))
+        assertNull(BankMessageParser.parse(declined))
+        assertNull(BankMessageParser.parse(unsuccessful))
+    }
+
+    @Test
+    fun `parse international currency formats accurately`() {
+        val usdExpense = "Paid $45.50 to Apple Store on 10 Nov 2026."
+        val usdParsed = BankMessageParser.parse(usdExpense)
+        assertNotNull(usdParsed)
+        assertEquals(4550L, usdParsed?.amountMinor)
+        assertEquals("Apple Store", usdParsed?.merchantOrPayee)
+
+        val eurCredit = "€150.00 credited to account XX9988 by Freelance Project"
+        val eurParsed = BankMessageParser.parse(eurCredit)
+        assertNotNull(eurParsed)
+        assertEquals(15000L, eurParsed?.amountMinor)
+        assertEquals(TransactionType.INCOME, eurParsed?.type)
+    }
+
+    @Test
     fun `detect bank names, upi apps and infer categories accurately`() {
         // HDFC + Swiggy (Food & Dining)
         val hdfcMsg = "Dear UPI user, Rs. 340.00 debited from HDFC Bank A/c **4321 to Swiggy via PhonePe on 01-Nov-26"

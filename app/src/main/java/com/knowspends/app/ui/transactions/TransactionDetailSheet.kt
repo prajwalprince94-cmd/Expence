@@ -84,7 +84,8 @@ fun TransactionDetailSheet(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currencySymbol: String = "₹"
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
@@ -93,7 +94,7 @@ fun TransactionDetailSheet(
     val tx = item.transaction
     val type = tx.type
     val amountMinor = tx.amountMinor
-    val formattedAmount = MoneyFormatter.formatPaise(amountMinor)
+    val formattedAmount = MoneyFormatter.formatPaise(amountMinor, currencySymbol = currencySymbol)
 
     val (typeLabel, typeColor, typeIcon, amountPrefix) = when (type) {
         TransactionType.EXPENSE -> Quadruple(

@@ -487,13 +487,15 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 var bytesFreed = 0L
-                context.cacheDir.listFiles()?.forEach { file ->
-                    bytesFreed += file.length()
-                    file.deleteRecursively()
+                val internalCache = context.cacheDir
+                if (internalCache != null && internalCache.exists()) {
+                    bytesFreed += internalCache.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                    internalCache.listFiles()?.forEach { it.deleteRecursively() }
                 }
-                context.externalCacheDir?.listFiles()?.forEach { file ->
-                    bytesFreed += file.length()
-                    file.deleteRecursively()
+                val externalCache = context.externalCacheDir
+                if (externalCache != null && externalCache.exists()) {
+                    bytesFreed += externalCache.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                    externalCache.listFiles()?.forEach { it.deleteRecursively() }
                 }
                 val mbFreed = String.format(java.util.Locale.US, "%.1f", bytesFreed.toDouble() / (1024 * 1024))
                 _uiState.update { it.copy(statusMessage = "Cleared ${mbFreed} MB of cached files and temporary downloads.") }

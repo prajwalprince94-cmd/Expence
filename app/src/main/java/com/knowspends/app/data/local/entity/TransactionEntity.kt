@@ -11,7 +11,8 @@ import androidx.room.PrimaryKey
         Index("accountId", "date"),
         Index("categoryId", "date"),
         Index("transferAccountId"),
-        Index("deletedAt")
+        Index("deletedAt"),
+        Index("deletedAt", "date")
     ],
     foreignKeys = [
         ForeignKey(

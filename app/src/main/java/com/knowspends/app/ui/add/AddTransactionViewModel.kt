@@ -274,6 +274,7 @@ class AddTransactionViewModel @Inject constructor(
                 if (andAddAnother) {
                     _uiState.update {
                         it.copy(
+                            transactionId = null,
                             isSaving = false,
                             amountInput = "0",
                             note = "",

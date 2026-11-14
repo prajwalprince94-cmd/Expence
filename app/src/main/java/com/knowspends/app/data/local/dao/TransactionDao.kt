@@ -67,7 +67,7 @@ interface TransactionDao {
         INNER JOIN accounts a ON t.accountId = a.id
         LEFT JOIN categories c ON t.categoryId = c.id
         LEFT JOIN accounts ta ON t.transferAccountId = ta.id
-        WHERE t.id = :id
+        WHERE t.id = :id AND t.deletedAt IS NULL
     """)
     fun getTransactionByIdWithDetailsFlow(id: Long): Flow<TransactionWithDetailsEntity?>
 

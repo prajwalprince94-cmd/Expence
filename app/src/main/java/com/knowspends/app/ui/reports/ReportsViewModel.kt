@@ -11,6 +11,7 @@ import com.knowspends.app.domain.model.PayeeReportItem
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.repository.TransactionRepository
+import com.knowspends.app.domain.repository.UserPreferencesRepository
 import com.knowspends.app.domain.util.MoneyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,7 @@ data class ReportsUiState(
     val topPayees: List<PayeeReportItem> = emptyList(),
     val monthlyTrends: List<MonthlyTrendItem> = emptyList(),
     val narrativeInsights: List<NarrativeInsight> = emptyList(),
+    val currencySymbol: String = "₹",
     val isLoading: Boolean = false
 ) {
     val netSavingsMinor: Long
@@ -51,18 +53,19 @@ data class ReportsUiState(
         } else 0f
 
     val formattedExpense: String
-        get() = MoneyFormatter.formatPaise(totalExpenseMinor)
+        get() = MoneyFormatter.formatPaise(totalExpenseMinor, currencySymbol = currencySymbol)
 
     val formattedIncome: String
-        get() = MoneyFormatter.formatPaise(totalIncomeMinor)
+        get() = MoneyFormatter.formatPaise(totalIncomeMinor, currencySymbol = currencySymbol)
 
     val formattedNetSavings: String
-        get() = MoneyFormatter.formatPaise(netSavingsMinor)
+        get() = MoneyFormatter.formatPaise(netSavingsMinor, currencySymbol = currencySymbol)
 }
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _selectedRange = MutableStateFlow(DateRangeType.THIS_MONTH)
@@ -78,8 +81,10 @@ class ReportsViewModel @Inject constructor(
             transactionRepository.getCategoryBreakdown(startMillis, endMillis, TransactionType.EXPENSE),
             transactionRepository.getTopPayees(startMillis, endMillis, limit = 10),
             transactionRepository.getMonthlyTrends(startMillis, endMillis),
-            transactionRepository.getTransactionsBetween(startMillis, endMillis)
-        ) { summary, categories, payees, trends, transactions ->
+            transactionRepository.getTransactionsBetween(startMillis, endMillis),
+            userPreferencesRepository.userPreferencesFlow
+        ) { summary, categories, payees, trends, transactions, userPreferences ->
+            val currencySymbol = userPreferences.currencySymbol
             val insights = generateNarrativeInsights(
                 transactions = transactions,
                 totalExpenseMinor = summary.totalExpenseMinor,
@@ -100,6 +105,7 @@ class ReportsViewModel @Inject constructor(
                 topPayees = payees,
                 monthlyTrends = trends,
                 narrativeInsights = insights,
+                currencySymbol = currencySymbol,
                 isLoading = false
             )
         }

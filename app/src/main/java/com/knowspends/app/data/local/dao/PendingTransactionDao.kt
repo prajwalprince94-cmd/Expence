@@ -30,4 +30,10 @@ interface PendingTransactionDao {
 
     @Query("SELECT COUNT(*) FROM pending_transactions WHERE rawMessage = :rawMessage")
     suspend fun countByRawMessage(rawMessage: String): Int
+
+    @Query("SELECT * FROM pending_transactions ORDER BY id ASC")
+    suspend fun getAllForBackup(): List<PendingTransactionEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPendingTransactions(transactions: List<PendingTransactionEntity>)
 }

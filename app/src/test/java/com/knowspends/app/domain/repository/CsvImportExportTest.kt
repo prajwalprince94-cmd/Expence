@@ -68,4 +68,16 @@ class CsvImportExportTest {
         assertEquals("Uber, Taxi", tokens[6])
         assertEquals("Morning trip", tokens[7])
     }
+
+    @Test
+    fun csvAmountParsing_handlesNegativeDebitAmounts() {
+        val rawInput = "-1,500.50"
+        val parsedPaise = MoneyFormatter.parseToPaise(rawInput)
+        assertEquals(-150050L, parsedPaise)
+
+        val isNegative = parsedPaise < 0
+        val absPaise = Math.abs(parsedPaise)
+        assertEquals(true, isNegative)
+        assertEquals(150050L, absPaise)
+    }
 }

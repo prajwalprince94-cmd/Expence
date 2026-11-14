@@ -51,4 +51,10 @@ interface RecurringRuleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRules(rules: List<RecurringRuleEntity>)
+
+    @Query("SELECT * FROM recurring_executions ORDER BY id ASC")
+    suspend fun getAllExecutionsForBackup(): List<RecurringExecutionEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExecutions(executions: List<RecurringExecutionEntity>)
 }

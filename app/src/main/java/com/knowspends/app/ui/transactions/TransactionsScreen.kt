@@ -526,6 +526,7 @@ fun TransactionsScreen(
                     ) { item ->
                         TransactionListItem(
                             item = item,
+                            currencySymbol = uiState.currencySymbol,
                             onClick = { selectedTransactionForDetail = item },
                             onDelete = {
                                 val txId = item.transaction.id
@@ -551,6 +552,7 @@ fun TransactionsScreen(
     selectedTransactionForDetail?.let { item ->
         TransactionDetailSheet(
             item = item,
+            currencySymbol = uiState.currencySymbol,
             onDismiss = { selectedTransactionForDetail = null },
             onEdit = {
                 val id = item.transaction.id
@@ -804,7 +806,8 @@ fun TransactionListItem(
     item: TransactionWithDetails,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currencySymbol: String = "₹"
 ) {
     val scheme = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
@@ -819,15 +822,15 @@ fun TransactionListItem(
 
     val (amountText, amountColor) = when (item.transaction.type) {
         TransactionType.INCOME -> Pair(
-            "+ ${MoneyFormatter.formatPaise(item.transaction.amountMinor)}",
+            "+ ${MoneyFormatter.formatPaise(item.transaction.amountMinor, currencySymbol = currencySymbol)}",
             IncomeColor
         )
         TransactionType.EXPENSE -> Pair(
-            "- ${MoneyFormatter.formatPaise(item.transaction.amountMinor)}",
+            "- ${MoneyFormatter.formatPaise(item.transaction.amountMinor, currencySymbol = currencySymbol)}",
             ExpenseColor
         )
         TransactionType.TRANSFER -> Pair(
-            MoneyFormatter.formatPaise(item.transaction.amountMinor),
+            MoneyFormatter.formatPaise(item.transaction.amountMinor, currencySymbol = currencySymbol),
             TransferColor
         )
     }

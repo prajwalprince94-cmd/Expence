@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -15,9 +16,11 @@ import com.knowspends.app.domain.repository.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -89,7 +92,15 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
     }
 
-    override val userPreferencesFlow: Flow<UserPreferences> = context.userPreferencesDataStore.data.map { prefs ->
+    override val userPreferencesFlow: Flow<UserPreferences> = context.userPreferencesDataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { prefs ->
         UserPreferences(
             profileName = prefs[Keys.PROFILE_NAME] ?: "My Personal Ledger",
             profileTagline = prefs[Keys.PROFILE_TAGLINE] ?: "Personal Expense Vault",

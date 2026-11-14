@@ -112,13 +112,13 @@ class CsvRepositoryImpl @Inject constructor(
                 if (row.isEmpty()) continue
 
                 val dateStr = if (dateIdx in row.indices) row[dateIdx] else ""
-                val typeStr = if (typeIdx in row.indices) row[typeIdx].uppercase() else "EXPENSE"
+                val rawTypeStr = if (typeIdx in row.indices) row[typeIdx].trim().uppercase() else ""
                 val catStr = if (catIdx in row.indices) row[catIdx].trim() else ""
                 val accStr = if (accIdx in row.indices) row[accIdx].trim() else ""
                 val payeeStr = if (payeeIdx in row.indices) row[payeeIdx].trim() else ""
                 val noteStr = if (noteIdx in row.indices) row[noteIdx].trim() else ""
 
-                val amountMinor = when {
+                val rawAmountMinor = when {
                     amountMinorIdx != -1 && amountMinorIdx in row.indices && row[amountMinorIdx].isNotBlank() -> {
                         row[amountMinorIdx].trim().toLongOrNull() ?: (if (amountIdx in row.indices) MoneyFormatter.parseToPaise(row[amountIdx]) else 0L)
                     }
@@ -127,7 +127,18 @@ class CsvRepositoryImpl @Inject constructor(
                     }
                     else -> 0L
                 }
-                if (amountMinor <= 0) continue
+                if (rawAmountMinor == 0L) continue
+
+                val isNegative = rawAmountMinor < 0
+                val amountMinor = Math.abs(rawAmountMinor)
+
+                val typeStr = when {
+                    rawTypeStr in listOf("EXPENSE", "INCOME", "TRANSFER") -> rawTypeStr
+                    rawTypeStr.contains("CR") || rawTypeStr.contains("CREDIT") -> "INCOME"
+                    rawTypeStr.contains("DR") || rawTypeStr.contains("DEBIT") -> "EXPENSE"
+                    isNegative -> "EXPENSE"
+                    else -> "EXPENSE"
+                }
 
                 val dateMillis = parseDate(dateStr) ?: continue
                 val resolvedAccount = accountMap[accStr.lowercase()] ?: defaultAccount

@@ -19,13 +19,16 @@ typealias ParsedBankMessage = ParsedFinancialMessage
 
 object BankMessageParser {
 
-    private val OTP_PATTERNS = listOf(
+    private val IGNORED_PATTERNS = listOf(
         Pattern.compile("(?i)\\b(otp|verification code|one time password|secret code|security code|do not share|valid for|is your secret)\\b"),
-        Pattern.compile("(?i)\\b(pre-approved|apply now|congratulations|click here to claim|win up to)\\b")
+        Pattern.compile("(?i)\\b(pre-approved|apply now|congratulations|click here to claim|win up to)\\b"),
+        Pattern.compile("(?i)\\b(failed|declined|unsuccessful|reversed|insufficient funds|declined due to|mandate revoked|transaction expired)\\b")
     )
 
+    private const val CURRENCY_PREFIX = "(?:rs\\.?|inr|₹|usd|\\$|eur|€|gbp|£)?"
+
     fun isIgnoredMessage(text: String): Boolean {
-        for (pattern in OTP_PATTERNS) {
+        for (pattern in IGNORED_PATTERNS) {
             if (pattern.matcher(text).find()) {
                 return true
             }
@@ -43,8 +46,8 @@ object BankMessageParser {
         val upiOrWalletApp = extractUpiOrWalletApp(trimmed, sender)
         val accountTail = extractAccountTail(trimmed)
 
-        // 1. Paid/Sent/Transfer Expense: "Paid Rs.450 to Starbucks" / "Sent Rs.350 from A/c to rahul@upi"
-        val paidRegex = Pattern.compile("(?i)(?:paid|sent|transfer(?:red)?)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)(?:.*?(?:to|towards)\\s+([^.,\n]+))?")
+        // 1. Paid/Sent/Transfer Expense: "Paid Rs.450 to Starbucks" / "Sent $350 from A/c to rahul@upi"
+        val paidRegex = Pattern.compile("(?i)(?:paid|sent|transfer(?:red)?)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:to|towards)\\s+([^.,\n]+))?")
         val paidMatcher = paidRegex.matcher(trimmed)
         if (paidMatcher.find()) {
             val amountStr = paidMatcher.group(1) ?: "0"
@@ -66,8 +69,8 @@ object BankMessageParser {
             }
         }
 
-        // 2. Debited with verb BEFORE amount: "debited by 500.00" / "debited for INR 1,250" / "debited with Rs 899" / "spent INR 1,500"
-        val verbBeforeDebitRegex = Pattern.compile("(?i)(?:debited\\s*(?:by|for|with|towards)?|deducted\\s*(?:by|for)?|spent\\s*(?:an amount of)?|withdrawn\\s*(?:by|of)?)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)(?:.*?(?:to|at|towards|info:?|transfer to|vpa)\\s+([^.,\n]+))?")
+        // 2. Debited with verb BEFORE amount: "debited by 500.00" / "debited for USD 1,250" / "debited with Rs 899" / "spent EUR 1,500"
+        val verbBeforeDebitRegex = Pattern.compile("(?i)(?:debited\\s*(?:by|for|with|towards)?|deducted\\s*(?:by|for)?|spent\\s*(?:an amount of)?|withdrawn\\s*(?:by|of)?)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:to|at|towards|info:?|transfer to|vpa)\\s+([^.,\n]+))?")
         val verbBeforeMatcher = verbBeforeDebitRegex.matcher(trimmed)
         if (verbBeforeMatcher.find()) {
             val amountStr = verbBeforeMatcher.group(1) ?: "0"
@@ -89,8 +92,8 @@ object BankMessageParser {
             }
         }
 
-        // 3. Debited with verb AFTER amount: "Rs.1,500.00 debited from HDFC A/c to Swiggy" / "INR 500 spent at Starbucks"
-        val verbAfterDebitRegex = Pattern.compile("(?i)(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:debited|spent|withdrawn|deducted)(?:.*?(?:to|at|towards|info:?|transfer to|vpa)\\s+([^.,\n]+))?")
+        // 3. Debited with verb AFTER amount: "Rs.1,500.00 debited from HDFC A/c to Swiggy" / "$500 spent at Starbucks"
+        val verbAfterDebitRegex = Pattern.compile("(?i)$CURRENCY_PREFIX\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:debited|spent|withdrawn|deducted)(?:.*?(?:to|at|towards|info:?|transfer to|vpa)\\s+([^.,\n]+))?")
         val verbAfterMatcher = verbAfterDebitRegex.matcher(trimmed)
         if (verbAfterMatcher.find()) {
             val amountStr = verbAfterMatcher.group(1) ?: "0"
@@ -112,8 +115,8 @@ object BankMessageParser {
             }
         }
 
-        // 4. Credited with verb BEFORE amount: "credited with Rs 2,000" / "received INR 5,000"
-        val verbBeforeCreditRegex = Pattern.compile("(?i)(?:credited\\s*(?:with|by|for|to)?|received)\\s*(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)(?:.*?(?:by|from|info:?)\\s+([^.,\n]+))?")
+        // 4. Credited with verb BEFORE amount: "credited with Rs 2,000" / "received $5,000"
+        val verbBeforeCreditRegex = Pattern.compile("(?i)(?:credited\\s*(?:with|by|for|to)?|received)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:by|from|info:?)\\s+([^.,\n]+))?")
         val verbBeforeCreditMatcher = verbBeforeCreditRegex.matcher(trimmed)
         if (verbBeforeCreditMatcher.find()) {
             val amountStr = verbBeforeCreditMatcher.group(1) ?: "0"
@@ -135,8 +138,8 @@ object BankMessageParser {
             }
         }
 
-        // 5. Credited with verb AFTER amount: "Rs 50,000 credited to account XX1234 by Salary"
-        val verbAfterCreditRegex = Pattern.compile("(?i)(?:rs\\.?|inr|₹)?\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:credited|received)(?:.*?(?:by|from|info:?)\\s+([^.,\n]+))?")
+        // 5. Credited with verb AFTER amount: "Rs 50,000 credited to account XX1234 by Salary" / "€200 received from Alice"
+        val verbAfterCreditRegex = Pattern.compile("(?i)$CURRENCY_PREFIX\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:credited|received)(?:.*?(?:by|from|info:?)\\s+([^.,\n]+))?")
         val verbAfterCreditMatcher = verbAfterCreditRegex.matcher(trimmed)
         if (verbAfterCreditMatcher.find()) {
             val amountStr = verbAfterCreditMatcher.group(1) ?: "0"
