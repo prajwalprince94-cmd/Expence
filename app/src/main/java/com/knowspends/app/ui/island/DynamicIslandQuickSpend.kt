@@ -71,6 +71,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.knowspends.app.ui.components.CategoryBadge
@@ -125,13 +126,19 @@ fun DynamicIslandQuickSpend(
     val isExpanded = uiState.isExpanded
 
     // Exact spring physics from islandcn (response 0.387, dampingFraction 0.792)
-    val expandSpring = if (motionIntensity > 0f) {
+    val expandSpringFloat = if (motionIntensity > 0f) {
         spring<Float>(dampingRatio = 0.79f, stiffness = 280f)
     } else {
         spring(dampingRatio = 1.0f, stiffness = 1000f)
     }
+    val expandSpringOffset = if (motionIntensity > 0f) {
+        spring<IntOffset>(dampingRatio = 0.79f, stiffness = 280f)
+    } else {
+        spring(dampingRatio = 1.0f, stiffness = 1000f)
+    }
 
-    val collapseSpring = spring<Float>(dampingRatio = 0.88f, stiffness = 320f)
+    val collapseSpringFloat = spring<Float>(dampingRatio = 0.88f, stiffness = 320f)
+    val collapseSpringOffset = spring<IntOffset>(dampingRatio = 0.88f, stiffness = 320f)
 
     // Interactive tactile compression swell when touched
     val islandSwellScale = remember { Animatable(1f) }
@@ -272,21 +279,21 @@ fun DynamicIslandQuickSpend(
                             scaleIn(
                                 initialScale = 0.42f,
                                 transformOrigin = TransformOrigin(0.5f, 0f),
-                                animationSpec = expandSpring
+                                animationSpec = expandSpringFloat
                             ) +
                             slideInVertically(
                                 initialOffsetY = { -it / 2 },
-                                animationSpec = expandSpring
+                                animationSpec = expandSpringOffset
                             ),
                     exit = fadeOut(animationSpec = tween(120)) +
                             scaleOut(
                                 targetScale = 0.42f,
                                 transformOrigin = TransformOrigin(0.5f, 0f),
-                                animationSpec = collapseSpring
+                                animationSpec = collapseSpringFloat
                             ) +
                             slideOutVertically(
                                 targetOffsetY = { -it / 2 },
-                                animationSpec = collapseSpring
+                                animationSpec = collapseSpringOffset
                             )
                 ) {
                     Surface(
