@@ -131,6 +131,7 @@ class DynamicIslandViewModel @Inject constructor(
             val next = when {
                 char == '.' && curr.contains('.') -> curr
                 char == '.' && curr == "0" -> "0."
+                char != '.' && curr.contains('.') && curr.substringAfter('.').length >= 2 -> curr
                 curr == "0" && char != '.' -> char.toString()
                 curr.length >= 8 -> curr
                 else -> curr + char
@@ -193,15 +194,7 @@ class DynamicIslandViewModel @Inject constructor(
                 )
                 transactionRepository.saveTransaction(tx)
 
-                // 2. Deduct from selected account balance
-                val acc = state.selectedAccount
-                if (acc != null) {
-                    accountRepository.saveAccount(
-                        acc.copy(currentBalanceMinor = acc.currentBalanceMinor - amountPaise)
-                    )
-                }
-
-                // 3. Celebratory checkmark animation
+                // 2. Celebratory checkmark animation
                 _internal.update { it.copy(isSaving = false, isSuccess = true) }
 
                 // 4. Spring collapse back to notch

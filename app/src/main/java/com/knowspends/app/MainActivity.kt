@@ -121,10 +121,7 @@ class MainActivity : FragmentActivity() {
                                 triggerDynamicIsland = triggerDynamicIsland,
                                 onDynamicIslandDismissed = { triggerDynamicIsland = false },
                                 onIslandCollapsed = {
-                                    if (isExternalTrigger) {
-                                        isExternalTrigger = false
-                                        moveTaskToBack(true)
-                                    }
+                                    isExternalTrigger = false
                                 }
                             )
                         }

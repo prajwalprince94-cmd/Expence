@@ -1,5 +1,6 @@
 package com.knowspends.app.ui.island
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -139,6 +140,11 @@ fun DynamicIslandQuickSpend(
 
     val collapseSpringFloat = spring<Float>(dampingRatio = 0.88f, stiffness = 320f)
     val collapseSpringOffset = spring<IntOffset>(dampingRatio = 0.88f, stiffness = 320f)
+
+    // Hardware and gesture Back button handling to smoothly collapse island instead of exiting app
+    BackHandler(enabled = isExpanded) {
+        onCollapse()
+    }
 
     // Interactive tactile compression swell when touched
     val islandSwellScale = remember { Animatable(1f) }
@@ -443,15 +449,15 @@ fun DynamicIslandQuickSpend(
                                             onCollapse()
                                         },
                                         shape = CircleShape,
-                                        color = Color.White.copy(alpha = 0.12f),
-                                        modifier = Modifier.size(30.dp)
+                                        color = Color.White.copy(alpha = 0.15f),
+                                        modifier = Modifier.size(34.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
                                                 contentDescription = "Close Dynamic Island",
                                                 tint = Color.White,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
