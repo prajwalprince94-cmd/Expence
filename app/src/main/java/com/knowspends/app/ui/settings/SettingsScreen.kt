@@ -290,7 +290,8 @@ fun SettingsScreen(
                             userPreferences = uiState.userPreferences,
                             onSetThemeMode = { viewModel.setThemeMode(it) },
                             onSetDynamicColor = { viewModel.setDynamicColor(it) },
-                            onSetHaptics = { viewModel.setHapticsEnabled(it) }
+                            onSetHaptics = { viewModel.setHapticsEnabled(it) },
+                            onSetFontId = { viewModel.setFontId(it) }
                         )
                     }
 

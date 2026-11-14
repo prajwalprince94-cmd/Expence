@@ -82,11 +82,15 @@ private val LightColorScheme = lightColorScheme(
 private val AmoledColorScheme = DarkColorScheme.copy(
     background = Color(0xFF000000),
     surface = Color(0xFF000000),
+    surfaceVariant = Color(0xFF121216),
+    onSurfaceVariant = Color(0xFFA1A1AA),
     surfaceContainerLowest = Color(0xFF000000),
-    surfaceContainerLow = Color(0xFF060912),
-    surfaceContainer = Color(0xFF0A0F1E),
-    surfaceContainerHigh = Color(0xFF10172C),
-    surfaceContainerHighest = Color(0xFF18223E)
+    surfaceContainerLow = Color(0xFF070709),
+    surfaceContainer = Color(0xFF0E0E12),
+    surfaceContainerHigh = Color(0xFF15151B),
+    surfaceContainerHighest = Color(0xFF1E1E26),
+    outline = Color(0xFF282834),
+    outlineVariant = Color(0xFF16161E)
 )
 
 @Composable
