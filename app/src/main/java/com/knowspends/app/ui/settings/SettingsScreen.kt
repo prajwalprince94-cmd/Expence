@@ -82,6 +82,10 @@ import com.knowspends.app.ui.settings.sections.NotificationsSection
 import com.knowspends.app.ui.settings.sections.RecurringAutomationSection
 import com.knowspends.app.ui.settings.sections.SecurityPrivacySection
 import com.knowspends.app.ui.settings.sections.SyncCloudSection
+import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
+import com.knowspends.app.ui.components.expressive.ExpressiveSearchPill
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
+import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.pressScale
@@ -348,18 +352,18 @@ private fun SettingsHubView(
                 .clickable { onSelectSection(SettingsSection.ACCOUNT_PROFILE) },
             shape = VyxelShapeTokens.CardSmall,
             colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
+            border = BorderStroke(0.8.dp, scheme.outlineVariant.copy(alpha = 0.35f))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(scheme.primaryContainer),
                     contentAlignment = Alignment.Center
@@ -376,7 +380,7 @@ private fun SettingsHubView(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             tint = scheme.onPrimaryContainer,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -384,7 +388,7 @@ private fun SettingsHubView(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (userPreferences.profileName.isNotBlank()) userPreferences.profileName else "Personal Vault",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface
                     )
@@ -401,80 +405,41 @@ private fun SettingsHubView(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
                     tint = scheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
 
-        // ── 2. Settings Search Field ──────────────────────────────────────────
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            placeholder = { Text("Search settings, currency, backup...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = scheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotBlank()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(16.dp))
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = VyxelShapeTokens.Pill
+        // ── 2. Settings Search Field (Compact Pill) ───────────────────────────
+        ExpressiveSearchPill(
+            query = searchQuery,
+            onQueryChange = onSearchQueryChange
         )
 
         // ── 3. Search Results or Grouped Categories ───────────────────────────
         if (searchQuery.isNotBlank()) {
-            Text(
-                text = "SEARCH RESULTS (${filteredSections.size})",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                color = scheme.primary,
-                modifier = Modifier.padding(start = 6.dp)
-            )
-
-            if (filteredSections.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(28.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No settings found for \"$searchQuery\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = VyxelShapeTokens.CardSmall,
-                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                    border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        filteredSections.forEachIndexed { index, section ->
-                            SettingsSectionRow(
-                                section = section,
-                                onClick = { onSelectSection(section) }
-                            )
-                            if (index < filteredSections.size - 1) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 56.dp, end = 14.dp),
-                                    thickness = 0.5.dp,
-                                    color = scheme.outlineVariant.copy(alpha = 0.25f)
-                                )
-                            }
+            ExpressiveSettingsGroup(title = "SEARCH RESULTS (${filteredSections.size})") {
+                if (filteredSections.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No settings found for \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    filteredSections.forEachIndexed { index, section ->
+                        SettingsSectionRow(
+                            section = section,
+                            onClick = { onSelectSection(section) }
+                        )
+                        if (index < filteredSections.size - 1) {
+                            ExpressiveItemDivider()
                         }
                     }
                 }
@@ -484,36 +449,14 @@ private fun SettingsHubView(
             SettingsGroup.entries.forEach { group ->
                 val groupSections = SettingsSection.entries.filter { it.group == group }
                 if (groupSections.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = group.title.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            color = scheme.primary,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = VyxelShapeTokens.CardSmall,
-                            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
-                        ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                groupSections.forEachIndexed { index, section ->
-                                    SettingsSectionRow(
-                                        section = section,
-                                        onClick = { onSelectSection(section) }
-                                    )
-                                    if (index < groupSections.size - 1) {
-                                        HorizontalDivider(
-                                            modifier = Modifier.padding(start = 56.dp, end = 14.dp),
-                                            thickness = 0.5.dp,
-                                            color = scheme.outlineVariant.copy(alpha = 0.25f)
-                                        )
-                                    }
-                                }
+                    ExpressiveSettingsGroup(title = group.title) {
+                        groupSections.forEachIndexed { index, section ->
+                            SettingsSectionRow(
+                                section = section,
+                                onClick = { onSelectSection(section) }
+                            )
+                            if (index < groupSections.size - 1) {
+                                ExpressiveItemDivider()
                             }
                         }
                     }
@@ -525,7 +468,7 @@ private fun SettingsHubView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 40.dp),
+                .padding(top = 6.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -554,53 +497,11 @@ private fun SettingsSectionRow(
     section: SettingsSection,
     onClick: () -> Unit
 ) {
-    val scheme = MaterialTheme.colorScheme
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pressScale(0.98f)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(34.dp)
-                .clip(VyxelShapeTokens.IconSmall)
-                .background(scheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = section.icon,
-                contentDescription = null,
-                tint = scheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = section.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = scheme.onSurface
-            )
-            Text(
-                text = section.subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = scheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(18.dp)
-        )
-    }
+    ExpressiveSettingsItem(
+        title = section.title,
+        subtitle = section.subtitle,
+        icon = section.icon,
+        showChevron = true,
+        onClick = onClick
+    )
 }

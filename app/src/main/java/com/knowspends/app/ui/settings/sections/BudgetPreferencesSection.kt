@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.ui.components.expressive.ExpressiveCompactTextField
 import com.knowspends.app.ui.components.expressive.ExpressiveConnectedButtonGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
@@ -164,14 +165,14 @@ fun BudgetPreferencesSection(
                     color = scheme.onSurfaceVariant
                 )
 
-                OutlinedTextField(
+                ExpressiveCompactTextField(
                     value = savingsGoalDraft,
                     onValueChange = {
                         val filtered = it.filter { c -> c.isDigit() || c == '.' }
                         savingsGoalDraft = filtered
                         commit(goal = filtered)
                     },
-                    placeholder = { Text("e.g. 25000") },
+                    placeholder = "e.g. 25000",
                     prefix = {
                         Text(
                             text = "${userPreferences.currencySymbol} ",
@@ -180,9 +181,6 @@ fun BudgetPreferencesSection(
                             color = scheme.primary
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = VyxelShapeTokens.CardSmall,
-                    singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                 )

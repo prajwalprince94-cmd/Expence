@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.ui.components.expressive.ExpressiveCompactTextField
 import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
@@ -108,11 +109,11 @@ fun AccountProfileSection(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(58.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(scheme.surfaceContainerHigh)
                             .clickable {
@@ -133,14 +134,14 @@ fun AccountProfileSection(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
                                 tint = scheme.primary,
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .size(20.dp)
+                                .size(18.dp)
                                 .clip(CircleShape)
                                 .background(scheme.primary),
                             contentAlignment = Alignment.Center
@@ -149,7 +150,7 @@ fun AccountProfileSection(
                                 imageVector = Icons.Default.CameraAlt,
                                 contentDescription = "Update photo",
                                 tint = scheme.onPrimary,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(10.dp)
                             )
                         }
                     }
@@ -157,7 +158,7 @@ fun AccountProfileSection(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (nameDraft.isNotBlank()) nameDraft else "Personal Vault",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = scheme.onSurface
                         )
@@ -169,31 +170,39 @@ fun AccountProfileSection(
                     }
                 }
 
-                OutlinedTextField(
-                    value = nameDraft,
-                    onValueChange = {
-                        nameDraft = it
-                        onSaveProfile(it.trim(), taglineDraft.trim(), avatarUriDraft)
-                    },
-                    label = { Text("Vault / Account Name") },
-                    placeholder = { Text("e.g. Prajwal's Vault") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = VyxelShapeTokens.CardSmall,
-                    singleLine = true
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Vault / Account Name",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                    ExpressiveCompactTextField(
+                        value = nameDraft,
+                        onValueChange = {
+                            nameDraft = it
+                            onSaveProfile(it.trim(), taglineDraft.trim(), avatarUriDraft)
+                        },
+                        placeholder = "e.g. Prajwal's Vault"
+                    )
+                }
 
-                OutlinedTextField(
-                    value = taglineDraft,
-                    onValueChange = {
-                        taglineDraft = it
-                        onSaveProfile(nameDraft.trim(), it.trim(), avatarUriDraft)
-                    },
-                    label = { Text("Tagline / Subtitle") },
-                    placeholder = { Text("e.g. Personal Expenses & Investments") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = VyxelShapeTokens.CardSmall,
-                    singleLine = true
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Tagline / Subtitle",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                    ExpressiveCompactTextField(
+                        value = taglineDraft,
+                        onValueChange = {
+                            taglineDraft = it
+                            onSaveProfile(nameDraft.trim(), it.trim(), avatarUriDraft)
+                        },
+                        placeholder = "e.g. Personal Expenses & Investments"
+                    )
+                }
             }
         }
 

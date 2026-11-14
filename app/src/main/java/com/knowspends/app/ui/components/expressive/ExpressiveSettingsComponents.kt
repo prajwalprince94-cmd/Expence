@@ -1,10 +1,13 @@
 package com.knowspends.app.ui.components.expressive
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,11 +21,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -34,15 +41,20 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,7 +65,7 @@ import com.knowspends.app.util.VyxelHaptics
 
 /**
  * Material 3 Expressive Grouped Settings Container.
- * Encapsulates multiple settings rows into a single cohesive card surface with subtle borders,
+ * Groups related settings items into a single unified card surface with subtle keylines,
  * eliminating the visual bloat of individual heavy cards.
  */
 @Composable
@@ -85,7 +97,7 @@ fun ExpressiveSettingsGroup(
             modifier = Modifier.fillMaxWidth(),
             shape = VyxelShapeTokens.CardSmall,
             colors = CardDefaults.cardColors(containerColor = containerColor),
-            border = BorderStroke(1.dp, borderColor)
+            border = BorderStroke(0.8.dp, borderColor)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -96,8 +108,9 @@ fun ExpressiveSettingsGroup(
 }
 
 /**
- * Standardized Material 3 Expressive Settings Row.
- * Height is compact (~52dp), typography follows 14sp SemiBold / 12sp Normal hierarchy.
+ * Material 3 Expressive Settings Row with dynamic corner-morphing and scale animation on press,
+ * inspired by Material 3 Expressive List design patterns.
+ * Compact height (~50dp), strict typography hierarchy (14sp SemiBold title / 12sp subtitle).
  */
 @Composable
 fun ExpressiveSettingsItem(
@@ -113,21 +126,40 @@ fun ExpressiveSettingsItem(
 ) {
     val scheme = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.98f else 1f,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "itemScale"
+    )
+
+    val cornerRadius by animateDpAsState(
+        targetValue = if (isPressed && onClick != null) 20.dp else 12.dp,
+        animationSpec = KnowSpendsMotion.expressive(),
+        label = "itemCorner"
+    )
 
     val clickableModifier = if (onClick != null) {
-        Modifier
-            .pressScale(0.98f)
-            .clickable {
-                VyxelHaptics.tick(context)
-                onClick()
-            }
+        Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null
+        ) {
+            VyxelHaptics.tick(context)
+            onClick()
+        }
     } else Modifier
 
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .then(clickableModifier)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -135,7 +167,7 @@ fun ExpressiveSettingsItem(
             Box(
                 modifier = Modifier
                     .size(34.dp)
-                    .clip(VyxelShapeTokens.IconSmall)
+                    .clip(RoundedCornerShape(cornerRadius * 0.7f))
                     .background(iconBackground),
                 contentAlignment = Alignment.Center
             ) {
@@ -156,12 +188,14 @@ fun ExpressiveSettingsItem(
                 color = scheme.onSurface
             )
             if (!subtitle.isNullOrBlank()) {
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(1.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
-                    lineHeight = 15.sp
+                    lineHeight = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -173,15 +207,14 @@ fun ExpressiveSettingsItem(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = scheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }
 }
 
 /**
- * Standardized Material 3 Expressive Switch Row.
- * Clicking anywhere toggles state with instant haptic feedback.
+ * Material 3 Expressive Switch Row with synchronized haptic toggle.
  */
 @Composable
 fun ExpressiveSettingsSwitch(
@@ -220,6 +253,7 @@ fun ExpressiveSettingsSwitch(
 /**
  * Material 3 Expressive Connected Segmented Button Group.
  * Replaces disconnected chunky block buttons with cohesive connected buttons with morphed shapes.
+ * Compact height (34dp) and tight typography.
  */
 @Composable
 fun <T> ExpressiveConnectedButtonGroup(
@@ -236,7 +270,7 @@ fun <T> ExpressiveConnectedButtonGroup(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(38.dp),
+            .height(34.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         options.forEachIndexed { index, option ->
@@ -246,8 +280,8 @@ fun <T> ExpressiveConnectedButtonGroup(
 
             val shape: Shape = when {
                 isFirst && isLast -> VyxelShapeTokens.Pill
-                isFirst -> RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp, topEnd = 4.dp, bottomEnd = 4.dp)
-                isLast -> RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp)
+                isFirst -> RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp, topEnd = 4.dp, bottomEnd = 4.dp)
+                isLast -> RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 14.dp, bottomEnd = 14.dp)
                 else -> RoundedCornerShape(4.dp)
             }
 
@@ -276,13 +310,13 @@ fun <T> ExpressiveConnectedButtonGroup(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .pressScale(0.96f),
+                    .pressScale(0.97f),
                 shape = shape,
                 color = bgAnim,
                 border = border
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -292,7 +326,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                             imageVector = icon,
                             contentDescription = null,
                             tint = textAnim,
-                            modifier = Modifier.size(15.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(Modifier.width(4.dp))
                     }
@@ -329,12 +363,12 @@ fun ExpressiveInlineStepper(
         modifier = modifier,
         shape = VyxelShapeTokens.Pill,
         color = scheme.surfaceContainerHigh.copy(alpha = 0.6f),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
+        border = BorderStroke(0.8.dp, scheme.outlineVariant.copy(alpha = 0.35f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             IconButton(
                 onClick = {
@@ -344,19 +378,19 @@ fun ExpressiveInlineStepper(
                     }
                 },
                 enabled = value > range.start,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(26.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Remove,
                     contentDescription = "Decrease",
                     tint = if (value > range.start) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
             }
 
             Text(
                 text = valueFormatter(value),
-                style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                 fontWeight = FontWeight.Bold,
                 color = scheme.primary,
                 modifier = Modifier.padding(horizontal = 4.dp)
@@ -370,13 +404,13 @@ fun ExpressiveInlineStepper(
                     }
                 },
                 enabled = value < range.endInclusive,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(26.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Increase",
                     tint = if (value < range.endInclusive) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
             }
         }
@@ -400,4 +434,141 @@ fun ExpressiveItemDivider(
         thickness = 0.5.dp,
         color = scheme.outlineVariant.copy(alpha = 0.25f)
     )
+}
+
+/**
+ * Compact Expressive Search Pill.
+ * Height 40dp, clean rounded pill shape, integrated search and clear actions.
+ * Eliminates the vertical screen bloat of standard 56dp OutlinedTextFields.
+ */
+@Composable
+fun ExpressiveSearchPill(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    placeholder: String = "Search settings, currency, backup...",
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(40.dp),
+        shape = CircleShape,
+        color = scheme.surfaceContainerHigh.copy(alpha = 0.65f),
+        border = BorderStroke(0.8.dp, scheme.outlineVariant.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = scheme.onSurfaceVariant,
+                modifier = Modifier.size(17.dp)
+            )
+
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (query.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall.copy(color = scheme.onSurface),
+                    cursorBrush = SolidColor(scheme.primary),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear search",
+                        tint = scheme.onSurfaceVariant,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Compact Expressive Text Field.
+ * Height 40-42dp, integrated inside settings cards, replacing bloated 56dp OutlinedTextFields.
+ */
+@Composable
+fun ExpressiveCompactTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    prefix: (@Composable () -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
+    singleLine: Boolean = true
+) {
+    val scheme = MaterialTheme.colorScheme
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(42.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = scheme.surfaceContainerHigh.copy(alpha = 0.45f),
+        border = BorderStroke(0.8.dp, scheme.outlineVariant.copy(alpha = 0.35f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (prefix != null) {
+                prefix()
+            }
+
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (value.isEmpty() && placeholder.isNotEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = singleLine,
+                    keyboardOptions = keyboardOptions,
+                    keyboardActions = keyboardActions,
+                    textStyle = textStyle.copy(color = scheme.onSurface),
+                    cursorBrush = SolidColor(scheme.primary),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
 }
