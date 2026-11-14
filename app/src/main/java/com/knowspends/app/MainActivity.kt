@@ -44,6 +44,7 @@ class MainActivity : FragmentActivity() {
     private var backgroundTimestamp: Long = 0L
 
     private var triggerDynamicIsland by mutableStateOf(false)
+    private var isExternalTrigger by mutableStateOf(false)
     private var backTapDetector: BackTapDetector? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,8 +90,12 @@ class MainActivity : FragmentActivity() {
             }
         }
 
+        val isTriggeredOnLaunch = intent?.getBooleanExtra("TRIGGER_DYNAMIC_ISLAND", false) == true ||
+            intent?.getStringExtra("TRIGGER_DYNAMIC_ISLAND") == "true" ||
+            intent?.data?.host == "dynamic-island"
+
         setContent {
-            var showSplash by remember { mutableStateOf(true) }
+            var showSplash by remember { mutableStateOf(!isTriggeredOnLaunch) }
 
             KnowSpendsTheme(
                 themeMode = userPreferences.themeMode,
@@ -114,7 +119,13 @@ class MainActivity : FragmentActivity() {
                             KnowSpendsAppRoot(
                                 initialRoute = intent?.getStringExtra("ROUTE") ?: intent?.getStringExtra("initial_route"),
                                 triggerDynamicIsland = triggerDynamicIsland,
-                                onDynamicIslandDismissed = { triggerDynamicIsland = false }
+                                onDynamicIslandDismissed = { triggerDynamicIsland = false },
+                                onIslandCollapsed = {
+                                    if (isExternalTrigger) {
+                                        isExternalTrigger = false
+                                        moveTaskToBack(true)
+                                    }
+                                }
                             )
                         }
                     }
@@ -151,6 +162,7 @@ class MainActivity : FragmentActivity() {
 
         if (isIslandTrigger) {
             triggerDynamicIsland = true
+            isExternalTrigger = intent?.getBooleanExtra("IS_EXTERNAL_TRIGGER", false) == true
         }
     }
 

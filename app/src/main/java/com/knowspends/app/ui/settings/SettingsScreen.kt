@@ -71,6 +71,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.ui.components.VyxelNavBarBottomClearance
 import com.knowspends.app.ui.settings.sections.AboutSupportSection
 import com.knowspends.app.ui.settings.sections.AccountProfileSection
 import com.knowspends.app.ui.settings.sections.AppearanceSection
@@ -494,6 +495,8 @@ private fun SettingsHubView(
                 color = scheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
+
+        Spacer(modifier = Modifier.height(VyxelNavBarBottomClearance).navigationBarsPadding())
     }
 }
 

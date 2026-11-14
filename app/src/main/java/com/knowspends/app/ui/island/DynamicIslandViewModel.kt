@@ -25,7 +25,7 @@ import javax.inject.Inject
 
 private data class IslandInternalState(
     val isExpanded: Boolean = false,
-    val isPillVisible: Boolean = true,
+    val isPillVisible: Boolean = false,
     val amountInput: String = "0",
     val selectedAccountId: Long? = null,
     val selectedCategoryId: Long? = null,
@@ -94,6 +94,7 @@ class DynamicIslandViewModel @Inject constructor(
         _internal.update {
             it.copy(
                 isExpanded = true,
+                isPillVisible = true,
                 amountInput = "0",
                 isSuccess = false,
                 errorMessage = null
@@ -105,6 +106,7 @@ class DynamicIslandViewModel @Inject constructor(
         _internal.update {
             it.copy(
                 isExpanded = false,
+                isPillVisible = false,
                 isSuccess = false,
                 errorMessage = null
             )

@@ -1,30 +1,44 @@
 package com.knowspends.app.ui.settings.sections
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,11 +51,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.knowspends.app.domain.model.UserPreferences
+import com.knowspends.app.ui.components.VyxelNavBarBottomClearance
 import com.knowspends.app.ui.components.expressive.ExpressiveConnectedButtonGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsSwitch
+import com.knowspends.app.ui.theme.IncomeColor
+import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.util.VyxelHaptics
 
 @Composable
@@ -61,6 +78,7 @@ fun RecurringAutomationSection(
     var directAutoAdd by remember(userPreferences.smsDirectAutoAdd) { mutableStateOf(userPreferences.smsDirectAutoAdd) }
     var backTapEnabled by remember(userPreferences.backTapEnabled) { mutableStateOf(userPreferences.backTapEnabled) }
     var backTapSensitivity by remember(userPreferences.backTapSensitivity) { mutableStateOf(userPreferences.backTapSensitivity) }
+    var showOverlayPermissionDialog by remember { mutableStateOf(false) }
 
     val smsPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -154,18 +172,75 @@ fun RecurringAutomationSection(
 
         // ── 3. Quick Spend Gesture ────────────────────────────────────────────
         ExpressiveSettingsGroup(title = "Quick Logging Gestures") {
+            val canOverlay = Settings.canDrawOverlays(context)
+
             ExpressiveSettingsSwitch(
                 title = "Back-Tap Quick Logger",
                 subtitle = "Double-tap device back to summon floating logger over any app",
                 icon = Icons.Default.TouchApp,
                 checked = backTapEnabled,
-                onCheckedChange = {
-                    backTapEnabled = it
-                    onSaveBackTapSettings(it, backTapSensitivity)
+                onCheckedChange = { isChecked ->
+                    if (isChecked && !canOverlay) {
+                        showOverlayPermissionDialog = true
+                    }
+                    backTapEnabled = isChecked
+                    onSaveBackTapSettings(isChecked, backTapSensitivity)
                 }
             )
 
             if (backTapEnabled) {
+                ExpressiveItemDivider()
+
+                // Overlay Permission Banner / Status
+                Surface(
+                    shape = VyxelShapeTokens.CardSmall,
+                    color = if (canOverlay) IncomeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, if (canOverlay) IncomeColor.copy(alpha = 0.35f) else MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .then(
+                            if (!canOverlay) {
+                                Modifier.clickable {
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                }
+                            } else Modifier
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (canOverlay) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = if (canOverlay) IncomeColor else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (canOverlay) "System-Wide Ready" else "Permission Required for System-Wide",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (canOverlay)
+                                    "Physical double back-tap triggers Quick Spend over all apps and home screen."
+                                else
+                                    "Tap here to grant 'Display over other apps' so back-tap can appear over any app or home screen.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
                 ExpressiveItemDivider()
 
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -198,5 +273,39 @@ fun RecurringAutomationSection(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(VyxelNavBarBottomClearance).navigationBarsPadding())
+    }
+
+    if (showOverlayPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showOverlayPermissionDialog = false },
+            icon = { Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = scheme.primary) },
+            title = { Text("Display Over Other Apps Permission", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("To detect physical back-taps and show the Quick Spend Island when using other apps or from the home screen, Android requires the 'Display over other apps' permission.\n\nPlease enable it in the next screen.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showOverlayPermissionDialog = false
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${context.packageName}")
+                        )
+                        context.startActivity(intent)
+                    },
+                    shape = VyxelShapeTokens.Pill
+                ) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOverlayPermissionDialog = false }) {
+                    Text("Later")
+                }
+            },
+            shape = VyxelShapeTokens.Card
+        )
     }
 }

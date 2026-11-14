@@ -1,5 +1,6 @@
 package com.knowspends.app.sensor
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -146,18 +147,48 @@ class BackTapService : Service() {
             action = Intent.ACTION_VIEW
             data = Uri.parse("knowspends://dynamic-island")
             putExtra("TRIGGER_DYNAMIC_ISLAND", true)
+            putExtra("IS_EXTERNAL_TRIGGER", true)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
 
-        // 1. Attempt to launch MainActivity directly (permitted when SYSTEM_ALERT_WINDOW is granted)
+        val canOverlay = Settings.canDrawOverlays(this)
+        Log.d(TAG, "canDrawOverlays status: $canOverlay")
+
+        // 1. Attempt to launch via PendingIntent with BACKGROUND_ACTIVITY_START_ALLOWED (Android 14+ / API 34+)
+        var launchSucceeded = false
         try {
-            startActivity(openIslandIntent)
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                HEADS_UP_NOTIFICATION_ID,
+                openIslandIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ActivityOptions.makeBasic().apply {
+                    setPendingIntentBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                    )
+                }.toBundle()
+            } else {
+                null
+            }
+            pendingIntent.send(this, 0, null, null, null, null, options)
+            launchSucceeded = true
+            Log.d(TAG, "Quick Spend Island launched via PendingIntent")
         } catch (e: Exception) {
-            Log.w(TAG, "Direct activity launch from background restricted: ${e.message}")
+            Log.w(TAG, "PendingIntent launch failed: ${e.message}, falling back to startActivity")
+            try {
+                startActivity(openIslandIntent)
+                launchSucceeded = true
+            } catch (e2: Exception) {
+                Log.w(TAG, "Direct activity launch from background restricted: ${e2.message}")
+            }
         }
 
-        // 2. Post high-priority Heads-up notification to guarantee popup access even if OS blocks background start
-        showHeadsUpPopupNotification(openIslandIntent)
+        // 2. High-priority Heads-up banner fallback if overlay is not granted or launch wasn't confirmed
+        if (!canOverlay || !launchSucceeded) {
+            showHeadsUpPopupNotification(openIslandIntent)
+        }
     }
 
     private fun showHeadsUpPopupNotification(targetIntent: Intent) {
@@ -174,10 +205,11 @@ class BackTapService : Service() {
             .setContentText("Tap to open Dynamic Island and log your spending")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(pendingIntent, true)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setTimeoutAfter(8000L) // Auto dismiss after 8s if ignored
+            .setTimeoutAfter(10000L) // Auto dismiss after 10s if ignored
             .build()
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager

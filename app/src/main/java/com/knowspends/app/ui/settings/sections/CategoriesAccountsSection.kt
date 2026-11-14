@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import com.knowspends.app.ui.components.VyxelNavBarBottomClearance
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -189,6 +190,8 @@ fun CategoriesAccountsSection(
                 onClick = onNavigateToMerchantRules
             )
         }
+
+        Spacer(modifier = Modifier.height(VyxelNavBarBottomClearance).navigationBarsPadding())
     }
 
     // ── Categories Management Modal Bottom Sheet ─────────────────────────────

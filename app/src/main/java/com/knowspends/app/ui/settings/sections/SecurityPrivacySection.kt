@@ -1,8 +1,12 @@
 package com.knowspends.app.ui.settings.sections
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,10 +14,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.knowspends.app.ui.components.VyxelNavBarBottomClearance
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Fingerprint
@@ -149,6 +155,7 @@ fun SecurityPrivacySection(
             val hasNotif = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
             } else true
+            val hasOverlay = Settings.canDrawOverlays(context)
 
             PermissionItem(
                 name = "SMS Parsing (READ_SMS)",
@@ -167,11 +174,30 @@ fun SecurityPrivacySection(
             ExpressiveItemDivider()
 
             PermissionItem(
+                name = "Display Over Other Apps (SYSTEM_ALERT_WINDOW)",
+                reason = "Required to summon Quick Spend Island over any app on back-tap",
+                isGranted = hasOverlay,
+                onClick = if (!hasOverlay) {
+                    {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${context.packageName}")
+                        )
+                        context.startActivity(intent)
+                    }
+                } else null
+            )
+
+            ExpressiveItemDivider()
+
+            PermissionItem(
                 name = "Vibration Engine (VIBRATE)",
                 reason = "Provides sensory micro-clicks on keypad and interactions",
                 isGranted = true
             )
         }
+
+        Spacer(modifier = Modifier.height(VyxelNavBarBottomClearance).navigationBarsPadding())
     }
 }
 
@@ -179,13 +205,15 @@ fun SecurityPrivacySection(
 private fun PermissionItem(
     name: String,
     reason: String,
-    isGranted: Boolean
+    isGranted: Boolean,
+    onClick: (() -> Unit)? = null
 ) {
     val scheme = MaterialTheme.colorScheme
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -213,9 +241,9 @@ private fun PermissionItem(
         }
 
         Text(
-            text = if (isGranted) "Granted" else "Optional",
+            text = if (isGranted) "Granted" else if (onClick != null) "Tap to Grant" else "Optional",
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-            color = if (isGranted) IncomeColor else scheme.onSurfaceVariant,
+            color = if (isGranted) IncomeColor else if (onClick != null) scheme.primary else scheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold
         )
     }

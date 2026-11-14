@@ -72,6 +72,7 @@ fun KnowSpendsAppRoot(
     initialRoute: String? = null,
     triggerDynamicIsland: Boolean = false,
     onDynamicIslandDismissed: () -> Unit = {},
+    onIslandCollapsed: () -> Unit = {},
     dynamicIslandViewModel: DynamicIslandViewModel = hiltViewModel()
 ) {
     val islandUiState by dynamicIslandViewModel.uiState.collectAsStateWithLifecycle()
@@ -296,7 +297,10 @@ fun KnowSpendsAppRoot(
     DynamicIslandQuickSpend(
         uiState = islandUiState,
         onExpand = { dynamicIslandViewModel.expand() },
-        onCollapse = { dynamicIslandViewModel.collapse() },
+        onCollapse = {
+            dynamicIslandViewModel.collapse()
+            onIslandCollapsed()
+        },
         onDigit = { dynamicIslandViewModel.onDigit(it) },
         onBackspace = { dynamicIslandViewModel.onBackspace() },
         onClear = { dynamicIslandViewModel.onClear() },

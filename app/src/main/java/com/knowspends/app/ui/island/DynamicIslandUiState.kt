@@ -6,7 +6,7 @@ import com.knowspends.app.domain.util.MoneyFormatter
 
 data class DynamicIslandUiState(
     val isExpanded: Boolean = false,
-    val isPillVisible: Boolean = true,
+    val isPillVisible: Boolean = false,
     val amountInput: String = "0",
     val selectedAccountId: Long? = null,
     val selectedCategoryId: Long? = null,
