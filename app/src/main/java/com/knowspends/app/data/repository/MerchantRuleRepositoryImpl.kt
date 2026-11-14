@@ -5,6 +5,7 @@ import com.knowspends.app.di.IoDispatcher
 import com.knowspends.app.domain.model.MerchantRule
 import com.knowspends.app.domain.repository.MerchantRuleRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow

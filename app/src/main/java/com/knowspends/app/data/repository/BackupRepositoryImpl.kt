@@ -7,6 +7,7 @@ import com.knowspends.app.data.local.entity.BudgetEntity
 import com.knowspends.app.data.local.entity.CategoryEntity
 import com.knowspends.app.data.local.entity.RecurringRuleEntity
 import com.knowspends.app.data.local.entity.TransactionEntity
+import com.knowspends.app.di.IoDispatcher
 import com.knowspends.app.domain.model.MerchantRule
 import com.knowspends.app.domain.model.MerchantRuleBackupDto
 import com.knowspends.app.domain.repository.MerchantRuleRepository
