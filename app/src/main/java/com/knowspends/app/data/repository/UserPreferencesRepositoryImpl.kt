@@ -84,7 +84,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
         // Data & Sync
         val AUTO_BACKUP_FREQUENCY = stringPreferencesKey("auto_backup_frequency")
-        val SYNC_WIFI_ONLY = booleanPreferencesKey("sync_wifi_only")
 
         // Feedback & Haptics
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
@@ -137,7 +136,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             smsLastScanTimestamp = prefs[Keys.SMS_LAST_SCAN_TIMESTAMP] ?: 0L,
 
             autoBackupFrequency = prefs[Keys.AUTO_BACKUP_FREQUENCY] ?: "weekly",
-            syncWifiOnly = prefs[Keys.SYNC_WIFI_ONLY] ?: true,
 
             hapticsEnabled = prefs[Keys.HAPTICS_ENABLED] ?: true
         )
@@ -224,13 +222,11 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         Unit
     }
 
-    override suspend fun setDataManagementPreferences(
-        autoBackupFrequency: String,
-        syncWifiOnly: Boolean
+    override suspend fun setAutoBackupFrequency(
+        autoBackupFrequency: String
     ) = withContext(ioDispatcher) {
         context.userPreferencesDataStore.edit { prefs ->
             prefs[Keys.AUTO_BACKUP_FREQUENCY] = autoBackupFrequency
-            prefs[Keys.SYNC_WIFI_ONLY] = syncWifiOnly
         }
         Unit
     }

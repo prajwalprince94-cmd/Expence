@@ -555,14 +555,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setDataManagementPreferences(
-        autoBackupFrequency: String,
-        syncWifiOnly: Boolean
-    ) {
+    fun setAutoBackupFrequency(autoBackupFrequency: String) {
         viewModelScope.launch {
-            userPreferencesRepository.setDataManagementPreferences(
-                autoBackupFrequency, syncWifiOnly
-            )
+            userPreferencesRepository.setAutoBackupFrequency(autoBackupFrequency)
         }
     }
 }

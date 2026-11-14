@@ -32,13 +32,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Sms
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -72,71 +69,7 @@ import com.knowspends.app.util.VyxelHaptics
 import kotlin.math.roundToInt
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. NO INTERNET & SLOW NETWORK BANNER
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Animated collapsible banner notifying user of network state.
- * Emphasizes KnowSpends' offline-first resilience.
- */
-@Composable
-fun ExpressiveNetworkBanner(
-    isOffline: Boolean,
-    isSlowNetwork: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    val scheme = MaterialTheme.colorScheme
-
-    AnimatedVisibility(
-        visible = isOffline || isSlowNetwork,
-        enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
-        exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut(),
-        modifier = modifier
-    ) {
-        val bannerBg = if (isOffline) scheme.surfaceContainerHigh else scheme.tertiaryContainer.copy(alpha = 0.4f)
-        val bannerBorder = if (isOffline) scheme.outlineVariant.copy(alpha = 0.5f) else scheme.tertiary.copy(alpha = 0.4f)
-        val iconColor = if (isOffline) scheme.primary else scheme.tertiary
-        val text = if (isOffline) {
-            "Air-Gapped Mode • Local database active (offline)"
-        } else {
-            "Slow Network • Cloud operations may take longer"
-        }
-
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            shape = VyxelShapeTokens.Pill,
-            color = bannerBg,
-            border = BorderStroke(1.dp, bannerBorder)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = if (isOffline) Icons.Default.CloudOff else Icons.Default.NetworkCheck,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = scheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. PERMISSION DENIED CARD & SETTINGS LINK
+// 1. PERMISSION DENIED CARD & SETTINGS LINK
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**

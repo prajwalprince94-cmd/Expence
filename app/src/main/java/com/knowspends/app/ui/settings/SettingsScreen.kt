@@ -293,18 +293,13 @@ fun SettingsScreen(
                             onClearCache = { viewModel.clearAppCache(context) },
                             onResetAllData = { viewModel.resetAllLedgerData() },
                             onSetAutoBackupFrequency = { freq ->
-                                viewModel.setDataManagementPreferences(freq, uiState.userPreferences.syncWifiOnly)
+                                viewModel.setAutoBackupFrequency(freq)
                             }
                         )
                     }
 
                     SettingsSection.SYNC_CLOUD -> {
-                        SyncCloudSection(
-                            userPreferences = uiState.userPreferences,
-                            onSaveSyncPreferences = { wifiOnly ->
-                                viewModel.setDataManagementPreferences(uiState.userPreferences.autoBackupFrequency, wifiOnly)
-                            }
-                        )
+                        SyncCloudSection()
                     }
 
                     SettingsSection.ABOUT_SUPPORT -> {

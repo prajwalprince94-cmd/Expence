@@ -13,33 +13,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.knowspends.app.domain.model.UserPreferences
 import com.knowspends.app.ui.components.expressive.ExpressiveItemDivider
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsGroup
 import com.knowspends.app.ui.components.expressive.ExpressiveSettingsItem
-import com.knowspends.app.ui.components.expressive.ExpressiveSettingsSwitch
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 
 @Composable
 fun SyncCloudSection(
-    userPreferences: UserPreferences,
-    onSaveSyncPreferences: (wifiOnly: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    var wifiOnly by remember(userPreferences.syncWifiOnly) { mutableStateOf(userPreferences.syncWifiOnly) }
 
     Column(
         modifier = modifier

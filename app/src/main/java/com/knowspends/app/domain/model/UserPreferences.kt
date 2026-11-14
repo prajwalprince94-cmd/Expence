@@ -47,7 +47,6 @@ data class UserPreferences(
 
     // 9 & 10. Data & Sync
     val autoBackupFrequency: String = "weekly", // "off", "daily", "weekly"
-    val syncWifiOnly: Boolean = true,
 
     // 11. Updates & Metadata
     val autoCheckUpdates: Boolean = true,

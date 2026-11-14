@@ -38,10 +38,7 @@ interface UserPreferencesRepository {
         hideBalances: Boolean,
         blockScreenshots: Boolean
     )
-    suspend fun setDataManagementPreferences(
-        autoBackupFrequency: String,
-        syncWifiOnly: Boolean
-    )
+    suspend fun setAutoBackupFrequency(autoBackupFrequency: String)
     suspend fun setThemeMode(themeMode: String)
     suspend fun setDynamicColor(enabled: Boolean)
     suspend fun setFontId(fontId: String)
