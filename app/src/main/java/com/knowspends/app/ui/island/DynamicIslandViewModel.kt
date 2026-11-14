@@ -48,10 +48,25 @@ class DynamicIslandViewModel @Inject constructor(
         accountRepository.getActiveAccountsWithBalances(),
         categoryRepository.getActiveCategories(),
         userPreferencesRepository.userPreferencesFlow,
+        transactionRepository.getAllTransactionsWithDetails(),
         _internal
-    ) { accounts: List<Account>, categories: List<Category>, prefs: UserPreferences, state: IslandInternalState ->
+    ) { accounts, categories, prefs, transactions, state ->
         val effectiveAccountId = state.selectedAccountId ?: accounts.firstOrNull()?.id
         val effectiveCategoryId = state.selectedCategoryId ?: categories.firstOrNull()?.id
+
+        val startOfDay = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        val todaySpentMinor = transactions
+            .filter { it.transaction.type == TransactionType.EXPENSE && it.transaction.date >= startOfDay }
+            .sumOf { it.transaction.amountMinor }
+
+        val todaySpentFormatted = MoneyFormatter.formatPaise(todaySpentMinor, includeSymbol = true)
+        val recentPayee = transactions.firstOrNull()?.transaction?.payee
 
         DynamicIslandUiState(
             isExpanded = state.isExpanded,
@@ -62,6 +77,9 @@ class DynamicIslandViewModel @Inject constructor(
             accounts = accounts,
             categories = categories,
             currencySymbol = prefs.currencySymbol,
+            todaySpentMinor = todaySpentMinor,
+            todaySpentFormatted = todaySpentFormatted,
+            recentPayee = recentPayee,
             isSaving = state.isSaving,
             isSuccess = state.isSuccess,
             errorMessage = state.errorMessage
@@ -95,6 +113,14 @@ class DynamicIslandViewModel @Inject constructor(
 
     fun toggle() {
         if (_internal.value.isExpanded) collapse() else expand()
+    }
+
+    fun setPillVisible(visible: Boolean) {
+        _internal.update { it.copy(isPillVisible = visible) }
+    }
+
+    fun togglePillVisibility() {
+        _internal.update { it.copy(isPillVisible = !it.isPillVisible) }
     }
 
     fun onDigit(char: Char) {

@@ -149,7 +149,7 @@ class MainActivity : FragmentActivity() {
             intent?.getStringExtra("TRIGGER_DYNAMIC_ISLAND") == "true" ||
             intent?.data?.host == "dynamic-island"
 
-        if (isIslandTrigger && userPreferences.backTapEnabled) {
+        if (isIslandTrigger) {
             triggerDynamicIsland = true
         }
     }

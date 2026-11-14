@@ -13,6 +13,9 @@ data class DynamicIslandUiState(
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
     val currencySymbol: String = "₹",
+    val todaySpentMinor: Long = 0L,
+    val todaySpentFormatted: String = "₹0",
+    val recentPayee: String? = null,
     val isSaving: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null
