@@ -423,7 +423,7 @@ fun TransactionsScreen(
                     },
                     onActionClick = {
                         when {
-                            isSearching -> viewModel.onSearchQueryChange("")
+                            isSearching -> viewModel.onSearchQueryChanged("")
                             hasFilter -> viewModel.clearAllFilters()
                             else -> onEditTransaction(0L)
                         }

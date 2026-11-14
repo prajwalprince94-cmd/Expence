@@ -860,6 +860,7 @@ fun HomeScreen(
             AccountEditField.BALANCE -> {
                 AccountEditBalanceDialog(
                     account = account,
+                    currencySymbol = uiState.currencySymbol,
                     onSave = { newBalancePaise ->
                         viewModel.updateAccountBalance(account.id, newBalancePaise)
                         viewModel.onDismissAccountAction()
@@ -1177,6 +1178,7 @@ fun AccountActionOptionsDialog(
 @Composable
 fun AccountEditBalanceDialog(
     account: Account,
+    currencySymbol: String = "₹",
     onSave: (Long) -> Unit,
     onBack: () -> Unit,
     onDismiss: () -> Unit
@@ -1211,7 +1213,7 @@ fun AccountEditBalanceDialog(
                 OutlinedTextField(
                     value = balanceText,
                     onValueChange = { balanceText = it },
-                    label = { Text("Balance (${uiState.currencySymbol})") },
+                    label = { Text("Balance ($currencySymbol)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -1222,7 +1224,7 @@ fun AccountEditBalanceDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val balancePaise = ((balanceText.toDoubleOrNull() ?: 0.0) * 100).toLong()
+                    val balancePaise = MoneyFormatter.parseToPaise(balanceText)
                     onSave(balancePaise)
                 },
                 shape = VyxelShapeTokens.Pill

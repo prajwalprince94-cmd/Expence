@@ -97,6 +97,30 @@ class AddTransactionViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
+            // If editing, load existing transaction details first so state reflects correct transaction type
+            if (editTransactionId != null) {
+                val details = transactionRepository.getTransactionWithDetails(editTransactionId).firstOrNull()
+                details?.let { detail ->
+                    val t = detail.transaction
+                    val rupeesPart = t.amountMinor / 100
+                    val paisePart = t.amountMinor % 100
+                    val amountStr = if (paisePart == 0L) rupeesPart.toString() else "$rupeesPart.${paisePart.toString().padStart(2, '0')}"
+
+                    _uiState.update { current ->
+                        current.copy(
+                            amountInput = amountStr,
+                            type = t.type,
+                            selectedAccountId = t.accountId,
+                            selectedTransferAccountId = t.transferAccountId,
+                            selectedCategoryId = t.categoryId,
+                            dateMillis = t.date,
+                            note = t.note,
+                            payee = t.payee
+                        )
+                    }
+                }
+            }
+
             combine(
                 accountRepository.getActiveAccounts(),
                 categoryRepository.getActiveCategories()
@@ -115,34 +139,6 @@ class AddTransactionViewModel @Inject constructor(
                         selectedAccountId = defaultAccount,
                         selectedCategoryId = if (current.type == TransactionType.TRANSFER) null else defaultCategory
                     )
-                }
-            }
-        }
-
-        // Load existing transaction if editing
-        if (editTransactionId != null) {
-            viewModelScope.launch {
-                val details = transactionRepository.getTransactionWithDetails(editTransactionId).firstOrNull()
-                details?.let { detail ->
-                    val t = detail.transaction
-                    val rupeesPart = t.amountMinor / 100
-                    val paisePart = t.amountMinor % 100
-                    val amountStr = if (paisePart == 0L) rupeesPart.toString() else "$rupeesPart.${paisePart.toString().padStart(2, '0')}"
-
-                    _uiState.update { current ->
-                        val filteredCategories = allCategoriesCache.filter { it.kind == t.type }
-                        current.copy(
-                            amountInput = amountStr,
-                            type = t.type,
-                            categories = if (filteredCategories.isNotEmpty()) filteredCategories else current.categories,
-                            selectedAccountId = t.accountId,
-                            selectedTransferAccountId = t.transferAccountId,
-                            selectedCategoryId = t.categoryId,
-                            dateMillis = t.date,
-                            note = t.note,
-                            payee = t.payee
-                        )
-                    }
                 }
             }
         }
