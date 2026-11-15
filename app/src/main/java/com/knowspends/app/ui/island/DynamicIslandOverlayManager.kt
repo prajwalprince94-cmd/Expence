@@ -24,7 +24,10 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
@@ -140,6 +143,7 @@ class DynamicIslandOverlayManager @Inject constructor(
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            setViewTreeViewModelStoreOwner(lifecycleOwner)
             setViewTreeOnBackPressedDispatcherOwner(lifecycleOwner)
 
             setContent {
@@ -178,6 +182,7 @@ class DynamicIslandOverlayManager @Inject constructor(
         }.apply {
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            setViewTreeViewModelStoreOwner(lifecycleOwner)
             setViewTreeOnBackPressedDispatcherOwner(lifecycleOwner)
             addView(
                 composeView,
@@ -286,10 +291,17 @@ class DynamicIslandOverlayManager @Inject constructor(
     }
 }
 
-private class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, OnBackPressedDispatcherOwner {
+private class OverlayLifecycleOwner :
+    LifecycleOwner,
+    SavedStateRegistryOwner,
+    OnBackPressedDispatcherOwner,
+    ViewModelStoreOwner {
+
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val appViewModelStore = ViewModelStore()
     override val onBackPressedDispatcher = OnBackPressedDispatcher()
+    override val viewModelStore: ViewModelStore get() = appViewModelStore
 
     init {
         savedStateRegistryController.performRestore(null)
@@ -305,5 +317,6 @@ private class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, O
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        appViewModelStore.clear()
     }
 }

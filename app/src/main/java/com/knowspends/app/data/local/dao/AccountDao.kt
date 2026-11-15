@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.knowspends.app.data.local.entity.AccountEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -23,10 +24,10 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getAccountByIdOnce(id: Long): AccountEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAccount(account: AccountEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAccounts(accounts: List<AccountEntity>)
 
     @Update

@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.knowspends.app.data.local.entity.RecurringExecutionEntity
 import com.knowspends.app.data.local.entity.RecurringRuleEntity
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +25,7 @@ interface RecurringRuleDao {
     @Query("SELECT * FROM recurring_rules WHERE isActive = 1 AND nextDueDate <= :currentTime")
     suspend fun getDueRules(currentTime: Long): List<RecurringRuleEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertRule(rule: RecurringRuleEntity): Long
 
     @Update
@@ -49,7 +50,7 @@ interface RecurringRuleDao {
     @Query("SELECT * FROM recurring_rules ORDER BY id ASC")
     suspend fun getAllRulesForBackup(): List<RecurringRuleEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertRules(rules: List<RecurringRuleEntity>)
 
     @Query("SELECT * FROM recurring_executions ORDER BY id ASC")

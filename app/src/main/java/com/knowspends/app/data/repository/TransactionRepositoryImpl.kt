@@ -77,8 +77,8 @@ class TransactionRepositoryImpl @Inject constructor(
                 com.knowspends.app.domain.model.CategoryReportItem(
                     categoryId = entity.categoryId,
                     categoryName = entity.categoryName,
-                    categoryIcon = entity.categoryIcon,
-                    categoryColour = entity.categoryColour,
+                    categoryIcon = entity.categoryIcon ?: "label",
+                    categoryColour = entity.categoryColour ?: 4287137928L,
                     totalAmountMinor = entity.totalAmountMinor,
                     percentage = if (total > 0L) (entity.totalAmountMinor.toFloat() / total.toFloat()) * 100f else 0f,
                     transactionCount = entity.transactionCount

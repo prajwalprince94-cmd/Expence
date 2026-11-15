@@ -108,8 +108,8 @@ interface TransactionDao {
     data class CategoryAggregateEntity(
         val categoryId: Long,
         val categoryName: String,
-        val categoryIcon: String,
-        val categoryColour: Long,
+        val categoryIcon: String? = null,
+        val categoryColour: Long? = null,
         val totalAmountMinor: Long,
         val transactionCount: Int
     )
@@ -130,14 +130,14 @@ interface TransactionDao {
         SELECT 
             COALESCE(c.id, 0) AS categoryId,
             COALESCE(c.name, 'Uncategorized') AS categoryName,
-            c.iconKey AS categoryIcon,
-            c.colour AS categoryColour,
+            COALESCE(c.iconKey, 'label') AS categoryIcon,
+            COALESCE(c.colour, 4287137928) AS categoryColour,
             SUM(t.amountMinor) AS totalAmountMinor,
             COUNT(t.id) AS transactionCount
         FROM transactions t
         LEFT JOIN categories c ON t.categoryId = c.id
         WHERE t.type = :type AND t.deletedAt IS NULL AND t.date >= :startDate AND t.date <= :endDate
-        GROUP BY COALESCE(c.id, 0)
+        GROUP BY COALESCE(c.id, 0), c.iconKey, c.colour
         ORDER BY totalAmountMinor DESC
     """)
     fun getCategoryAggregatesBetweenFlow(
@@ -165,7 +165,7 @@ interface TransactionDao {
 
     @Query("""
         SELECT 
-            strftime('%Y-%m', date / 1000, 'unixepoch') AS yearMonth,
+            strftime('%Y-%m', date / 1000, 'unixepoch', 'localtime') AS yearMonth,
             COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amountMinor ELSE 0 END), 0) AS totalExpenseMinor,
             COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amountMinor ELSE 0 END), 0) AS totalIncomeMinor
         FROM transactions
@@ -185,7 +185,7 @@ interface TransactionDao {
     """)
     suspend fun getRecentCategoryIdForPayee(payee: String): Long?
 
-    @Query("SELECT * FROM transactions WHERE id = :id")
+    @Query("SELECT * FROM transactions WHERE id = :id AND deletedAt IS NULL")
     suspend fun getTransactionByIdOnce(id: Long): TransactionEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

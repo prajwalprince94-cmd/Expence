@@ -263,6 +263,7 @@ class BackTapService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        dynamicIslandOverlayManager.hideOverlay()
         backTapDetector?.stop()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)

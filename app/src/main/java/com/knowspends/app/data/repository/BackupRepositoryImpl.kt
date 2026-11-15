@@ -177,14 +177,19 @@ class BackupRepositoryImpl @Inject constructor(
 
             if (payload.schemaVersion > BackupPayload.CURRENT_SCHEMA_VERSION) {
                 return@withContext RestoreResult.Error("Unsupported backup schema version: ${payload.schemaVersion}. Please update KnowSpends.")
-            }
-
-            // Capture snapshot of current database state before clearing for atomic rollback if restore fails
-            val preRestoreSnapshot = createBackupPayload()
-
             try {
-                database.clearAllTables()
-                restorePayload(payload)
+                database.withTransaction {
+                    // Delete in reverse foreign-key dependency order to satisfy RESTRICT and CASCADE constraints
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM pending_transactions")
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM recurring_executions")
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM recurring_rules")
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM budgets")
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
+                    database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
+
+                    restorePayload(payload)
+                }
 
                 RestoreResult.Success(
                     accountsRestored = payload.accounts.size,
@@ -197,13 +202,6 @@ class BackupRepositoryImpl @Inject constructor(
                     recurringExecutionsRestored = payload.recurringExecutions.size
                 )
             } catch (restoreException: Exception) {
-                // Restore failed mid-way: Roll back to previous snapshot so user data is never lost
-                try {
-                    database.clearAllTables()
-                    restorePayload(preRestoreSnapshot)
-                } catch (_: Exception) {
-                    // Best-effort rollback
-                }
                 RestoreResult.Error(restoreException.localizedMessage ?: "Failed to restore backup")
             }
         } catch (e: Exception) {

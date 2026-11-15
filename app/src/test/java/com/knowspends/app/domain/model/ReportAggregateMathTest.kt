@@ -127,4 +127,31 @@ class ReportAggregateMathTest {
         val savingsRate = (netSavings.toFloat() / totalIncome.toFloat()) * 100f
         assertEquals(60.0f, savingsRate, 0.001f)
     }
+
+    @Test
+    fun categoryAggregateEntity_nullIconAndColour_safelyMapsToReportItem() {
+        val uncategorizedEntity = com.knowspends.app.data.local.dao.TransactionDao.CategoryAggregateEntity(
+            categoryId = 0L,
+            categoryName = "Uncategorized",
+            categoryIcon = null,
+            categoryColour = null,
+            totalAmountMinor = 50000L,
+            transactionCount = 2
+        )
+
+        val reportItem = CategoryReportItem(
+            categoryId = uncategorizedEntity.categoryId,
+            categoryName = uncategorizedEntity.categoryName,
+            categoryIcon = uncategorizedEntity.categoryIcon ?: "label",
+            categoryColour = uncategorizedEntity.categoryColour ?: 4287137928L,
+            totalAmountMinor = uncategorizedEntity.totalAmountMinor,
+            percentage = 100f,
+            transactionCount = uncategorizedEntity.transactionCount
+        )
+
+        assertEquals("Uncategorized", reportItem.categoryName)
+        assertEquals("label", reportItem.categoryIcon)
+        assertEquals(4287137928L, reportItem.categoryColour)
+        assertEquals(50000L, reportItem.totalAmountMinor)
+    }
 }

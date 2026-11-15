@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.knowspends.app.data.local.entity.CategoryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -29,10 +30,10 @@ interface CategoryDao {
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun getCategoryCount(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertCategory(category: CategoryEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertCategories(categories: List<CategoryEntity>)
 
     @Update
