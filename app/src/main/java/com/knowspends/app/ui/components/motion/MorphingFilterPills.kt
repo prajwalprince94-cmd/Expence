@@ -60,7 +60,7 @@ fun <T> MorphingSegmentedPillTrack(
     activePillColor: Color = QuixColors.NeonLime,
     activeTextColor: Color = QuixColors.ObsidianDeep,
     inactiveTextColor: Color = QuixColors.TextMuted,
-    borderColor: Color = QuixColors.BorderCardStroke
+    borderColor: Color = QuixColors.BorderSubtle
 ) {
     if (items.isEmpty()) return
 

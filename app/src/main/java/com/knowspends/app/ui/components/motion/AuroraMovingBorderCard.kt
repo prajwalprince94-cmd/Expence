@@ -41,7 +41,7 @@ fun AuroraMovingBorderCard(
     cornerRadiusDp: Dp = 16.dp,
     containerColor: Color = QuixColors.ObsidianSurfaceCard,
     beamColor: Color = QuixColors.NeonLime,
-    baseBorderColor: Color = QuixColors.BorderCardStroke,
+    baseBorderColor: Color = QuixColors.BorderSubtle,
     borderWidth: Dp = 1.2.dp,
     durationMillis: Int = 4500,
     onClick: (() -> Unit)? = null,
