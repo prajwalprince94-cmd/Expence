@@ -29,8 +29,8 @@ object BankMessageParser {
 
     private const val CURRENCY_PREFIX = "(?:rs\\.?|inr|₹|usd|\\$|eur|€|gbp|£)?"
 
-    private val PAID_REGEX = Pattern.compile("(?i)(?:paid|sent|transfer(?:red)?)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:\\bto\\b|\\btowards\\b)\\s+([^.,\n]+))?")
-    private val VERB_BEFORE_DEBIT_REGEX = Pattern.compile("(?i)(?:debited\\s*(?:by|for|with|towards)?|deducted\\s*(?:by|for)?|spent\\s*(?:an amount of)?|withdrawn\\s*(?:by|of)?)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:\\bto\\b|\\bat\\b|\\btowards\\b|\\binfo:?|\\btransfer to\\b|\\bvpa\\b)\\s+([^.,\n]+))?")
+    private val PAID_REGEX = Pattern.compile("(?i)(?:paid|sent|transfer(?:red)?)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:\\bto\\b|\\bat\\b|\\btowards\\b)\\s+([^.,\n]+))?")
+    private val VERB_BEFORE_DEBIT_REGEX = Pattern.compile("(?i)(?:(?:auto[- ]?)?debit(?:ed)?\\s*(?:of|by|for|with|towards)?|deducted\\s*(?:by|for)?|spent\\s*(?:an amount of)?|withdrawn\\s*(?:by|of)?)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:\\bto\\b|\\bat\\b|\\btowards\\b|\\binfo:?|\\btransfer to\\b|\\bvpa\\b)\\s+([^.,\n]+))?")
     private val VERB_AFTER_DEBIT_REGEX = Pattern.compile("(?i)$CURRENCY_PREFIX\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:debited|spent|withdrawn|deducted)(?:.*?(?:\\bto\\b|\\bat\\b|\\btowards\\b|\\binfo:?|\\btransfer to\\b|\\bvpa\\b)\\s+([^.,\n]+))?")
     private val VERB_BEFORE_CREDIT_REGEX = Pattern.compile("(?i)(?:credited\\s*(?:with|by|for|to)?|received)\\s*$CURRENCY_PREFIX\\s*([0-9,.]+)(?:.*?(?:\\bby\\b|\\bfrom\\b|\\binfo:?)\\s+([^.,\n]+))?")
     private val VERB_AFTER_CREDIT_REGEX = Pattern.compile("(?i)$CURRENCY_PREFIX\\s*([0-9,.]+)\\s+(?:has been|is)?\\s*(?:credited|received)(?:.*?(?:\\bby\\b|\\bfrom\\b|\\binfo:?)\\s+([^.,\n]+))?")
