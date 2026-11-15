@@ -97,8 +97,11 @@ import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.components.AceternitySpotlightCard
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.components.ExpressiveWavyProgressIndicator
+import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
+import com.knowspends.app.ui.components.motion.AuroraMovingBorderCard
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
+import com.knowspends.app.ui.theme.QuixColors
 import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.WarningColor
 import com.knowspends.app.ui.theme.pressScale
@@ -183,13 +186,15 @@ fun BudgetsScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = VyxelNavBarBottomClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Aceternity Spotlight Hero Card ────────────────────────────────
+            // ── Aurora Moving Border Hero Card ───────────────────────────────
             item(key = "budget_hero_card") {
-                AceternitySpotlightCard(
+                val heroBeamColor = if (uiState.totalRemainingMinor >= 0) QuixColors.NeonLime else QuixColors.DangerCoral
+                AuroraMovingBorderCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
-                    borderColor = scheme.outlineVariant.copy(alpha = 0.45f)
+                    containerColor = scheme.surfaceContainer,
+                    beamColor = heroBeamColor,
+                    borderWidth = 1.5.dp
                 ) {
                     Column(
                         modifier = Modifier
@@ -228,10 +233,10 @@ fun BudgetsScreen(
 
                         // Prominent Budget Amount
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = uiState.formattedTotalBudgeted,
+                            AnimatedCountUpTicker(
+                                targetAmountPaise = uiState.totalBudgetedMinor,
+                                currencySymbol = uiState.currencySymbol,
                                 style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 32.sp,
                                     letterSpacing = (-0.5).sp
@@ -285,10 +290,10 @@ fun BudgetsScreen(
                                         letterSpacing = VyxelTypographyTokens.TrackingUppercase,
                                         fontSize = 9.sp
                                     )
-                                    Text(
-                                        text = uiState.formattedTotalSpent,
+                                    AnimatedCountUpTicker(
+                                        targetAmountPaise = uiState.totalSpentMinor,
+                                        currencySymbol = uiState.currencySymbol,
                                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                                        fontWeight = FontWeight.SemiBold,
                                         color = scheme.onSurface
                                     )
                                 }
@@ -305,14 +310,10 @@ fun BudgetsScreen(
                                         letterSpacing = VyxelTypographyTokens.TrackingUppercase,
                                         fontSize = 9.sp
                                     )
-                                    Text(
-                                        text = if (uiState.totalRemainingMinor >= 0) {
-                                            uiState.formattedTotalRemaining
-                                        } else {
-                                            MoneyFormatter.formatPaise(-uiState.totalRemainingMinor)
-                                        },
+                                    AnimatedCountUpTicker(
+                                        targetAmountPaise = if (uiState.totalRemainingMinor >= 0) uiState.totalRemainingMinor else -uiState.totalRemainingMinor,
+                                        currencySymbol = uiState.currencySymbol,
                                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                                        fontWeight = FontWeight.Bold,
                                         color = if (uiState.totalRemainingMinor >= 0) IncomeColor else ExpenseColor
                                     )
                                 }
@@ -355,6 +356,7 @@ fun BudgetsScreen(
                 ) { budget ->
                     CategoryBudgetSwipeableItemCard(
                         budget = budget,
+                        currencySymbol = uiState.currencySymbol,
                         onEdit = {
                             VyxelHaptics.click(context)
                             viewModel.openSetBudgetDialog(budget)
@@ -399,6 +401,7 @@ fun BudgetsScreen(
 @Composable
 fun CategoryBudgetSwipeableItemCard(
     budget: CategoryBudget,
+    currencySymbol: String = "₹",
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -504,6 +507,7 @@ fun CategoryBudgetSwipeableItemCard(
     ) {
         CategoryBudgetCard(
             budget = budget,
+            currencySymbol = currencySymbol,
             onClick = onEdit
         )
     }
@@ -512,6 +516,7 @@ fun CategoryBudgetSwipeableItemCard(
 @Composable
 fun CategoryBudgetCard(
     budget: CategoryBudget,
+    currencySymbol: String = "₹",
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -587,11 +592,19 @@ fun CategoryBudgetCard(
                         }
                     }
 
-                    Text(
-                        text = "${MoneyFormatter.formatPaise(budget.spentAmountMinor)} of ${MoneyFormatter.formatPaise(budget.budgetAmountMinor)}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        color = scheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AnimatedCountUpTicker(
+                            targetAmountPaise = budget.spentAmountMinor,
+                            currencySymbol = currencySymbol,
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            color = scheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = " of ${MoneyFormatter.formatPaise(budget.budgetAmountMinor, currencySymbol = currencySymbol)}",
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            color = scheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 Row(
@@ -615,9 +628,9 @@ fun CategoryBudgetCard(
                     ) {
                         Text(
                             text = when (budget.status) {
-                                BudgetStatus.SAFE -> "${MoneyFormatter.formatPaise(budget.remainingAmountMinor)} left"
+                                BudgetStatus.SAFE -> "${MoneyFormatter.formatPaise(budget.remainingAmountMinor, currencySymbol = currencySymbol)} left"
                                 BudgetStatus.WARNING -> "${(budget.progressRatio * 100).toInt()}% used"
-                                BudgetStatus.OVERSPENT -> "Over by ${MoneyFormatter.formatPaise(-budget.remainingAmountMinor)}"
+                                BudgetStatus.OVERSPENT -> "Over by ${MoneyFormatter.formatPaise(-budget.remainingAmountMinor, currencySymbol = currencySymbol)}"
                             },
                             style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                             fontWeight = FontWeight.Bold,

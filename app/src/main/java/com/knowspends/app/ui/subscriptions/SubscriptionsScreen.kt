@@ -102,8 +102,12 @@ import com.knowspends.app.ui.components.AceternitySpotlightCard
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.components.VyxelExpressiveChip
 import com.knowspends.app.ui.components.bouncyClickable
+import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
+import com.knowspends.app.ui.components.motion.AuroraMovingBorderCard
+import com.knowspends.app.ui.components.motion.MorphingSegmentedPillTrack
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
+import com.knowspends.app.ui.theme.QuixColors
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.pressScale
@@ -204,13 +208,14 @@ fun SubscriptionsScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = VyxelNavBarBottomClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Aceternity Spotlight Hero Card ────────────────────────────────
+            // ── Aurora Moving Border Hero Card ───────────────────────────────
             item(key = "hero_burn_rate") {
-                AceternitySpotlightCard(
+                AuroraMovingBorderCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
-                    borderColor = scheme.outlineVariant.copy(alpha = 0.45f)
+                    containerColor = scheme.surfaceContainer,
+                    beamColor = QuixColors.NeonLime,
+                    borderWidth = 1.5.dp
                 ) {
                     Column(
                         modifier = Modifier
@@ -249,21 +254,37 @@ fun SubscriptionsScreen(
 
                         // Prominent Monospaced Tabular Burn Amount
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = uiState.formattedMonthlyBurn,
+                            AnimatedCountUpTicker(
+                                targetAmountPaise = uiState.totalMonthlyBurnMinor,
+                                currencySymbol = uiState.currencySymbol,
                                 style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 32.sp,
                                     letterSpacing = (-0.5).sp
                                 ),
                                 color = ExpenseColor
                             )
-                            Text(
-                                text = "Projected ${uiState.formattedYearlyProjection} / yr across active recurring commitments",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Projected ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
+                                )
+                                AnimatedCountUpTicker(
+                                    targetAmountPaise = uiState.totalYearlyProjectionMinor,
+                                    currencySymbol = uiState.currencySymbol,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = scheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = " / yr across active recurring commitments",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
+                                )
+                            }
                         }
 
                         // Next Due Date Inset Highlight (if active rule exists)
@@ -391,26 +412,24 @@ fun SubscriptionsScreen(
                 }
             }
 
-            // ── Filter Segmented Carousel ─────────────────────────────────────
+            // ── Morphing Segmented Pill Track Filter ───────────────────────────
             item(key = "filter_row") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    listOf("All", "Active", "Monthly", "Yearly", "Paused").forEach { filter ->
-                        VyxelExpressiveChip(
-                            selected = uiState.selectedFilter == filter,
-                            onClick = {
-                                VyxelHaptics.tick(context)
-                                viewModel.onFilterSelected(filter)
-                            },
-                            label = filter
-                        )
-                    }
-                }
+                val filters = remember { listOf("All", "Active", "Monthly", "Yearly", "Paused") }
+                MorphingSegmentedPillTrack(
+                    items = filters,
+                    selectedItem = uiState.selectedFilter,
+                    onItemSelected = { filter ->
+                        VyxelHaptics.tick(context)
+                        viewModel.onFilterSelected(filter)
+                    },
+                    label = { it },
+                    modifier = Modifier.fillMaxWidth(),
+                    trackColor = scheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                    activePillColor = scheme.primary,
+                    activeTextColor = scheme.onPrimary,
+                    inactiveTextColor = scheme.onSurfaceVariant,
+                    borderColor = scheme.outlineVariant.copy(alpha = 0.3f)
+                )
             }
 
             // ── Subscriptions & Commitments List ──────────────────────────────

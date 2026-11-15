@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
@@ -82,10 +83,17 @@ import com.knowspends.app.domain.util.BankMessageParser
 import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.components.bouncyClickable
+import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
+import com.knowspends.app.ui.components.motion.AnimatedIntegerTicker
+import com.knowspends.app.ui.components.motion.AuroraMovingBorderCard
+import com.knowspends.app.ui.components.motion.MorphingSegmentedPillTrack
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
+import com.knowspends.app.ui.theme.QuixColors
 import com.knowspends.app.ui.theme.VyxelShapeTokens
+import com.knowspends.app.ui.theme.VyxelTypographyTokens
 import com.knowspends.app.ui.theme.fadingEdges
+import com.knowspends.app.ui.theme.pressScale
 import com.knowspends.app.ui.components.states.ExpressiveEmptyState
 import com.knowspends.app.ui.components.states.ExpressivePermissionCard
 import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
@@ -155,10 +163,9 @@ fun ReviewInboxScreen(
                                 shape = VyxelShapeTokens.Pill,
                                 color = scheme.primaryContainer
                             ) {
-                                Text(
-                                    text = "${uiState.pendingTransactions.size}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
+                                AnimatedIntegerTicker(
+                                    targetCount = uiState.pendingTransactions.size,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     color = scheme.onPrimaryContainer,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
@@ -371,6 +378,15 @@ fun ReviewInboxScreen(
                     )
                 }
             } else {
+                var selectedFilter by remember { mutableStateOf("All") }
+                val filteredPending = remember(uiState.pendingTransactions, selectedFilter) {
+                    when (selectedFilter) {
+                        "Expenses" -> uiState.pendingTransactions.filter { it.type == "EXPENSE" }
+                        "Income" -> uiState.pendingTransactions.filter { it.type == "INCOME" }
+                        else -> uiState.pendingTransactions
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -378,7 +394,88 @@ fun ReviewInboxScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(uiState.pendingTransactions, key = { it.id }) { pending ->
+                    item(key = "inbox_summary_hero") {
+                        val totalPendingPaise = remember(uiState.pendingTransactions) {
+                            uiState.pendingTransactions.sumOf { it.amountMinor }
+                        }
+                        AuroraMovingBorderCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            containerColor = scheme.surfaceContainer,
+                            beamColor = QuixColors.NeonLime,
+                            borderWidth = 1.5.dp
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "PENDING BANK ALERTS",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                        letterSpacing = VyxelTypographyTokens.TrackingUppercase
+                                    )
+                                    AnimatedIntegerTicker(
+                                        targetCount = uiState.pendingTransactions.size,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = scheme.primary,
+                                        suffix = " alerts"
+                                    )
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    AnimatedCountUpTicker(
+                                        targetAmountPaise = totalPendingPaise,
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = (-0.5).sp
+                                        ),
+                                        color = scheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Awaiting verification and ledger posting",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = scheme.onSurfaceVariant.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item(key = "inbox_filter_row") {
+                        val filterItems = remember { listOf("All", "Expenses", "Income") }
+                        MorphingSegmentedPillTrack(
+                            items = filterItems,
+                            selectedItem = selectedFilter,
+                            onItemSelected = { filter ->
+                                selectedFilter = filter
+                            },
+                            label = { filter ->
+                                val count = when (filter) {
+                                    "Expenses" -> uiState.pendingTransactions.count { it.type == "EXPENSE" }
+                                    "Income" -> uiState.pendingTransactions.count { it.type == "INCOME" }
+                                    else -> uiState.pendingTransactions.size
+                                }
+                                "$filter ($count)"
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            trackColor = scheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                            activePillColor = scheme.primary,
+                            activeTextColor = scheme.onPrimary,
+                            inactiveTextColor = scheme.onSurfaceVariant,
+                            borderColor = scheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    }
+
+                    items(filteredPending, key = { it.id }) { pending ->
                         PendingTransactionCard(
                             pending = pending,
                             accounts = uiState.accounts,
@@ -452,7 +549,9 @@ fun PendingTransactionCard(
     val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .pressScale(0.99f),
         shape = VyxelShapeTokens.Card,
         colors = CardDefaults.cardColors(
             containerColor = scheme.surfaceContainerLow
@@ -555,10 +654,12 @@ fun PendingTransactionCard(
                     )
                 }
 
-                Text(
-                    text = "${if (isExpense) "- " else "+ "}${MoneyFormatter.formatPaise(pending.amountMinor, includeSymbol = true)}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
+                AnimatedCountUpTicker(
+                    targetAmountPaise = if (isExpense) -pending.amountMinor else pending.amountMinor,
+                    showPositiveSign = !isExpense,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Black
+                    ),
                     color = if (isExpense) ExpenseColor else IncomeColor
                 )
             }
