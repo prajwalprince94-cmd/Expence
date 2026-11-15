@@ -177,6 +177,8 @@ class BackupRepositoryImpl @Inject constructor(
 
             if (payload.schemaVersion > BackupPayload.CURRENT_SCHEMA_VERSION) {
                 return@withContext RestoreResult.Error("Unsupported backup schema version: ${payload.schemaVersion}. Please update KnowSpends.")
+            }
+
             try {
                 database.withTransaction {
                     // Delete in reverse foreign-key dependency order to satisfy RESTRICT and CASCADE constraints
