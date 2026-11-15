@@ -859,10 +859,10 @@ fun AddEditSubscriptionSheet(
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var payee by remember { mutableStateOf(editingRule?.payee ?: "") }
-    var amountStr by remember {
+    var payee by remember(editingRule?.id) { mutableStateOf(editingRule?.payee ?: "") }
+    var amountStr by remember(editingRule?.id) {
         mutableStateOf(
-            if (editingRule != null) (editingRule.amountMinor / 100).toString() else ""
+            if (editingRule != null) MoneyFormatter.formatPaiseForInput(editingRule.amountMinor) else ""
         )
     }
     var selectedAccountId by remember {
@@ -952,7 +952,7 @@ fun AddEditSubscriptionSheet(
                 Surface(
                     shape = VyxelShapeTokens.CardSmall,
                     color = scheme.surfaceContainerHigh.copy(alpha = 0.45f),
-                    border = BorderStroke(1.dp, if (showValidationErrors && (amountStr.toDoubleOrNull() ?: 0.0) <= 0.0) scheme.error.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.35f)),
+                    border = BorderStroke(1.dp, if (showValidationErrors && MoneyFormatter.parseToPaise(amountStr) <= 0L) scheme.error.copy(alpha = 0.5f) else scheme.outlineVariant.copy(alpha = 0.35f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .shake(shakeTrigger)
@@ -990,7 +990,7 @@ fun AddEditSubscriptionSheet(
                                 value = amountStr,
                                 onValueChange = {
                                     amountStr = it.filter { c -> c.isDigit() || c == '.' }
-                                    if ((amountStr.toDoubleOrNull() ?: 0.0) > 0.0) showValidationErrors = false
+                                    if (MoneyFormatter.parseToPaise(amountStr) > 0L) showValidationErrors = false
                                 },
                                 placeholder = {
                                     Text(
@@ -1018,7 +1018,7 @@ fun AddEditSubscriptionSheet(
                             )
                         }
 
-                        if (showValidationErrors && (amountStr.toDoubleOrNull() ?: 0.0) <= 0.0) {
+                        if (showValidationErrors && MoneyFormatter.parseToPaise(amountStr) <= 0L) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Amount must be greater than 0",
@@ -1298,7 +1298,7 @@ fun AddEditSubscriptionSheet(
                 }
 
                 // ── 6. Primary Action Button ──────────────────────────────────
-                val isFormValid = payee.isNotBlank() && (amountStr.toDoubleOrNull() ?: 0.0) > 0.0
+                val isFormValid = payee.isNotBlank() && MoneyFormatter.parseToPaise(amountStr) > 0L
                 Button(
                     onClick = {
                         if (!isFormValid) {
@@ -1306,7 +1306,7 @@ fun AddEditSubscriptionSheet(
                             showValidationErrors = true
                             VyxelHaptics.error(context)
                         } else {
-                            val amountPaise = runCatching { (amountStr.toDouble() * 100).toLong() }.getOrDefault(0L)
+                            val amountPaise = MoneyFormatter.parseToPaise(amountStr)
                             VyxelHaptics.success(context)
                             onSave(
                                 editingRule?.id ?: 0L,

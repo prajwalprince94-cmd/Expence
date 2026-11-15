@@ -1,17 +1,11 @@
 package com.knowspends.app.domain.util
 
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
-
 /**
  * Utility for money formatting and parsing.
  * Rule: Money is always stored as Long minor units (paise). ₹12.50 = 1250L.
  * Formatted with Indian digit grouping (e.g., ₹12,34,567.00).
  */
 object MoneyFormatter {
-
-    private val inrLocale = Locale("en", "IN")
 
     /**
      * Formats minor units (paise) into INR currency string.
@@ -42,6 +36,27 @@ object MoneyFormatter {
     }
 
     /**
+     * Formats minor units (paise) for editable text fields without grouping commas or currency symbols.
+     * Prevents IEEE 754 precision issues and ensures clean input editing.
+     * Example: 1250L -> "12.50", 10000000L -> "100000", 0L -> "0"
+     */
+    fun formatPaiseForInput(amountPaise: Long): String {
+        if (amountPaise == 0L) return "0"
+        val isNegative = amountPaise < 0
+        val safePaise = if (amountPaise == Long.MIN_VALUE) Long.MAX_VALUE else amountPaise
+        val absPaise = Math.abs(safePaise)
+        val rupees = absPaise / 100
+        val paise = absPaise % 100
+        val prefix = if (isNegative) "-" else ""
+        return if (paise == 0L) {
+            "$prefix$rupees"
+        } else {
+            val paiseString = paise.toString().padStart(2, '0')
+            "$prefix$rupees.$paiseString"
+        }
+    }
+
+    /**
      * Parses user text input (e.g., "12.50", "1250", "₹ 1,234.50") into minor units (paise).
      * Never uses floating point math to prevent precision loss.
      */
@@ -62,7 +77,14 @@ object MoneyFormatter {
             else -> 0L
         }
 
-        val total = (rupeesPart * 100) + paisePart
+        val maxRupees = Long.MAX_VALUE / 100
+        val clampedRupees = if (rupeesPart > maxRupees) maxRupees else rupeesPart
+        val total = if (clampedRupees == maxRupees) {
+            val maxPaise = Long.MAX_VALUE % 100
+            (maxRupees * 100) + Math.min(paisePart, maxPaise)
+        } else {
+            (clampedRupees * 100) + paisePart
+        }
         return if (isNegative) -total else total
     }
 

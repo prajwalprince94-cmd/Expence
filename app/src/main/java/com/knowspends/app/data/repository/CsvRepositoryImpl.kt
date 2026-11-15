@@ -50,7 +50,10 @@ class CsvRepositoryImpl @Inject constructor(
             for (item in transactions) {
                 val t = item.transaction
                 val dateStr = csvDateFormat.format(Date(t.date))
-                val formattedAmount = "%d.%02d".format(Locale.US, t.amountMinor / 100, Math.abs(t.amountMinor % 100))
+                val isNegative = t.amountMinor < 0
+                val safePaise = if (t.amountMinor == Long.MIN_VALUE) Long.MAX_VALUE else Math.abs(t.amountMinor)
+                val sign = if (isNegative) "-" else ""
+                val formattedAmount = "$sign${safePaise / 100}.${(safePaise % 100).toString().padStart(2, '0')}"
 
                 val line = listOf(
                     escapeCsv(dateStr),

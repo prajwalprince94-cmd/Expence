@@ -920,10 +920,7 @@ private fun EditAccountDetailsDialog(
     var name by remember { mutableStateOf(account.name) }
     var selectedType by remember { mutableStateOf(account.type) }
     var balanceText by remember {
-        mutableStateOf(
-            if (account.openingBalanceMinor == 0L) "0"
-            else (account.openingBalanceMinor / 100.0).toString()
-        )
+        mutableStateOf(MoneyFormatter.formatPaiseForInput(account.openingBalanceMinor))
     }
 
     AlertDialog(

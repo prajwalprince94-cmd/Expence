@@ -642,9 +642,9 @@ fun SetBudgetSheet(
     }
 
     val initialAmount = editingBudget?.let {
-        (it.budgetAmountMinor / 100).toString()
+        MoneyFormatter.formatPaiseForInput(it.budgetAmountMinor)
     } ?: ""
-    var amountText by remember { mutableStateOf(initialAmount) }
+    var amountText by remember(editingBudget?.id) { mutableStateOf(initialAmount) }
     var rollover by remember { mutableStateOf(editingBudget?.rollover ?: false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 

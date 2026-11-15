@@ -1183,11 +1183,8 @@ fun AccountEditBalanceDialog(
     onBack: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var balanceText by remember {
-        mutableStateOf(
-            if (account.openingBalanceMinor == 0L) "0"
-            else (account.openingBalanceMinor / 100.0).toString()
-        )
+    var balanceText by remember(account.id) {
+        mutableStateOf(MoneyFormatter.formatPaiseForInput(account.currentBalanceMinor))
     }
 
     AlertDialog(
@@ -1206,7 +1203,7 @@ fun AccountEditBalanceDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Enter new opening balance amount for this account:",
+                    text = "Enter new current balance amount for this account:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
