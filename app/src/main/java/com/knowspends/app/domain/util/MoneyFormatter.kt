@@ -68,7 +68,12 @@ object MoneyFormatter {
         val numericPart = if (isNegative) cleaned.substring(1) else cleaned
 
         val parts = numericPart.split('.')
-        val rupeesPart = parts.getOrNull(0)?.toLongOrNull() ?: 0L
+        val rawRupees = parts.getOrNull(0) ?: ""
+        val rupeesPart = if (rawRupees.isNotBlank()) {
+            rawRupees.toLongOrNull() ?: (Long.MAX_VALUE / 100)
+        } else {
+            0L
+        }
         val paisePart = when {
             parts.size > 1 -> {
                 val rawDecimals = parts[1].take(2)

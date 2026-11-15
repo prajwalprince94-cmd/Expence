@@ -64,6 +64,10 @@ class MoneyFormatterTest {
         val hugeNumber = "999999999999999999999999999.99"
         val parsed = MoneyFormatter.parseToPaise(hugeNumber)
         assertEquals(Long.MAX_VALUE, parsed)
+
+        val hugeNegative = "-999999999999999999999999999.99"
+        val parsedNegative = MoneyFormatter.parseToPaise(hugeNegative)
+        assertEquals(-Long.MAX_VALUE, parsedNegative)
     }
 
     @Test
