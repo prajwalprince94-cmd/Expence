@@ -36,6 +36,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.knowspends.app.ui.components.AceternitySpotlightCard
 import com.knowspends.app.ui.components.CategoryBadge
+import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
+import com.knowspends.app.ui.components.motion.AuroraMovingBorderCard
+import com.knowspends.app.ui.components.motion.FluidTrendSparkline
+import com.knowspends.app.ui.theme.QuixColors
 import com.knowspends.app.ui.theme.KnowSpendsMotion
 import com.knowspends.app.ui.theme.VyxelShapeTokens
 import com.knowspends.app.ui.theme.VyxelTypographyTokens
@@ -273,14 +277,11 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Aceternity Spotlight Hero Card: Monumental Cashflow & Safe-to-Spend
-        AceternitySpotlightCard(
+        // Aurora Moving Border Hero Card (Aceternity & ObsidianUI)
+        AuroraMovingBorderCard(
             modifier = Modifier.fillMaxWidth(),
-            spotlightColor = scheme.primary,
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            )
+            beamColor = if (uiState.monthlySummary.netSavingsMinor >= 0) QuixColors.NeonLime else QuixColors.DangerCoral,
+            containerColor = QuixColors.ObsidianSurfaceCard
         ) {
             Column(
                 modifier = Modifier
@@ -317,15 +318,17 @@ fun HomeScreen(
                     }
                 }
 
-                // Main Metric: Monumental Net Savings Display
+                // Main Metric: Monumental Net Savings Display with ReactBits CountUp Ticker
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = uiState.formattedNetSavings,
+                    AnimatedCountUpTicker(
+                        targetAmountPaise = uiState.monthlySummary.netSavingsMinor,
+                        currencySymbol = uiState.currencySymbol,
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         ),
-                        color = if (uiState.monthlySummary.netSavingsMinor >= 0) IncomeColor else ExpenseColor
+                        color = if (uiState.monthlySummary.netSavingsMinor >= 0) IncomeColor else ExpenseColor,
+                        showPositiveSign = true
                     )
                     Text(
                         text = "Net Cashflow in ${uiState.currentMonthLabel}",
@@ -486,13 +489,11 @@ fun HomeScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = uiState.formattedIncome,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = IncomeColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        AnimatedCountUpTicker(
+                            targetAmountPaise = uiState.monthlySummary.totalIncomeMinor,
+                            currencySymbol = uiState.currencySymbol,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = IncomeColor
                         )
                     }
 
@@ -533,13 +534,11 @@ fun HomeScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = uiState.formattedExpense,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = ExpenseColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        AnimatedCountUpTicker(
+                            targetAmountPaise = uiState.monthlySummary.totalExpenseMinor,
+                            currencySymbol = uiState.currencySymbol,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = ExpenseColor
                         )
                     }
 
@@ -639,51 +638,24 @@ fun HomeScreen(
                     }
 
                     val sevenDayTotalMinor = uiState.dailyExpenses7Days.sumOf { it.amountMinor }
-                    Text(
-                        text = MoneyFormatter.formatPaise(sevenDayTotalMinor),
+                    AnimatedCountUpTicker(
+                        targetAmountPaise = sevenDayTotalMinor,
+                        currencySymbol = uiState.currencySymbol,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         ),
-                        color = scheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = scheme.onSurface
                     )
 
-                    val maxDay = uiState.dailyExpenses7Days.maxOfOrNull { it.amountMinor }?.coerceAtLeast(1L) ?: 1L
-                    Row(
+                    FluidTrendSparkline(
+                        dataPoints = uiState.dailyExpenses7Days.map { it.amountMinor.toFloat() },
+                        lineColor = scheme.primary,
+                        strokeWidth = 2.dp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        uiState.dailyExpenses7Days.takeLast(7).forEach { day ->
-                            val ratio = (day.amountMinor.toFloat() / maxDay.toFloat()).coerceIn(0.12f, 1f)
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(8.dp)
-                                        .fillMaxHeight(ratio)
-                                        .clip(VyxelShapeTokens.Pill)
-                                        .background(
-                                            if (day.isToday) scheme.primary
-                                            else scheme.outlineVariant.copy(alpha = 0.55f)
-                                        )
-                                )
-                                Text(
-                                    text = day.dayLabel.take(1),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
-                                    fontWeight = if (day.isToday) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (day.isToday) scheme.primary else scheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                            .height(44.dp)
+                    )
                 }
             }
 

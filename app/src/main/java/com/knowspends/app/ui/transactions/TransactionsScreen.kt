@@ -73,6 +73,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
+import com.knowspends.app.ui.components.motion.MorphingSegmentedPillTrack
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -272,84 +274,79 @@ fun TransactionsScreen(
                     }
                 }
 
-                // Balanced 3-Column Auto-Layout Cashflow Ribbon
+                // Balanced 3-Column Auto-Layout Cashflow Ribbon with ReactBits CountUp Tickers
                 TransactionsCashflowPill(
-                    incomeFormatted = uiState.formattedIncomeTotal,
-                    expenseFormatted = uiState.formattedExpenseTotal,
-                    netFormatted = uiState.formattedNetCashflow,
-                    netMinor = uiState.netCashflowMinor
+                    incomeMinor = uiState.totalIncomeMinor,
+                    expenseMinor = uiState.totalExpenseMinor,
+                    netMinor = uiState.netCashflowMinor,
+                    currencySymbol = uiState.currencySymbol
                 )
 
-                // Unified Single-Row Expressive Filter Carousel
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Reset Pill Button when any filter is active
-                    if (uiState.selectedType != null || uiState.selectedAccountId != null) {
-                        Surface(
-                            onClick = viewModel::clearAllFilters,
-                            shape = VyxelShapeTokens.Pill,
-                            color = scheme.errorContainer.copy(alpha = 0.65f),
-                            border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.4f)),
-                            modifier = Modifier.bouncyClickable(onClick = viewModel::clearAllFilters)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                // Fluid Morphing Filter Pill Track (Transitions.dev & HeroUI)
+                val transactionFilterTypes = remember {
+                    listOf(null, TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER)
+                }
+
+                MorphingSegmentedPillTrack(
+                    items = transactionFilterTypes,
+                    selectedItem = uiState.selectedType,
+                    onItemSelected = { viewModel.onTypeFilterChanged(it) },
+                    label = { type ->
+                        when (type) {
+                            null -> "All"
+                            TransactionType.EXPENSE -> "Spent"
+                            TransactionType.INCOME -> "Income"
+                            TransactionType.TRANSFER -> "Transfers"
+                        }
+                    },
+                    icon = { type ->
+                        when (type) {
+                            null -> null
+                            TransactionType.EXPENSE -> Icons.Default.ArrowDownward
+                            TransactionType.INCOME -> Icons.Default.ArrowUpward
+                            TransactionType.TRANSFER -> Icons.Default.SwapHoriz
+                        }
+                    },
+                    trackHeight = 40.dp
+                )
+
+                // Secondary Account Filter Row (when multiple accounts exist or one is selected)
+                if (uiState.accounts.size > 1 || uiState.selectedAccountId != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (uiState.selectedAccountId != null) {
+                            Surface(
+                                onClick = { viewModel.onAccountFilterChanged(null) },
+                                shape = VyxelShapeTokens.Pill,
+                                color = scheme.errorContainer.copy(alpha = 0.65f),
+                                border = BorderStroke(1.dp, scheme.error.copy(alpha = 0.4f)),
+                                modifier = Modifier.bouncyClickable(onClick = { viewModel.onAccountFilterChanged(null) })
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear Filters",
-                                    tint = scheme.onErrorContainer,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Text(
-                                    text = "Reset",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = scheme.onErrorContainer
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear Account Filter",
+                                        tint = scheme.onErrorContainer,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = "Reset Account",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onErrorContainer
+                                    )
+                                }
                             }
                         }
-                    }
-
-                    VyxelExpressiveChip(
-                        selected = uiState.selectedType == null,
-                        onClick = { viewModel.onTypeFilterChanged(null) },
-                        label = "All"
-                    )
-                    VyxelExpressiveChip(
-                        selected = uiState.selectedType == TransactionType.EXPENSE,
-                        onClick = { viewModel.onTypeFilterChanged(TransactionType.EXPENSE) },
-                        label = "Expenses",
-                        icon = Icons.Default.ArrowDownward
-                    )
-                    VyxelExpressiveChip(
-                        selected = uiState.selectedType == TransactionType.INCOME,
-                        onClick = { viewModel.onTypeFilterChanged(TransactionType.INCOME) },
-                        label = "Income",
-                        icon = Icons.Default.ArrowUpward
-                    )
-                    VyxelExpressiveChip(
-                        selected = uiState.selectedType == TransactionType.TRANSFER,
-                        onClick = { viewModel.onTypeFilterChanged(TransactionType.TRANSFER) },
-                        label = "Transfers",
-                        icon = Icons.Default.SwapHoriz
-                    )
-
-                    if (uiState.accounts.size > 1) {
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 2.dp)
-                                .width(1.dp)
-                                .height(20.dp)
-                                .background(scheme.outlineVariant.copy(alpha = 0.5f))
-                        )
 
                         VyxelExpressiveChip(
                             selected = uiState.selectedAccountId == null,
@@ -583,10 +580,10 @@ fun TransactionsScreen(
  */
 @Composable
 fun TransactionsCashflowPill(
-    incomeFormatted: String,
-    expenseFormatted: String,
-    netFormatted: String,
+    incomeMinor: Long,
+    expenseMinor: Long,
     netMinor: Long,
+    currencySymbol: String = "₹",
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -621,13 +618,11 @@ fun TransactionsCashflowPill(
                     color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
                     letterSpacing = 0.6.sp
                 )
-                Text(
-                    text = expenseFormatted,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = ExpenseColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                AnimatedCountUpTicker(
+                    targetAmountPaise = expenseMinor,
+                    currencySymbol = currencySymbol,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = ExpenseColor
                 )
             }
 
@@ -652,13 +647,11 @@ fun TransactionsCashflowPill(
                     color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
                     letterSpacing = 0.6.sp
                 )
-                Text(
-                    text = incomeFormatted,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = IncomeColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                AnimatedCountUpTicker(
+                    targetAmountPaise = incomeMinor,
+                    currencySymbol = currencySymbol,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = IncomeColor
                 )
             }
 
@@ -683,13 +676,12 @@ fun TransactionsCashflowPill(
                     color = scheme.onSurfaceVariant.copy(alpha = 0.75f),
                     letterSpacing = 0.6.sp
                 )
-                Text(
-                    text = netFormatted,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                AnimatedCountUpTicker(
+                    targetAmountPaise = netMinor,
+                    currencySymbol = currencySymbol,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = netColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    showPositiveSign = true
                 )
             }
         }

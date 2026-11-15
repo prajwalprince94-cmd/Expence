@@ -33,6 +33,11 @@ import androidx.compose.material.icons.filled.QueryStats
 import com.knowspends.app.ui.components.states.ExpressiveEmptyState
 import com.knowspends.app.ui.components.states.ExpressiveHeroCardSkeleton
 import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
+import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
+import com.knowspends.app.ui.components.motion.AuroraMovingBorderCard
+import com.knowspends.app.ui.components.motion.FluidTrendSparkline
+import com.knowspends.app.ui.components.motion.MorphingSegmentedPillTrack
+import com.knowspends.app.ui.theme.QuixColors
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -106,22 +111,26 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Period Range Selector (Apple Segmented Style)
-            Row(
+            // Morphing Segmented Pill Track for Date Ranges (Transitions.dev & HeroUI)
+            val rangeOptions = remember { DateRangeType.values().toList() }
+            MorphingSegmentedPillTrack(
+                items = rangeOptions,
+                selectedItem = uiState.selectedRange,
+                onItemSelected = { viewModel.onRangeSelected(it) },
+                label = { range ->
+                    when (range) {
+                        DateRangeType.THIS_MONTH -> "This Mo"
+                        DateRangeType.LAST_MONTH -> "Last Mo"
+                        DateRangeType.LAST_3_MONTHS -> "3 Mos"
+                        DateRangeType.THIS_YEAR -> "Year"
+                        DateRangeType.ALL_TIME -> "All"
+                    }
+                },
+                trackHeight = 40.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DateRangeType.values().forEach { range ->
-                    VyxelExpressiveChip(
-                        selected = uiState.selectedRange == range,
-                        onClick = { viewModel.onRangeSelected(range) },
-                        label = range.label
-                    )
-                }
-            }
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            )
 
             // Unified Executive Analytics Dashboard Feed
             LazyColumn(
@@ -250,6 +259,49 @@ fun ReportsScreen(
                         }
                     }
 
+                    item(key = "trends_sparkline_card") {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = VyxelShapeTokens.Card,
+                            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.45f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Outflow Trajectory",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = scheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${uiState.monthlyTrends.size} Months",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = scheme.onSurfaceVariant
+                                    )
+                                }
+
+                                FluidTrendSparkline(
+                                    dataPoints = uiState.monthlyTrends.map { it.expenseMinor.toFloat() },
+                                    lineColor = QuixColors.NeonLime,
+                                    strokeWidth = 2.5.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(64.dp)
+                                )
+                            }
+                        }
+                    }
+
                     items(uiState.monthlyTrends, key = { it.yearMonth }) { trend ->
                         MonthlyTrendRowCard(trend = trend)
                     }
@@ -271,13 +323,10 @@ fun ReportsScreen(
 private fun CashflowHeroCard(uiState: ReportsUiState) {
     val scheme = MaterialTheme.colorScheme
 
-    Card(
+    AuroraMovingBorderCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = VyxelShapeTokens.Card,
-        colors = CardDefaults.cardColors(
-            containerColor = scheme.surfaceContainer
-        ),
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.5f))
+        beamColor = if (uiState.netSavingsMinor >= 0) QuixColors.NeonLime else QuixColors.DangerCoral,
+        containerColor = QuixColors.ObsidianSurfaceCard
     ) {
         Column(
             modifier = Modifier
@@ -314,10 +363,15 @@ private fun CashflowHeroCard(uiState: ReportsUiState) {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Text(
-                text = uiState.formattedNetSavings,
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                color = if (uiState.netSavingsMinor >= 0) IncomeColor else ExpenseColor
+            AnimatedCountUpTicker(
+                targetAmountPaise = uiState.netSavingsMinor,
+                currencySymbol = "₹",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = if (uiState.netSavingsMinor >= 0) IncomeColor else ExpenseColor,
+                showPositiveSign = true
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -360,10 +414,10 @@ private fun CashflowHeroCard(uiState: ReportsUiState) {
                         style = MaterialTheme.typography.labelSmall,
                         color = scheme.onSurfaceVariant
                     )
-                    Text(
-                        text = uiState.formattedIncome,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    AnimatedCountUpTicker(
+                        targetAmountPaise = uiState.totalIncomeMinor,
+                        currencySymbol = "₹",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = IncomeColor
                     )
                 }
@@ -374,10 +428,10 @@ private fun CashflowHeroCard(uiState: ReportsUiState) {
                         style = MaterialTheme.typography.labelSmall,
                         color = scheme.onSurfaceVariant
                     )
-                    Text(
-                        text = uiState.formattedExpense,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    AnimatedCountUpTicker(
+                        targetAmountPaise = uiState.totalExpenseMinor,
+                        currencySymbol = "₹",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = ExpenseColor
                     )
                 }
