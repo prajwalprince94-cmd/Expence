@@ -117,6 +117,10 @@ import com.knowspends.app.ui.components.expressive.ExpressiveSettingsSwitch
 import com.knowspends.app.ui.components.states.ExpressiveEmptyState
 import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
 import com.knowspends.app.ui.components.states.shake
+import com.knowspends.app.ui.components.quix.QuixCard
+import com.knowspends.app.ui.components.quix.QuixStepState
+import com.knowspends.app.ui.components.quix.QuixTimelineStep
+import com.knowspends.app.ui.components.quix.QuixTimelineStepper
 import com.knowspends.app.util.VyxelHaptics
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -339,7 +343,7 @@ fun SubscriptionsScreen(
                 }
             }
 
-            // ── Upcoming Renewal Timeline Strip ──────────────────────────────
+            // ── Quix Studio Upcoming Renewal Timeline Stepper ─────────────────
             if (uiState.upcomingRenewals.isNotEmpty()) {
                 item(key = "upcoming_renewals_section") {
                     Column(
@@ -347,7 +351,7 @@ fun SubscriptionsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "UPCOMING RENEWALS",
+                            text = "UPCOMING RENEWAL SCHEDULE",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = scheme.onSurfaceVariant.copy(alpha = 0.85f),
@@ -355,19 +359,33 @@ fun SubscriptionsScreen(
                             modifier = Modifier.padding(horizontal = 4.dp)
                         )
 
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        QuixCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            containerColor = scheme.surfaceContainerLow,
+                            border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.35f))
                         ) {
-                            items(
-                                items = uiState.upcomingRenewals.take(8),
-                                key = { "upcoming_${it.id}" }
-                            ) { rule ->
-                                UpcomingRenewalCard(
-                                    rule = rule,
-                                    onClick = { viewModel.showAddEditDialog(rule) }
-                                )
-                            }
+                            val dateFormat = remember { SimpleDateFormat("dd MMM", Locale.getDefault()) }
+                            QuixTimelineStepper(
+                                steps = uiState.upcomingRenewals.take(5).mapIndexed { idx, rule ->
+                                    val diff = rule.nextDueDate - System.currentTimeMillis()
+                                    val days = maxOf(0, (diff / (1000 * 60 * 60 * 24)).toInt())
+                                    val badge = when {
+                                        days <= 0 -> "Today"
+                                        days == 1 -> "Tomorrow"
+                                        else -> "In ${days}d"
+                                    }
+                                    val dateStr = dateFormat.format(Date(rule.nextDueDate))
+                                    QuixTimelineStep(
+                                        title = rule.payee.ifBlank { rule.categoryName ?: "Subscription" },
+                                        subtitle = "$dateStr • ${rule.frequency.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                                        badgeText = badge,
+                                        state = if (idx == 0) QuixStepState.ACTIVE else QuixStepState.PENDING,
+                                        amountFormatted = MoneyFormatter.formatPaise(rule.amountMinor),
+                                        onClick = { viewModel.showAddEditDialog(rule) }
+                                    )
+                                },
+                                accentColor = scheme.primary
+                            )
                         }
                     }
                 }

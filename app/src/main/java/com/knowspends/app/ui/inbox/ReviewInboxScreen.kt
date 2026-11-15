@@ -40,6 +40,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import com.knowspends.app.ui.components.quix.QuixCometLoader
+import com.knowspends.app.ui.components.quix.QuixSpokesLoader
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -174,12 +176,18 @@ fun ReviewInboxScreen(
                 },
                 actions = {
                     if (uiState.isScanningSms) {
-                        CircularProgressIndicator(
+                        Box(
                             modifier = Modifier
-                                .size(24.dp)
-                                .padding(end = 12.dp),
-                            strokeWidth = 2.5.dp
-                        )
+                                .padding(end = 12.dp)
+                                .size(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            QuixSpokesLoader(
+                                size = 18.dp,
+                                spokeCount = 8,
+                                accentColor = scheme.primary
+                            )
+                        }
                     } else {
                         IconButton(onClick = { requestAndScanSms() }) {
                             Icon(
@@ -338,9 +346,14 @@ fun ReviewInboxScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    ExpressiveTransactionListSkeleton(count = 4)
+                    QuixCometLoader(
+                        size = 72.dp,
+                        label = "PARSING BANK ALERTS",
+                        accentColor = scheme.primary
+                    )
                 }
             } else if (uiState.pendingTransactions.isEmpty()) {
                 Box(

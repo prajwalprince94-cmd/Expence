@@ -661,3 +661,31 @@ fun ExpressiveErrorBanner(
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. QUIX STUDIO EXPRESSIVE COMET LOADER
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Full-width canvas animated loader using Quix Studio sweep orbit and glowing head.
+ */
+@Composable
+fun ExpressiveQuixLoadingState(
+    message: String = "LOADING",
+    modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        com.knowspends.app.ui.components.quix.QuixCometLoader(
+            size = 68.dp,
+            label = message,
+            accentColor = accentColor
+        )
+    }
+}
+

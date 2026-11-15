@@ -54,6 +54,8 @@ import androidx.compose.material3.MaterialTheme
 import com.knowspends.app.ui.components.states.ExpressiveEmptyState
 import com.knowspends.app.ui.components.states.ExpressiveHeroCardSkeleton
 import com.knowspends.app.ui.components.states.ExpressiveTransactionListSkeleton
+import com.knowspends.app.ui.components.quix.QuixArcGauge
+import com.knowspends.app.ui.components.quix.QuixSegmentDonut
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -243,16 +245,22 @@ fun BudgetsScreen(
                             )
                         }
 
-                        // Progress Gauge
-                        ExpressiveWavyProgressIndicator(
-                            progress = uiState.totalProgressRatio,
-                            modifier = Modifier.fillMaxWidth(),
-                            color = when {
-                                uiState.totalSpentMinor > uiState.totalBudgetedMinor -> ExpenseColor
-                                uiState.totalProgressRatio >= 0.8f -> WarningColor
-                                else -> IncomeColor
-                            }
-                        )
+                        // Quix Studio 240-degree Radial Arc Gauge
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            QuixArcGauge(
+                                progressRatio = uiState.totalProgressRatio,
+                                size = 180.dp,
+                                strokeWidth = 11.dp,
+                                centerValue = "${(uiState.totalProgressRatio * 100).toInt()}%",
+                                centerSubtitle = "OF ${uiState.formattedTotalBudgeted}",
+                                showTicks = true
+                            )
+                        }
 
                         // Inset Metrics Strip
                         Surface(
@@ -586,23 +594,37 @@ fun CategoryBudgetCard(
                     )
                 }
 
-                // Status capsule pill
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = statusColor.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = when (budget.status) {
-                            BudgetStatus.SAFE -> "${MoneyFormatter.formatPaise(budget.remainingAmountMinor)} left"
-                            BudgetStatus.WARNING -> "${(budget.progressRatio * 100).toInt()}% used"
-                            BudgetStatus.OVERSPENT -> "Over by ${MoneyFormatter.formatPaise(-budget.remainingAmountMinor)}"
-                        },
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                        fontWeight = FontWeight.Bold,
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    // Quix Segmented Donut Ring Meter
+                    QuixSegmentDonut(
+                        progressRatio = budget.progressRatio,
+                        size = 32.dp,
+                        strokeWidth = 3.5.dp,
+                        segmentCount = 8,
+                        accentColor = statusColor
                     )
+
+                    // Status capsule pill
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = statusColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = when (budget.status) {
+                                BudgetStatus.SAFE -> "${MoneyFormatter.formatPaise(budget.remainingAmountMinor)} left"
+                                BudgetStatus.WARNING -> "${(budget.progressRatio * 100).toInt()}% used"
+                                BudgetStatus.OVERSPENT -> "Over by ${MoneyFormatter.formatPaise(-budget.remainingAmountMinor)}"
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                            fontWeight = FontWeight.Bold,
+                            color = statusColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 

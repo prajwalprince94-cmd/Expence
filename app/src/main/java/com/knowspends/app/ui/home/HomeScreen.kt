@@ -100,17 +100,18 @@ import com.knowspends.app.domain.model.AccountType
 import com.knowspends.app.domain.model.TransactionType
 import com.knowspends.app.domain.model.TransactionWithDetails
 import com.knowspends.app.domain.util.MoneyFormatter
+import com.knowspends.app.ui.components.quix.QuixRadialBarPercent
 import com.knowspends.app.ui.theme.ChartPalette
 import com.knowspends.app.ui.theme.ExpenseColor
 import com.knowspends.app.ui.theme.IncomeColor
 import com.knowspends.app.ui.theme.TransferColor
+import com.knowspends.app.ui.theme.WarningColor
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -419,12 +420,24 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Savings Rate: ${uiState.savingsRatePercent}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            QuixRadialBarPercent(
+                                progressRatio = (uiState.savingsRatePercent / 100f).coerceIn(0f, 1f),
+                                size = 26.dp,
+                                strokeWidth = 2.5.dp,
+                                color = if (uiState.savingsRatePercent >= 20) IncomeColor else WarningColor,
+                                showText = false
+                            )
+                            Text(
+                                text = "Savings Rate: ${uiState.savingsRatePercent}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Text(
                             text = "${uiState.daysRemainingInMonth} days left in ${uiState.currentMonthLabel.split(" ")[0]}",
                             style = MaterialTheme.typography.labelSmall,
