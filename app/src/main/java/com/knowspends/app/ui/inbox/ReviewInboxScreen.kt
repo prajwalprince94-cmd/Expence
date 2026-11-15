@@ -40,7 +40,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import com.knowspends.app.ui.components.quix.QuixCometLoader
 import com.knowspends.app.ui.components.quix.QuixSpokesLoader
 import androidx.compose.material3.DropdownMenuItem
@@ -452,6 +451,9 @@ fun ReviewInboxScreen(
 
                     item(key = "inbox_filter_row") {
                         val filterItems = remember { listOf("All", "Expenses", "Income") }
+                        val allCount = remember(uiState.pendingTransactions) { uiState.pendingTransactions.size }
+                        val expenseCount = remember(uiState.pendingTransactions) { uiState.pendingTransactions.count { it.type == "EXPENSE" } }
+                        val incomeCount = remember(uiState.pendingTransactions) { uiState.pendingTransactions.count { it.type == "INCOME" } }
                         MorphingSegmentedPillTrack(
                             items = filterItems,
                             selectedItem = selectedFilter,
@@ -460,9 +462,9 @@ fun ReviewInboxScreen(
                             },
                             label = { filter ->
                                 val count = when (filter) {
-                                    "Expenses" -> uiState.pendingTransactions.count { it.type == "EXPENSE" }
-                                    "Income" -> uiState.pendingTransactions.count { it.type == "INCOME" }
-                                    else -> uiState.pendingTransactions.size
+                                    "Expenses" -> expenseCount
+                                    "Income" -> incomeCount
+                                    else -> allCount
                                 }
                                 "$filter ($count)"
                             },
@@ -549,9 +551,7 @@ fun PendingTransactionCard(
     val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .pressScale(0.99f),
+        modifier = modifier.fillMaxWidth(),
         shape = VyxelShapeTokens.Card,
         colors = CardDefaults.cardColors(
             containerColor = scheme.surfaceContainerLow

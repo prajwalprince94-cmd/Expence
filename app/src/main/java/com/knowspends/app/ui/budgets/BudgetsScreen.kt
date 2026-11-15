@@ -94,7 +94,7 @@ import com.knowspends.app.domain.model.BudgetStatus
 import com.knowspends.app.domain.model.Category
 import com.knowspends.app.domain.model.CategoryBudget
 import com.knowspends.app.domain.util.MoneyFormatter
-import com.knowspends.app.ui.components.AceternitySpotlightCard
+import androidx.compose.ui.semantics.semantics
 import com.knowspends.app.ui.components.CategoryBadge
 import com.knowspends.app.ui.components.ExpressiveWavyProgressIndicator
 import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
@@ -281,7 +281,10 @@ fun BudgetsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Column(
+                                    modifier = Modifier.semantics(mergeDescendants = true) {},
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
                                     Text(
                                         text = "SPENT",
                                         style = MaterialTheme.typography.labelSmall,
@@ -299,6 +302,7 @@ fun BudgetsScreen(
                                 }
 
                                 Column(
+                                    modifier = Modifier.semantics(mergeDescendants = true) {},
                                     horizontalAlignment = Alignment.End,
                                     verticalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
@@ -592,7 +596,10 @@ fun CategoryBudgetCard(
                         }
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.semantics(mergeDescendants = true) {},
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         AnimatedCountUpTicker(
                             targetAmountPaise = budget.spentAmountMinor,
                             currencySymbol = currencySymbol,
@@ -789,7 +796,7 @@ fun SetBudgetSheet(
                                     color = scheme.onSurface,
                                     textAlign = TextAlign.Start
                                 ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Color.Transparent,

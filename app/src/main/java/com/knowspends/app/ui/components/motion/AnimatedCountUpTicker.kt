@@ -18,6 +18,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.knowspends.app.domain.util.MoneyFormatter
 import com.knowspends.app.ui.theme.LocalMotionIntensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 /**
  * ReactBits-inspired Animated CountUp Ticker:
@@ -74,9 +76,13 @@ fun AnimatedCountUpTicker(
         showPositiveSign = showPositiveSign
     )
 
+    val targetFormatted = remember(targetAmountPaise, currencySymbol, showPositiveSign) {
+        formatCountUpCurrency(targetAmountPaise, currencySymbol, showPositiveSign)
+    }
+
     Text(
         text = formattedText,
-        modifier = modifier,
+        modifier = modifier.semantics { contentDescription = targetFormatted },
         style = style.copy(
             fontFeatureSettings = "tnum",
             fontWeight = style.fontWeight ?: FontWeight.Bold
@@ -131,9 +137,13 @@ fun AnimatedIntegerTicker(
         startCount + ((currentTarget - startCount) * progress.value).toInt()
     }
 
+    val targetFormatted = remember(targetCount, prefix, suffix) {
+        "$prefix$targetCount$suffix"
+    }
+
     Text(
         text = "$prefix$currentCount$suffix",
-        modifier = modifier,
+        modifier = modifier.semantics { contentDescription = targetFormatted },
         style = style.copy(fontFeatureSettings = "tnum"),
         color = color
     )

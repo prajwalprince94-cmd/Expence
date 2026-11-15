@@ -52,8 +52,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -98,9 +96,8 @@ import com.knowspends.app.domain.model.Category
 import com.knowspends.app.domain.model.RecurrenceFrequency
 import com.knowspends.app.domain.model.RecurringRule
 import com.knowspends.app.domain.util.MoneyFormatter
-import com.knowspends.app.ui.components.AceternitySpotlightCard
+import androidx.compose.ui.semantics.semantics
 import com.knowspends.app.ui.components.CategoryBadge
-import com.knowspends.app.ui.components.VyxelExpressiveChip
 import com.knowspends.app.ui.components.bouncyClickable
 import com.knowspends.app.ui.components.motion.AnimatedCountUpTicker
 import com.knowspends.app.ui.components.motion.AuroraMovingBorderCard
@@ -264,7 +261,10 @@ fun SubscriptionsScreen(
                                 ),
                                 color = ExpenseColor
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.semantics(mergeDescendants = true) {},
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
                                     text = "Projected ",
                                     style = MaterialTheme.typography.bodySmall,
