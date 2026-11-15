@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class SmsBroadcastReceiver : BroadcastReceiver() {
 
@@ -54,72 +55,87 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val prefs = entryPoint.userPreferencesRepository().userPreferencesFlow.first()
-                if (!prefs.smsAutoCaptureEnabled) {
-                    return@launch
-                }
-
-                val parsed = BankMessageParser.parse(fullBody, sender) ?: return@launch
-                Log.d("SmsReceiver", "Parsed financial SMS from $sender: amount=${parsed.amountMinor}, payee=${parsed.merchantOrPayee}, bank=${parsed.bankName}")
-
-                if (prefs.smsDirectAutoAdd) {
-                    // Direct Auto-Add Mode: Find or match account, category, and insert directly to ledger
-                    val accounts = entryPoint.accountRepository().getActiveAccounts().first()
-                    val matchingAccount = accounts.find { acc ->
-                        parsed.accountTail != null && acc.name.contains(parsed.accountTail)
-                    } ?: accounts.find { acc ->
-                        parsed.bankName != null && acc.name.contains(parsed.bankName, ignoreCase = true)
-                    } ?: accounts.find { it.type.name == "BANK" || it.type.name == "WALLET" } ?: accounts.firstOrNull()
-
-                    val categories = entryPoint.categoryRepository().getActiveCategories().first()
-                    val customRule = entryPoint.merchantRuleRepository().matchCategory(parsed.merchantOrPayee)
-                    val matchingCategory = if (customRule != null) {
-                        categories.find { it.id == customRule.categoryId }
-                    } else {
-                        categories.find { cat ->
-                            parsed.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
-                        } ?: categories.find { it.kind == parsed.type }
+                withTimeout(8000L) {
+                    val prefs = entryPoint.userPreferencesRepository().userPreferencesFlow.first()
+                    if (!prefs.smsAutoCaptureEnabled) {
+                        return@withTimeout
                     }
 
-                    val accountId = matchingAccount?.id ?: 1L
-                    val categoryId = matchingCategory?.id
+                    val parsed = BankMessageParser.parse(fullBody, sender) ?: return@withTimeout
+                    Log.d("SmsReceiver", "Parsed financial SMS from $sender: amount=${parsed.amountMinor}, payee=${parsed.merchantOrPayee}, bank=${parsed.bankName}")
 
-                    val noteParts = mutableListOf<String>()
-                    parsed.bankName?.let { noteParts.add(it) }
-                    parsed.accountTail?.let { noteParts.add("A/c $it") }
-                    parsed.upiOrWalletApp?.let { noteParts.add("via $it") }
-                    val note = if (noteParts.isNotEmpty()) noteParts.joinToString(" • ") else "Auto-captured SMS"
+                    if (prefs.smsDirectAutoAdd) {
+                        // Direct Auto-Add Mode: Find or match account, category, and insert directly to ledger
+                        val accounts = entryPoint.accountRepository().getActiveAccounts().first()
+                        if (accounts.isEmpty()) {
+                            // No accounts configured yet; fall back safely to review inbox without foreign key crash
+                            entryPoint.pendingTransactionRepository().parseAndAddMessage(fullBody, sender, parsed.dateMillis)
+                            val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
+                            NotificationHelper.showSmsTransactionNotification(
+                                context = context,
+                                title = "New Transaction ($formatted)",
+                                message = "${parsed.merchantOrPayee} • ${parsed.bankName ?: "Bank SMS"}. Tap to review and log.",
+                                route = "inbox"
+                            )
+                            return@withTimeout
+                        }
 
-                    val tx = Transaction(
-                        accountId = accountId,
-                        categoryId = categoryId,
-                        amountMinor = parsed.amountMinor,
-                        type = parsed.type,
-                        payee = parsed.merchantOrPayee,
-                        note = note,
-                        date = parsed.dateMillis
-                    )
-                    entryPoint.transactionRepository().saveTransaction(tx)
+                        val matchingAccount = accounts.find { acc ->
+                            parsed.accountTail != null && acc.name.contains(parsed.accountTail)
+                        } ?: accounts.find { acc ->
+                            parsed.bankName != null && acc.name.contains(parsed.bankName, ignoreCase = true)
+                        } ?: accounts.find { it.type.name == "BANK" || it.type.name == "WALLET" } ?: accounts.first()
 
-                    val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
-                    val actionLabel = if (parsed.type == TransactionType.INCOME) "Received" else "Spent"
-                    val catLabel = matchingCategory?.name?.let { " ($it)" } ?: ""
-                    NotificationHelper.showSmsTransactionNotification(
-                        context = context,
-                        title = "Auto-Logged: $formatted",
-                        message = "$actionLabel at ${parsed.merchantOrPayee}$catLabel from ${parsed.bankName ?: "Bank"}",
-                        route = "transactions"
-                    )
-                } else {
-                    // Smart Review Inbox Mode (Default): Add to pending_transactions for 1-tap ledger approval
-                    entryPoint.pendingTransactionRepository().parseAndAddMessage(fullBody, sender, parsed.dateMillis)
-                    val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
-                    NotificationHelper.showSmsTransactionNotification(
-                        context = context,
-                        title = "New Transaction ($formatted)",
-                        message = "${parsed.merchantOrPayee} • ${parsed.bankName ?: "Bank SMS"}. Tap to review and log.",
-                        route = "inbox"
-                    )
+                        val categories = entryPoint.categoryRepository().getActiveCategories().first()
+                        val customRule = entryPoint.merchantRuleRepository().matchCategory(parsed.merchantOrPayee)
+                        val matchingCategory = if (customRule != null) {
+                            categories.find { it.id == customRule.categoryId }
+                        } else {
+                            categories.find { cat ->
+                                parsed.suggestedCategoryName != null && cat.name.equals(parsed.suggestedCategoryName, ignoreCase = true)
+                            } ?: categories.find { it.kind == parsed.type }
+                        }
+
+                        val accountId = matchingAccount.id
+                        val categoryId = matchingCategory?.id
+
+                        val noteParts = mutableListOf<String>()
+                        parsed.bankName?.let { noteParts.add(it) }
+                        parsed.accountTail?.let { noteParts.add("A/c $it") }
+                        parsed.upiOrWalletApp?.let { noteParts.add("via $it") }
+                        val note = if (noteParts.isNotEmpty()) noteParts.joinToString(" • ") else "Auto-captured SMS"
+
+                        val tx = Transaction(
+                            accountId = accountId,
+                            categoryId = categoryId,
+                            amountMinor = parsed.amountMinor,
+                            type = parsed.type,
+                            payee = parsed.merchantOrPayee,
+                            note = note,
+                            date = parsed.dateMillis
+                        )
+                        entryPoint.transactionRepository().saveTransaction(tx)
+
+                        val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
+                        val actionLabel = if (parsed.type == TransactionType.INCOME) "Received" else "Spent"
+                        val catLabel = matchingCategory?.name?.let { " ($it)" } ?: ""
+                        NotificationHelper.showSmsTransactionNotification(
+                            context = context,
+                            title = "Auto-Logged: $formatted",
+                            message = "$actionLabel at ${parsed.merchantOrPayee}$catLabel from ${parsed.bankName ?: "Bank"}",
+                            route = "transactions"
+                        )
+                    } else {
+                        // Smart Review Inbox Mode (Default): Add to pending_transactions for 1-tap ledger approval
+                        entryPoint.pendingTransactionRepository().parseAndAddMessage(fullBody, sender, parsed.dateMillis)
+                        val formatted = MoneyFormatter.formatPaise(parsed.amountMinor, includeSymbol = true)
+                        NotificationHelper.showSmsTransactionNotification(
+                            context = context,
+                            title = "New Transaction ($formatted)",
+                            message = "${parsed.merchantOrPayee} • ${parsed.bankName ?: "Bank SMS"}. Tap to review and log.",
+                            route = "inbox"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("SmsReceiver", "Error processing SMS", e)

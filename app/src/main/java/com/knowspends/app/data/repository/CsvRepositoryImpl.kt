@@ -32,31 +32,37 @@ class CsvRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : CsvRepository {
 
+    companion object {
+        private val FORMULA_PREFIXES = charArrayOf('=', '+', '-', '@', '\t', '\r', '|')
+    }
+
     private val csvDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
 
     override suspend fun exportTransactionsCsv(outputStream: OutputStream) = withContext(ioDispatcher) {
         val transactions = transactionDao.getAllTransactionsWithDetailsFlow().firstOrNull() ?: emptyList()
 
         outputStream.bufferedWriter(Charsets.UTF_8).use { writer ->
+            // Write UTF-8 BOM so Microsoft Excel and other spreadsheet apps open as UTF-8 without mangling currency symbols
+            writer.write("\uFEFF")
             // Header
             writer.write("Date,Type,Amount_Minor,Amount_Formatted,Category,Account,Transfer_Account,Payee,Note\n")
 
             for (item in transactions) {
                 val t = item.transaction
                 val dateStr = csvDateFormat.format(Date(t.date))
-                val formattedAmount = (t.amountMinor / 100.0).toString()
+                val formattedAmount = "%d.%02d".format(Locale.US, t.amountMinor / 100, Math.abs(t.amountMinor % 100))
 
                 val line = listOf(
-                    dateStr,
-                    t.type,
-                    t.amountMinor.toString(),
-                    formattedAmount,
-                    item.categoryName ?: "",
-                    item.accountName,
-                    item.transferAccountName ?: "",
-                    t.payee,
-                    t.note
-                ).joinToString(",") { escapeCsv(it) }
+                    escapeCsv(dateStr),
+                    escapeCsv(t.type),
+                    escapeCsv(t.amountMinor.toString(), isNumeric = true),
+                    escapeCsv(formattedAmount, isNumeric = true),
+                    escapeCsv(item.categoryName ?: ""),
+                    escapeCsv(item.accountName),
+                    escapeCsv(item.transferAccountName ?: ""),
+                    escapeCsv(t.payee),
+                    escapeCsv(t.note)
+                ).joinToString(",")
 
                 writer.write(line)
                 writer.write("\n")
@@ -67,8 +73,8 @@ class CsvRepositoryImpl @Inject constructor(
 
     override suspend fun importTransactionsCsv(inputStream: InputStream): CsvImportResult = withContext(ioDispatcher) {
         try {
-            val lines = inputStream.bufferedReader(Charsets.UTF_8).readLines()
-            if (lines.isEmpty()) {
+            val records = parseCsvRecords(inputStream.bufferedReader(Charsets.UTF_8))
+            if (records.isEmpty()) {
                 return@withContext CsvImportResult(0, 0, 0, errorMessage = "File is empty")
             }
 
@@ -91,32 +97,28 @@ class CsvRepositoryImpl @Inject constructor(
             val transactionsToInsert = mutableListOf<TransactionEntity>()
 
             // Find header indexes
-            val headerLine = lines.first()
-            val headers = parseCsvRow(headerLine).map { it.trim().lowercase() }
+            val headers = records.first().map { it.trim().lowercase() }
 
             val dateIdx = headers.indexOfFirst { it.contains("date") }
             val typeIdx = headers.indexOfFirst { it.contains("type") }
-            val amountMinorIdx = headers.indexOfFirst { it.contains("amount_minor") || it == "paise" }
-            val amountFormattedIdx = headers.indexOfFirst { it.contains("amount_formatted") }
-            val amountIdx = if (amountFormattedIdx != -1) amountFormattedIdx else headers.indexOfFirst { it.contains("amount") }
+            val amountMinorIdx = headers.indexOfFirst { it == "amount_minor" || it == "paise" }
+            val amountFormattedIdx = headers.indexOfFirst { it == "amount_formatted" }
+            val amountIdx = if (amountFormattedIdx != -1) amountFormattedIdx else headers.indexOfFirst { it.contains("amount") && it != "amount_minor" && it != "paise" }
             val catIdx = headers.indexOfFirst { it.contains("cat") }
             val accIdx = headers.indexOfFirst { it.contains("account") }
             val payeeIdx = headers.indexOfFirst { it.contains("payee") || it.contains("merchant") }
             val noteIdx = headers.indexOfFirst { it.contains("note") || it.contains("desc") }
 
-            for (i in 1 until lines.size) {
-                val rowText = lines[i].trim()
-                if (rowText.isBlank()) continue
+            for (i in 1 until records.size) {
+                val row = records[i]
+                if (row.isEmpty() || row.all { it.isBlank() }) continue
 
-                val row = parseCsvRow(rowText)
-                if (row.isEmpty()) continue
-
-                val dateStr = if (dateIdx in row.indices) row[dateIdx] else ""
-                val rawTypeStr = if (typeIdx in row.indices) row[typeIdx].trim().uppercase() else ""
-                val catStr = if (catIdx in row.indices) row[catIdx].trim() else ""
-                val accStr = if (accIdx in row.indices) row[accIdx].trim() else ""
-                val payeeStr = if (payeeIdx in row.indices) row[payeeIdx].trim() else ""
-                val noteStr = if (noteIdx in row.indices) row[noteIdx].trim() else ""
+                val dateStr = if (dateIdx in row.indices) desanitizeFormula(row[dateIdx].trim()) else ""
+                val rawTypeStr = if (typeIdx in row.indices) desanitizeFormula(row[typeIdx].trim().uppercase()) else ""
+                val catStr = if (catIdx in row.indices) desanitizeFormula(row[catIdx].trim()) else ""
+                val accStr = if (accIdx in row.indices) desanitizeFormula(row[accIdx].trim()) else ""
+                val payeeStr = if (payeeIdx in row.indices) desanitizeFormula(row[payeeIdx].trim()) else ""
+                val noteStr = if (noteIdx in row.indices) desanitizeFormula(row[noteIdx]) else ""
 
                 val rawAmountMinor = when {
                     amountMinorIdx != -1 && amountMinorIdx in row.indices && row[amountMinorIdx].isNotBlank() -> {
@@ -184,7 +186,7 @@ class CsvRepositoryImpl @Inject constructor(
             }
 
             CsvImportResult(
-                totalRowsRead = lines.size - 1,
+                totalRowsRead = records.size - 1,
                 importedCount = importedCount,
                 skippedDuplicatesCount = skippedDuplicates,
                 batchId = batchId
@@ -198,15 +200,108 @@ class CsvRepositoryImpl @Inject constructor(
         transactionDao.deleteBatchTransactions(batchId)
     }
 
-    private fun escapeCsv(value: String): String {
-        return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            "\"" + value.replace("\"", "\"\"") + "\""
+    private fun escapeCsv(value: String, isNumeric: Boolean = false): String {
+        var sanitized = value
+        // CWE-1236: Prevent CSV formula injection by prepending ' to non-numeric cells starting with trigger chars or single quote
+        if (!isNumeric && sanitized.isNotEmpty()) {
+            val firstChar = sanitized[0]
+            if (firstChar in FORMULA_PREFIXES || firstChar == '\'') {
+                sanitized = "'$sanitized"
+            }
+        }
+        return if (sanitized.contains(",") || sanitized.contains("\"") || sanitized.contains("\n") || sanitized.contains("\r")) {
+            "\"" + sanitized.replace("\"", "\"\"") + "\""
         } else {
-            value
+            sanitized
         }
     }
 
-    private fun parseCsvRow(line: String): List<String> {
+    private fun desanitizeFormula(value: String): String {
+        if (value.startsWith("'") && value.length > 1) {
+            val secondChar = value[1]
+            if (secondChar in FORMULA_PREFIXES || secondChar == '\'') {
+                return value.substring(1)
+            }
+        }
+        return value
+    }
+
+    private fun parseCsvRecords(reader: java.io.Reader): List<List<String>> {
+        val records = mutableListOf<List<String>>()
+        val currentRecord = mutableListOf<String>()
+        val currentField = StringBuilder()
+        var inQuotes = false
+        var isFirstChar = true
+
+        var chInt = reader.read()
+        while (chInt != -1) {
+            val c = chInt.toChar()
+
+            if (isFirstChar) {
+                isFirstChar = false
+                if (c == '\uFEFF') {
+                    chInt = reader.read()
+                    continue
+                }
+            }
+
+            if (inQuotes) {
+                if (c == '"') {
+                    reader.mark(1)
+                    val nextInt = reader.read()
+                    if (nextInt != -1 && nextInt.toChar() == '"') {
+                        currentField.append('"')
+                    } else {
+                        inQuotes = false
+                        reader.reset()
+                    }
+                } else {
+                    currentField.append(c)
+                }
+            } else {
+                when (c) {
+                    '"' -> inQuotes = true
+                    ',' -> {
+                        currentRecord.add(currentField.toString())
+                        currentField.setLength(0)
+                    }
+                    '\r' -> {
+                        reader.mark(1)
+                        val nextInt = reader.read()
+                        if (nextInt != -1 && nextInt.toChar() != '\n') {
+                            reader.reset()
+                        }
+                        currentRecord.add(currentField.toString())
+                        currentField.setLength(0)
+                        if (currentRecord.any { it.isNotBlank() }) {
+                            records.add(ArrayList(currentRecord))
+                        }
+                        currentRecord.clear()
+                    }
+                    '\n' -> {
+                        currentRecord.add(currentField.toString())
+                        currentField.setLength(0)
+                        if (currentRecord.any { it.isNotBlank() }) {
+                            records.add(ArrayList(currentRecord))
+                        }
+                        currentRecord.clear()
+                    }
+                    else -> currentField.append(c)
+                }
+            }
+            chInt = reader.read()
+        }
+
+        if (currentField.isNotEmpty() || currentRecord.isNotEmpty()) {
+            currentRecord.add(currentField.toString())
+            if (currentRecord.any { it.isNotBlank() }) {
+                records.add(ArrayList(currentRecord))
+            }
+        }
+        return records
+    }
+
+    fun parseCsvRow(line: String): List<String> {
         val tokens = mutableListOf<String>()
         val sb = StringBuilder()
         var inQuotes = false

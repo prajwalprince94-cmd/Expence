@@ -165,4 +165,58 @@ class BankMessageParserTest {
         assertEquals("AMAZON", axisParsed?.merchantOrPayee)
         assertEquals("Axis Bank", axisParsed?.bankName)
     }
+
+    @Test
+    fun `cleanMerchant preserves store names with internal words without destructive truncation`() {
+        val msg1 = "Paid Rs 450 to This Is It Store on 15-Nov-26"
+        val parsed1 = BankMessageParser.parse(msg1)
+        assertNotNull(parsed1)
+        assertEquals("This Is It Store", parsed1?.merchantOrPayee)
+
+        val msg2 = "Paid INR 320 at Paris Bakery via UPI"
+        val parsed2 = BankMessageParser.parse(msg2)
+        assertNotNull(parsed2)
+        assertEquals("Paris Bakery", parsed2?.merchantOrPayee)
+
+        val msg3 = "Transferred Rs 180 to London Dairy Ref 998811"
+        val parsed3 = BankMessageParser.parse(msg3)
+        assertNotNull(parsed3)
+        assertEquals("London Dairy", parsed3?.merchantOrPayee)
+    }
+
+    @Test
+    fun `word boundary on prepositions prevents false matches inside common words`() {
+        // 'automatic' contains 'at', must not match as preposition
+        val msg1 = "Auto-debit of Rs 250 for your automatic subscription at Netflix"
+        val parsed1 = BankMessageParser.parse(msg1)
+        assertNotNull(parsed1)
+        assertEquals("Netflix", parsed1?.merchantOrPayee)
+        assertEquals(25000L, parsed1?.amountMinor)
+
+        // 'late' contains 'at', 'today' contains 'to'
+        val msg2 = "Paid Rs 150 today to Uber"
+        val parsed2 = BankMessageParser.parse(msg2)
+        assertNotNull(parsed2)
+        assertEquals("Uber", parsed2?.merchantOrPayee)
+        assertEquals(15000L, parsed2?.amountMinor)
+    }
+
+    @Test
+    fun `excessive length messages are safely rejected to prevent ReDoS`() {
+        val hugeMessage = "Paid Rs 100 to Starbucks " + "A".repeat(1500)
+        val parsed = BankMessageParser.parse(hugeMessage)
+        assertNull(parsed)
+    }
+
+    @Test
+    fun `repeated parses execute rapidly with zero regex recompilation churn`() {
+        val sample = "Rs 450.00 debited from SBI a/c no. XX8899 on 01Nov26 at Uber India via Google Pay."
+        val startTime = System.currentTimeMillis()
+        repeat(1000) {
+            val res = BankMessageParser.parse(sample, sender = "AD-SBIINB")
+            assertNotNull(res)
+        }
+        val duration = System.currentTimeMillis() - startTime
+        assertTrue("1000 parses should complete in under 500ms, took ${duration}ms", duration < 500)
+    }
 }
