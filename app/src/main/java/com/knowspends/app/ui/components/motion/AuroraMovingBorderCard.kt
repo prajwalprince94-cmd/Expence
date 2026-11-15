@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,7 +70,9 @@ fun AuroraMovingBorderCard(
     }
 
     val clickModifier = if (onClick != null) {
-        Modifier.pressScale(0.985f, onClick = onClick)
+        Modifier
+            .pressScale(0.985f)
+            .clickable(onClick = onClick)
     } else {
         Modifier
     }

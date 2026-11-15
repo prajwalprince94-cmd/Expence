@@ -112,4 +112,12 @@ class QuixDesignTokensTest {
         assertEquals(0.75f, computeSafeRatio(0.75f), 0.001f)
         assertEquals(1.0f, computeSafeRatio(1.5f), 0.001f)
     }
+
+    @Test
+    fun quixColors_aliases_matchQuixTokens() {
+        assertEquals(QuixTokens.ObsidianCanvas, QuixColors.ObsidianDeep)
+        assertEquals(QuixTokens.ObsidianCard, QuixColors.ObsidianSurfaceCard)
+        assertEquals(QuixTokens.CoralWarning, QuixColors.DangerCoral)
+        assertEquals(QuixTokens.NeonLime, QuixColors.NeonLime)
+    }
 }

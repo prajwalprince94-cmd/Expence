@@ -41,9 +41,18 @@ object QuixTokens {
     val BorderPillStroke = BorderStroke(1.dp, BorderMedium)
     val BorderActiveStroke = BorderStroke(1.dp, NeonLimeGlow)
 
+    // ── Semantic Aliases ────────────────────────────────────────────────────────
+    val ObsidianDeep = ObsidianCanvas
+    val ObsidianSurfaceCard = ObsidianCard
+    val DangerCoral = CoralWarning
+
     // ── Shapes ───────────────────────────────────────────────────────────────────
     val CardShape = RoundedCornerShape(16.dp)
     val CardShapeLarge = RoundedCornerShape(20.dp)
     val PillShape = CircleShape
     val TagShape = RoundedCornerShape(999.dp)
 }
+
+/** Semantic alias for QuixTokens */
+typealias QuixColors = QuixTokens
+
